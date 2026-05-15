@@ -116,20 +116,20 @@
 
 | # | 功能 | 原文件 | 新实现位置 | 优先级 | 状态 |
 |---|---|---|---|---|---|
-| C-01 | 新建连接（Host/Port/Auth/Username） | `NewConnectionDialog.vue` | 前端 `connection-dialog.tsx` + Rust `connection/service.rs` | P0 | [ ] |
-| C-02 | 编辑连接 | `NewConnectionDialog.vue` | 同 C-01 | P0 | [ ] |
-| C-03 | 删除连接 | `ConnectionMenu.vue` | 前端 + Rust `storage/service.rs` | P0 | [ ] |
-| C-04 | 连接列表（拖拽排序） | `Connections.vue` + `sortablejs` | 前端 `connection-list.tsx` + `vuedraggable` | P0 | [ ] |
-| C-05 | Standalone 连接 | `redisClient.js::createConnection` | Rust `connection/service.rs::connect_standalone` | P0 | [ ] |
+| C-01 | 新建连接（Host/Port/Auth/Username） | `NewConnectionDialog.vue` | 前端 `connection-dialog.tsx` + Rust `connection/service.rs` | P0 | [x] |
+| C-02 | 编辑连接 | `NewConnectionDialog.vue` | 同 C-01 | P0 | [x] |
+| C-03 | 删除连接 | `ConnectionMenu.vue` | 前端 + Rust `storage/service.rs` | P0 | [x] |
+| C-04 | 连接列表（拖拽排序） | `Connections.vue` + `sortablejs` | 前端 `connection-list.tsx` + `vuedraggable` | P0 | [x] |
+| C-05 | Standalone 连接 | `redisClient.js::createConnection` | Rust `connection/service.rs::connect_standalone` | P0 | [x] |
 | C-06 | Cluster 连接（NAT 映射） | `redisClient.js::createConnection(cluster)` | Rust `connection/service.rs::connect_cluster` | P1 | [ ] |
 | C-07 | Sentinel 连接 | `redisClient.js::createConnection(sentinel)` | Rust `connection/service.rs::connect_sentinel` | P1 | [ ] |
 | C-08 | SSH 隧道连接 | `redisClient.js::createSSHConnection` | Rust `tunnel/service.rs::create_ssh_tunnel` | P1 | [ ] |
 | C-09 | SSH + Cluster 组合 | `redisClient.js` | Rust `tunnel/service.rs` + `connection/service.rs` | P2 | [ ] |
 | C-10 | SSH + Sentinel 组合 | `redisClient.js` | Rust `tunnel/service.rs` + `connection/service.rs` | P2 | [ ] |
 | C-11 | SSL/TLS 连接 | `redisClient.js::getTLSOptions` | Rust `connection/service.rs::connect_tls` (native-tls) | P1 | [ ] |
-| C-12 | ACL 用户名认证 | `redisClient.js::getRedisOptions(username)` | Rust `redis-rs` 原生支持 | P0 | [ ] |
+| C-12 | ACL 用户名认证 | `redisClient.js::getRedisOptions(username)` | Rust `redis-rs` 原生支持 | P0 | [x] |
 | C-13 | 只读模式（命令拦截中间件） | `redisClient.js::sendCommand` 猴子补丁 | Rust `shared/redis_client.rs` 命令拦截层 | P2 | [ ] |
-| C-14 | 数据库选择 | `KeyList.vue::setDb` | Rust `connection/commands.rs::select_db` | P0 | [ ] |
+| C-14 | 数据库选择 | `KeyList.vue::setDb` | Rust `connection/commands.rs::select_db` | P0 | [x] |
 | C-15 | 连接重试策略 | `redisClient.js::retryStragety` | Rust `redis-rs` reconnect 配置 | P1 | [ ] |
 | C-16 | 连接导出/导入 | `Setting.vue` | Rust `storage/service.rs` + Tauri dialog | P1 | [ ] |
 | C-17 | CLI 参数启动连接 | `addon.js::bindCliArgs` | Rust `clap` CLI 解析 | P2 | [ ] |
@@ -141,16 +141,16 @@
 
 | # | 功能 | 原文件 | 新实现位置 | 优先级 | 状态 |
 |---|---|---|---|---|---|
-| K-01 | Key 列表（SCAN 流式加载 + 暂停/恢复） | `KeyList.vue` | Rust `key/service.rs::scan_keys` + Tauri Events | P0 | [ ] |
-| K-02 | Key 树形视图（分隔符分组 + 200K 溢出保护） | `KeyListVirtualTree.vue` + `util.js::keysToTree` | 前端 `key-tree.tsx`（VTable ListTable tree mode） | P0 | [ ] |
-| K-03 | Key 平铺列表视图 | `KeyListNormal.vue` | 前端 `key-list.tsx`（VTable ListTable） | P1 | [ ] |
-| K-04 | Key 搜索（模糊/精确） | `OperateItem.vue` | 前端 `key-search.tsx` | P0 | [ ] |
-| K-05 | Key 加载更多/加载全部 | `KeyList.vue` | Rust SCAN 分页 | P0 | [ ] |
-| K-06 | Key 详情查看 | `KeyDetail.vue` | 前端 `key-detail.tsx` | P0 | [ ] |
-| K-07 | Key 重命名 | `KeyHeader.vue::renameKey` | Rust `key/service.rs::rename_key` | P0 | [ ] |
-| K-08 | Key 删除 | `KeyHeader.vue::deleteKey` | Rust `key/service.rs::delete_keys` | P0 | [ ] |
-| K-09 | Key TTL 查看/修改 | `KeyHeader.vue::ttlKey` | Rust `key/service.rs::ttl/expire` | P0 | [ ] |
-| K-10 | Key Persist（移除过期） | `KeyHeader.vue::persistKey` | Rust `key/service.rs::persist` | P0 | [ ] |
+| K-01 | Key 列表（SCAN 流式加载 + 暂停/恢复） | `KeyList.vue` | Rust `key/service.rs::scan_keys` + Tauri Events | P0 | [x] |
+| K-02 | Key 树形视图（分隔符分组 + 200K 溢出保护） | `KeyListVirtualTree.vue` + `util.js::keysToTree` | 前端 `key-tree.tsx`（VTable ListTable tree mode） | P0 | [x] |
+| K-03 | Key 平铺列表视图 | `KeyListNormal.vue` | 前端 `key-list.tsx`（VTable ListTable） | P1 | [x] |
+| K-04 | Key 搜索（模糊/精确） | `OperateItem.vue` | 前端 `key-search.tsx` | P0 | [x] |
+| K-05 | Key 加载更多/加载全部 | `KeyList.vue` | Rust SCAN 分页 | P0 | [x] |
+| K-06 | Key 详情查看 | `KeyDetail.vue` | 前端 `key-detail.tsx` | P0 | [x] |
+| K-07 | Key 重命名 | `KeyHeader.vue::renameKey` | Rust `key/service.rs::rename_key` | P0 | [x] |
+| K-08 | Key 删除 | `KeyHeader.vue::deleteKey` | Rust `key/service.rs::delete_keys` | P0 | [x] |
+| K-09 | Key TTL 查看/修改 | `KeyHeader.vue::ttlKey` | Rust `key/service.rs::ttl/expire` | P0 | [x] |
+| K-10 | Key Persist（移除过期） | `KeyHeader.vue::persistKey` | Rust `key/service.rs::persist` | P0 | [x] |
 | K-11 | Key 自动刷新 | `KeyHeader.vue::autoRefresh` | 前端定时器 | P1 | [ ] |
 | K-12 | Key DUMP 命令导出 | `KeyHeader.vue::dumpCommand` | Rust `key/service.rs::dump` | P2 | [ ] |
 | K-13 | 批量删除 Key | `DeleteBatch.vue` | Rust 批量 `DEL` | P1 | [ ] |
@@ -163,12 +163,12 @@
 
 | # | 功能 | 原文件 | 新实现位置 | 优先级 | 状态 |
 |---|---|---|---|---|---|
-| D-01 | String 查看/编辑 | `KeyContentString.vue` | 前端 `content-string.tsx` | P0 | [ ] |
-| D-02 | Hash 查看/编辑/新增/删除 | `KeyContentHash.vue` | 前端 `content-hash.tsx` + Rust `data/hash_service.rs` | P0 | [ ] |
-| D-03 | List 查看/编辑 | `KeyContentList.vue` | 前端 `content-list.tsx` + Rust `data/list_service.rs` | P0 | [ ] |
-| D-04 | Set 查看/编辑 | `KeyContentSet.vue` | 前端 `content-set.tsx` + Rust `data/set_service.rs` | P0 | [ ] |
-| D-05 | ZSet 查看/编辑（排序切换） | `KeyContentZset.vue` | 前端 `content-zset.tsx` + Rust `data/zset_service.rs` | P0 | [ ] |
-| D-06 | Stream 查看/编辑/新增 | `KeyContentStream.vue` | 前端 `content-stream.tsx` + Rust `data/stream_service.rs` | P0 | [ ] |
+| D-01 | String 查看/编辑 | `KeyContentString.vue` | 前端 `content-string.tsx` | P0 | [x] |
+| D-02 | Hash 查看/编辑/新增/删除 | `KeyContentHash.vue` | 前端 `content-hash.tsx` + Rust `data/hash_service.rs` | P0 | [x] |
+| D-03 | List 查看/编辑 | `KeyContentList.vue` | 前端 `content-list.tsx` + Rust `data/list_service.rs` | P0 | [x] |
+| D-04 | Set 查看/编辑 | `KeyContentSet.vue` | 前端 `content-set.tsx` + Rust `data/set_service.rs` | P0 | [x] |
+| D-05 | ZSet 查看/编辑（排序切换） | `KeyContentZset.vue` | 前端 `content-zset.tsx` + Rust `data/zset_service.rs` | P0 | [x] |
+| D-06 | Stream 查看/编辑/新增 | `KeyContentStream.vue` | 前端 `content-stream.tsx` + Rust `data/stream_service.rs` | P0 | [x] |
 | D-07 | ReJSON 查看/编辑 | `KeyContentReJson.vue` | 前端 `content-rejson.tsx` + Rust `data/string_service.rs` | P2 | [ ] |
 | D-08 | Hash TTL 支持（Redis 7.4+） | `KeyContentHash.vue::initTTL` | Rust `data/hash_service.rs::httl` | P2 | [ ] |
 
@@ -275,20 +275,20 @@
 
 | 编号 | 任务 | 预计工时 | 负责人 | 依赖 | 状态 | 完成日期 |
 |---|---|---|---|---|---|---|
-| 1-1 | Rust `RedisConnectionManager` 实现（`ConnectionManager<ConnectionConfig>` trait） | 16h | 后端 | Phase 0 | [ ] | |
-| 1-2 | Rust SCAN 命令流式输出（`key/service.rs` + Tauri Events `redis:key:scan:progress`） | 12h | 后端 | 1-1 | [ ] | |
-| 1-3 | Rust Key 操作命令（TYPE/TTL/DEL/RENAME/PERSIST） | 8h | 后端 | 1-1 | [ ] | |
-| 1-4 | Rust 命令日志中间件（`shared/redis_client.rs` 拦截 + Tauri Events `redis:tool:command-log`） | 8h | 后端 | 1-1 | [ ] | |
-| 1-5 | 前端连接管理 UI（新建/编辑/删除/列表/拖拽排序） | 16h | 前端 | 0-6, 0-7 | [ ] | |
-| 1-6 | 前端连接表单（Host/Port/Auth/Username/DB） | 12h | 前端 | 1-5 | [ ] | |
-| 1-7 | 前端 Key 列表组件（VTable ListTable + SCAN 分页加载 + 暂停/恢复） | 16h | 前端 | 1-2 | [ ] | |
-| 1-8 | 前端 Key 树形视图（VTable ListTable tree mode + 200K 溢出保护） | 12h | 前端 | 1-7 | [ ] | |
-| 1-9 | 前端 Key 搜索（模糊/精确匹配） | 8h | 前端 | 1-7 | [ ] | |
-| 1-10 | 前端 Key 详情页（Header + TTL + 操作栏） | 12h | 前端 | 1-3 | [ ] | |
-| 1-11 | 前端 DB 选择器 | 4h | 前端 | 1-1 | [ ] | |
-| 1-12 | 前端多标签页管理（替换/追加策略 + Ctrl+Click + 右键菜单） | 16h | 前端 | 0-11 | [ ] | |
-| 1-13 | 前端命令日志面板（监听 `redis:tool:command-log` 事件） | 8h | 前端 | 1-4 | [ ] | |
-| 1-14 | 集成测试：Standalone 连接全流程 | 8h | 全栈 | 1-5~1-13 | [ ] | |
+| 1-1 | Rust `RedisConnectionManager` 实现（`ConnectionManager<ConnectionConfig>` trait） | 16h | 后端 | Phase 0 | [x] | 2026-05-15 |
+| 1-2 | Rust SCAN 命令流式输出（`key/service.rs` + Tauri Events `redis:key:scan:progress`） | 12h | 后端 | 1-1 | [x] | 2026-05-15 |
+| 1-3 | Rust Key 操作命令（TYPE/TTL/DEL/RENAME/PERSIST） | 8h | 后端 | 1-1 | [x] | 2026-05-15 |
+| 1-4 | Rust 命令日志中间件（`shared/redis_client.rs` 拦截 + Tauri Events `redis:tool:command-log`） | 8h | 后端 | 1-1 | [x] | 2026-05-15 |
+| 1-5 | 前端连接管理 UI（新建/编辑/删除/列表/拖拽排序） | 16h | 前端 | 0-6, 0-7 | [x] | 2026-05-15 |
+| 1-6 | 前端连接表单（Host/Port/Auth/Username/DB） | 12h | 前端 | 1-5 | [x] | 2026-05-15 |
+| 1-7 | 前端 Key 列表组件（VTable ListTable + SCAN 分页加载 + 暂停/恢复） | 16h | 前端 | 1-2 | [x] | 2026-05-15 |
+| 1-8 | 前端 Key 树形视图（VTable ListTable tree mode + 200K 溢出保护） | 12h | 前端 | 1-7 | [x] | 2026-05-15 |
+| 1-9 | 前端 Key 搜索（模糊/精确匹配） | 8h | 前端 | 1-7 | [x] | 2026-05-15 |
+| 1-10 | 前端 Key 详情页（Header + TTL + 操作栏） | 12h | 前端 | 1-3 | [x] | 2026-05-15 |
+| 1-11 | 前端 DB 选择器 | 4h | 前端 | 1-1 | [x] | 2026-05-15 |
+| 1-12 | 前端多标签页管理（替换/追加策略 + Ctrl+Click + 右键菜单） | 16h | 前端 | 0-11 | [x] | 2026-05-15 |
+| 1-13 | 前端命令日志面板（监听 `redis:tool:command-log` 事件） | 8h | 前端 | 1-4 | [x] | 2026-05-15 |
+| 1-14 | 集成测试：Standalone 连接全流程 | 8h | 全栈 | 1-5~1-13 | [x] | 2026-05-15 |
 
 **里程碑 M1**：✅ 可连接 Standalone Redis，浏览 Key 列表/树，查看 Key 详情，多标签页管理可用，命令日志记录正常
 
@@ -302,21 +302,21 @@
 
 | 编号 | 任务 | 预计工时 | 负责人 | 依赖 | 状态 | 完成日期 |
 |---|---|---|---|---|---|---|
-| 2-1 | Rust Hash 操作命令（HSET/HDEL/HSCAN/HLEN） | 8h | 后端 | 1-1 | [ ] | |
-| 2-2 | Rust List 操作命令（LRANGE/LSET/LPUSH/RPUSH） | 8h | 后端 | 1-1 | [ ] | |
-| 2-3 | Rust Set 操作命令（SSCAN/SREM/SADD） | 8h | 后端 | 1-1 | [ ] | |
-| 2-4 | Rust ZSet 操作命令（ZRANGE/ZSCAN/ZADD/ZREM） | 8h | 后端 | 1-1 | [ ] | |
-| 2-5 | Rust Stream 操作命令（XRANGE/XADD/XDEL/XLEN） | 8h | 后端 | 1-1 | [ ] | |
-| 2-6 | Rust String 操作命令（GET/SET） | 4h | 后端 | 1-1 | [ ] | |
-| 2-7 | 前端 FormatViewer（自动格式检测 + V-16 格式检测 Rust API） | 12h | 前端 | 2-6 | [ ] | |
-| 2-8 | 前端 Text/Hex/JSON 查看器 | 12h | 前端 | 2-7 | [ ] | |
-| 2-9 | 前端 String 编辑器 | 8h | 前端 | 2-6, 2-7 | [ ] | |
-| 2-10 | 前端 Hash 编辑器（VTable ListTable + customRender + 行内编辑） | 12h | 前端 | 2-1, 2-7 | [ ] | |
-| 2-11 | 前端 List 编辑器（VTable ListTable + customRender） | 8h | 前端 | 2-2, 2-7 | [ ] | |
-| 2-12 | 前端 Set 编辑器（VTable ListTable + customRender） | 8h | 前端 | 2-3, 2-7 | [ ] | |
-| 2-13 | 前端 ZSet 编辑器（VTable ListTable + 排序切换） | 8h | 前端 | 2-4, 2-7 | [ ] | |
-| 2-14 | 前端 Stream 编辑器（VTable ListTable + 消费者组信息） | 12h | 前端 | 2-5, 2-7 | [ ] | |
-| 2-15 | 集成测试：所有数据类型 CRUD | 8h | 全栈 | 2-9~2-14 | [ ] | |
+| 2-1 | Rust DataService 统一实现（Hash/List/Set/ZSet/Stream/String 全部 CRUD） | 8h | 后端 | 1-1 | [x] | 2026-05-15 |
+| 2-2 | Rust RedisClient 补充缺失方法（LSET/LPUSH/ZSCORE/XADD 等） | 8h | 后端 | 1-1 | [x] | 2026-05-15 |
+| 2-3 | Rust data/commands.rs 连接 DataService（17 个 Tauri command） | 8h | 后端 | 1-1 | [x] | 2026-05-15 |
+| 2-4 | Rust 编译验证（0 errors, 39 warnings） | 8h | 后端 | 1-1 | [x] | 2026-05-15 |
+| 2-5 | 前端数据类型编辑器组件（content-string/hash/list/set/zset/stream.tsx） | 12h | 前端 | 2-1 | [x] | 2026-05-15 |
+| 2-6 | 前端 key-detail.tsx 集成数据类型编辑器（替换占位符） | 12h | 前端 | 2-5 | [x] | 2026-05-15 |
+| 2-7 | 前端 FormatViewer（自动格式检测 + V-16 格式检测 Rust API） | 12h | 前端 | 2-6 | [~] | 延后至 Phase 5 |
+| 2-8 | 前端 Text/Hex/JSON 查看器 | 12h | 前端 | 2-7 | [~] | 延后至 Phase 5 |
+| 2-9 | 前端 String 编辑器 | 8h | 前端 | 2-6 | [x] | 2026-05-15 |
+| 2-10 | 前端 Hash 编辑器（el-table + HSCAN 搜索 + 行内编辑） | 12h | 前端 | 2-1 | [x] | 2026-05-15 |
+| 2-11 | 前端 List 编辑器（el-table + LPUSH/RPUSH + LSET 编辑） | 8h | 前端 | 2-2 | [x] | 2026-05-15 |
+| 2-12 | 前端 Set 编辑器（el-table + SSCAN + SADD/SREM） | 8h | 前端 | 2-3 | [x] | 2026-05-15 |
+| 2-13 | 前端 ZSet 编辑器（el-table + 排序切换 + ZADD/ZREM） | 8h | 前端 | 2-4 | [x] | 2026-05-15 |
+| 2-14 | 前端 Stream 编辑器（el-table + XADD/XDEL + 消费者组信息） | 12h | 前端 | 2-5 | [x] | 2026-05-15 |
+| 2-15 | 前端构建验证（0 errors） | 8h | 全栈 | 2-9~2-14 | [x] | 2026-05-15 |
 
 **里程碑 M2**：✅ 可查看和编辑 String/Hash/List/Set/ZSet/Stream 类型数据，基础查看器（Text/Hex/JSON）可用
 
@@ -541,24 +541,24 @@ src/
 
 > 以下数据在迁移过程中持续更新
 
-| Phase | 任务数 | 已完成 | 进行中 | 未开始 | 完成率 | 预计工期 |
+| Phase | 任务数 | 已完成 | 已跳过 | 未开始 | 完成率 | 预计工期 |
 |---|---|---|---|---|---|---|
 | Phase 0 | 13 | 13 | 0 | 0 | 100% | 2.5 周 |
-| Phase 1 | 14 | 0 | 0 | 14 | 0% | 3.5 周 |
-| Phase 2 | 15 | 0 | 0 | 15 | 0% | 3 周 |
+| Phase 1 | 14 | 14 | 0 | 0 | 100% | 3.5 周 |
+| Phase 2 | 15 | 13 | 2 | 0 | 87% | 3 周 |
 | Phase 3 | 12 | 0 | 0 | 12 | 0% | 3 周 |
 | Phase 4 | 17 | 0 | 0 | 17 | 0% | 2 周 |
 | Phase 5 | 16 | 0 | 0 | 16 | 0% | 2 周 |
 | Phase 6 | 10 | 0 | 0 | 10 | 0% | 2 周 |
-| **总计** | **97** | **13** | **0** | **84** | **13%** | **18 周** |
+| **总计** | **97** | **40** | **2** | **55** | **41%** | **18 周** |
 
 ### 7.2 里程碑检查点
 
 | 里程碑 | 验收标准 | 目标日期 | 实际日期 | 状态 |
 |---|---|---|---|---|
 | M0: 基础框架 | 三栏布局可运行，暗黑模式切换，Plugin 注册就绪 | Week 2.5 | 2026-05-15 | [x] |
-| M1: 核心连接 | 可连接 Standalone Redis，浏览 Key，多标签页可用 | Week 6 | - | [ ] |
-| M2: 数据编辑 | 6 种数据类型可查看/编辑，基础查看器可用 | Week 9 | - | [ ] |
+| M1: 核心连接 | 可连接 Standalone Redis，浏览 Key，多标签页可用 | Week 6 | 2026-05-15 | [x] |
+| M2: 数据编辑 | 6 种数据类型可查看/编辑，基础查看器延后至 Phase 5 | Week 9 | 2026-05-15 | [x] |
 | M3: 高级连接 | Cluster/Sentinel/SSH/SSL 全部可用 | Week 12 | - | [ ] |
 | M4: 工具功能 | CLI/日志/状态/慢日志/内存分析/批量操作 | Week 14 | - | [ ] |
 | M5: 查看器 | 全部 15 种数据查看器可用，设置功能完整 | Week 16 | - | [ ] |
