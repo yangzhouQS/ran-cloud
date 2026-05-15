@@ -1,90 +1,21 @@
 # AnotherRedisDesktopManager 深度分析文档
 
-> 基于对所有源文件的逐行阅读，全面分析模块设计、架构设计、功能设计和设计规范。
+> 基于 2026-05-15 全量源码逐文件阅读，覆盖所有 65+ 源文件
 
 ---
 
 ## 一、项目概览
 
-### 1.1 技术栈
-
-| 层级 | 技术 | 版本 |
-|------|------|------|
-| 桌面框架 | Electron | 12.x |
-| 前端框架 | Vue | 2.6.x (Options API) |
-| UI 组件库 | Element UI | 2.x (size: small) |
-| 数据表格 | vxe-table | 3.9.x |
-| 虚拟树 | @qii401/vue-easy-tree | - |
-| 虚拟滚动 | vue-virtual-scroller (RecycleScroller) | - |
-| Redis 客户端 | ioredis | 5.3.x |
-| SSH 隧道 | tunnel-ssh | 5.1.x |
-| JSON 编辑器 | monaco-editor | 0.30.x |
-| 构建工具 | Webpack | 4.x |
-| 国际化 | vue-i18n | 8.x (14 种语言) |
-| 快捷键 | keymaster | - |
-| 拖拽排序 | SortableJS | - |
-| 命令解析 | @qii401/redis-splitargs | - |
-| 大数 JSON | @qii401/json-bigint | - |
-| 格式解码 | protobufjs, rawproto, php-serialize, algo-msgpack-with-bigint, java-object-serialization, pickleparser | - |
-| 压缩解压 | zlib (Node.js 内置), brotli (Node.js 内置) | - |
-
-### 1.2 项目结构
-
-```
-AnotherRedisDesktopManager/
-├── build/                          # Webpack 构建配置
-│   ├── webpack.base.conf.js        # 基础配置
-│   ├── webpack.dev.conf.js         # 开发配置
-│   ├── webpack.prod.conf.js        # 生产配置
-│   ├── utils.js                    # 构建工具函数
-│   ├── vue-loader.conf.js          # Vue Loader 配置
-│   ├── build.js                    # 构建入口
-│   └── check-versions.js           # Node/NPM 版本检查
-├── config/                         # 环境配置
-│   ├── index.js                    # 主配置（端口、代理等）
-│   ├── dev.env.js                  # 开发环境变量
-│   └── prod.env.js                 # 生产环境变量
-├── pack/                           # Electron 打包
-│   ├── electron/
-│   │   ├── electron-main.js        # Electron 主进程
-│   │   ├── update.js               # 自动更新
-│   │   ├── win-state.js            # 窗口状态持久化
-│   │   ├── font-manager.js         # 字体管理
-│   │   ├── package.json            # Electron 应用 package
-│   │   └── icons/                  # 应用图标
-│   └── scripts/
-│       └── notarize.js             # macOS 公证
-├── src/                            # 前端源码
-│   ├── main.js                     # Vue 入口
-│   ├── App.vue                     # 根组件
-│   ├── Aside.vue                   # 侧边栏组件
-│   ├── bus.js                      # 事件总线
-│   ├── shortcut.js                 # 快捷键管理
-│   ├── addon.js                    # CLI 参数/字体/缩放初始化
-│   ├── util.js                     # 核心工具函数
-│   ├── storage.js                  # localStorage 持久化
-│   ├── redisClient.js              # Redis 连接工厂
-│   ├── commands.js                 # Redis 命令分类
-│   ├── router/
-│   │   └── index.js                # 路由（单页无路由）
-│   ├── i18n/
-│   │   ├── i18n.js                 # i18n 配置
-│   │   └── langs/                  # 14 种语言文件
-│   ├── components/                 # 业务组件
-│   │   ├── contents/               # 数据类型编辑器（7 个）
-│   │   ├── viewers/                # 格式查看器（16 个）
-│   │   └── *.vue                   # 其他组件
-│   └── assets/                     # 静态资源
-├── static/                         # 静态文件
-│   └── theme/
-│       ├── light/                  # 亮色主题 CSS
-│       └── dark/                   # 暗色主题 CSS
-├── index.html                      # HTML 入口
-├── package.json                    # 项目配置
-├── babel.config.json               # Babel 配置
-├── .postcssrc.js                   # PostCSS 配置
-└── element-variables.scss          # Element UI 主题变量
-```
+| 项目属性 | 值 |
+|---------|---|
+| 名称 | Another Redis Desktop Manager (ARDM) |
+| 版本 | 1.7.1 |
+| 技术栈 | Electron 12.2.3 + Vue 2.6.14 + Element UI 2.15.14 |
+| Redis 客户端 | ioredis 5.3.2 |
+| 构建工具 | Webpack 4 + Babel |
+| 包大小 | ~1.5MB (pack 后) |
+| 语言支持 | 13 种语言 (en/cn/tw/tr/ru/pt/de/fr/ua/it/es/ko/vi) |
+| 源文件数 | 65+ (不含 node_modules/static) |
 
 ---
 
@@ -93,971 +24,920 @@ AnotherRedisDesktopManager/
 ### 2.1 整体架构图
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Electron 主进程                        │
-│  electron-main.js                                       │
-│  ├── BrowserWindow (窗口管理)                             │
-│  ├── IPC 通信 (主题/字体/窗口控制)                          │
-│  ├── nativeTheme (系统主题监听)                            │
-│  ├── auto-update (自动更新)                               │
-│  └── win-state (窗口位置/大小持久化)                       │
-└──────────────────────┬──────────────────────────────────┘
-                       │ IPC
-┌──────────────────────┴──────────────────────────────────┐
-│                   Electron 渲染进程                        │
-│                                                          │
-│  ┌─────────────────────────────────────────────────────┐ │
-│  │              Vue 2 全局实例                           │ │
-│  │  Vue.prototype.$bus = 事件总线                        │ │
-│  │  Vue.prototype.$util = 工具函数                       │ │
-│  │  Vue.prototype.$storage = 存储管理                    │ │
-│  │  Vue.prototype.$shortcut = 快捷键管理                 │ │
-│  └─────────────────────────────────────────────────────┘ │
-│                                                          │
-│  ┌──────────┐  ┌──────────────────────────────────────┐  │
-│  │  Aside    │  │            Tabs (主内容区)            │  │
-│  │  侧边栏   │  │                                      │  │
-│  │           │  │  ┌────────┐ ┌────────┐ ┌─────────┐  │  │
-│  │ ┌───────┐ │  │  │Status  │ │CliTab  │ │KeyDetail│  │  │
-│  │ │Conn.  │ │  │  │服务器   │ │命令行   │ │键详情    │  │  │
-│  │ │List   │ │  │  └────────┘ └────────┘ └─────────┘  │  │
-│  │ └───────┘ │  │  ┌────────┐ ┌────────┐              │  │
-│  │ ┌───────┐ │  │  │DelBatch│ │Memory  │              │  │
-│  │ │KeyList│ │  │  │批量删除 │ │Analysis│              │  │
-│  │ │Tree   │ │  │  └────────┘ └────────┘              │  │
-│  │ └───────┘ │  │  ┌────────┐                         │  │
-│  │           │  │  │SlowLog │                         │  │
-│  │           │  │  └────────┘                         │  │
-│  └──────────┘  └──────────────────────────────────────┘  │
-│                                                          │
-│  ┌─────────────────────────────────────────────────────┐ │
-│  │               核心服务层                               │ │
-│  │  redisClient.js ← ioredis 连接工厂                    │ │
-│  │  storage.js     ← localStorage 持久化                │ │
-│  │  util.js        ← Buffer/格式检测/树构建              │ │
-│  │  commands.js    ← Redis 命令分类                      │ │
-│  └─────────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│                   Electron Main Process               │
+│  ┌─────────────┐ ┌──────────┐ ┌───────────────────┐ │
+│  │electron-main│ │ update.js│ │ font-manager.js   │ │
+│  │  (窗口管理)  │ │(自动更新) │ │  (系统字体列表)    │ │
+│  └─────────────┘ └──────────┘ └───────────────────┘ │
+│  ┌─────────────┐ ┌──────────────────────────────┐   │
+│  │ win-state.js│ │     IPC Bridge               │   │
+│  │ (窗口状态)   │ │ (ipcMain/ipcRenderer)         │   │
+│  └─────────────┘ └──────────────────────────────┘   │
+├──────────────────────────────────────────────────────┤
+│                   Renderer Process                    │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │                   main.js                        │ │
+│  │  Vue.prototype.$bus / $util / $storage / $shortcut│ │
+│  └───────────────┬─────────────────────────────────┘ │
+│                  │                                    │
+│  ┌───────────────▼─────────────────────────────────┐ │
+│  │                  App.vue                         │ │
+│  │  ┌──────────┐  ┌─────────────────────────────┐  │ │
+│  │  │  Aside   │  │          Tabs                │  │ │
+│  │  │ (左侧栏) │  │  (多标签页管理器)              │  │ │
+│  │  └──────────┘  └─────────────────────────────┘  │ │
+│  └─────────────────────────────────────────────────┘ │
+│                                                       │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │              Global Services                     │ │
+│  │  bus.js │ storage.js │ util.js │ shortcut.js     │ │
+│  │  addon.js │ redisClient.js │ commands.js         │ │
+│  └─────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────┘
 ```
 
-### 2.2 核心设计模式
-
-#### 2.2.1 事件总线模式（Event Bus）
-
-[`bus.js`](AnotherRedisDesktopManager/src/bus.js) 创建一个空 Vue 实例作为全局事件中心：
-
-```javascript
-const bus = new Vue();
-// 注入到 Vue.prototype.$bus
-```
-
-**所有跨组件通信**通过 `$bus.$emit/$on/$off` 实现，这是项目最核心的设计模式。
-
-**关键事件清单：**
-
-| 事件名 | 发送者 | 接收者 | 用途 |
-|--------|--------|--------|------|
-| `refreshConnections` | Setting, ConnectionMenu | Connections | 刷新连接列表 |
-| `openConnection` | Connections | ConnectionWrapper | 打开连接 |
-| `closeConnection` | App.vue, ConnectionMenu | ConnectionWrapper | 关闭连接 |
-| `clickedKey` | KeyListVirtualTree, KeyHeader | Tabs | 打开键详情 Tab |
-| `openStatus` | ConnectionMenu | Tabs | 打开服务器状态 Tab |
-| `openCli` | ConnectionMenu | Tabs | 打开 CLI Tab |
-| `openDelBatch` | KeyListVirtualTree, ConnectionMenu | Tabs | 打开批量删除 Tab |
-| `memoryAnalysis` | KeyListVirtualTree, ConnectionMenu | Tabs | 打开内存分析 Tab |
-| `slowLog` | ConnectionMenu | Tabs | 打开慢日志 Tab |
-| `refreshKeyList` | KeyHeader, CliTab, DeleteBatch | KeyList | 刷新键列表 |
-| `removePreTab` | KeyHeader, Tabs | Tabs | 关闭当前 Tab |
-| `removeAllTab` | ConnectionWrapper | Tabs | 关闭所有 Tab |
-| `changeDb` | CliTab, OperateItem | CliTab | 切换数据库 |
-| `commandLog` | redisClient (monkey-patch) | CommandLog | 记录执行命令 |
-| `reloadSettings` | Setting | KeyList, ConnectionWrapper | 重新加载设置 |
-| `update-check` | Setting | UpdateCheck | 检查更新 |
-| `addCustomFormatter` | FormatViewer | Aside | 添加自定义格式化器 |
-| `refreshViewers` | CustomFormatter | FormatViewer | 刷新查看器列表 |
-| `changeMatchMode` | KeyListVirtualTree | OperateItem | 更改搜索模式 |
-
-#### 2.2.2 全局原型注入模式
-
-[`main.js`](AnotherRedisDesktopManager/src/main.js:8) 将核心模块注入到 Vue 原型链：
-
-```javascript
-Vue.prototype.$bus = bus;           // 事件总线
-Vue.prototype.$util = util;         // 工具函数
-Vue.prototype.$storage = storage;   // 存储管理
-Vue.prototype.$shortcut = shortcut; // 快捷键
-```
-
-所有组件通过 `this.$bus`、`this.$util`、`this.$storage`、`this.$shortcut` 直接访问，**无需 import**。
-
-#### 2.2.3 连接工厂模式
-
-[`redisClient.js`](AnotherRedisDesktopManager/src/redisClient.js) 是 Redis 连接的工厂，根据配置创建不同类型的连接：
+### 2.2 数据流架构
 
 ```
-createRedisClient(config)
-├── config.ssh → createSSHConnection(config)
-│   ├── SSH + Standalone
-│   ├── SSH + Cluster (多隧道 + NAT 映射)
-│   └── SSH + Sentinel
-├── config.sentinel → createConnection() with sentinelOptions
-├── config.cluster → new Redis.Cluster()
-└── 默认 → new Redis() (standalone)
+用户操作 → Vue 组件 → bus.$emit(事件) → 目标组件处理
+                     ↓
+              redisClient.js → ioredis → Redis Server
+                     ↓
+           monkey-patch sendCommand → commandLog 事件
 ```
 
-**关键特性：**
-- 命令日志：通过 monkey-patch `Redis.prototype.sendCommand`，每次命令执行后 emit `commandLog` 事件
-- 只读模式：检查 `writeCMD` 列表，阻止写命令执行
-- 重试策略：最多 3 次，指数退避
-- Cluster NAT 映射：SSH+Cluster 模式下，将远程节点地址映射为本地隧道地址
+### 2.3 核心设计模式
 
-#### 2.2.4 动态组件模式
-
-项目大量使用 Vue 的 `<component :is="xxx">` 动态组件：
-
-1. **KeyDetail** → 根据 `keyType` 动态选择内容组件：
-   - `string` → KeyContentString
-   - `hash` → KeyContentHash
-   - `set` → KeyContentSet
-   - `zset` → KeyContentZset
-   - `list` → KeyContentList
-   - `stream` → KeyContentStream
-   - `ReJSON-RL`/`json`/`tair-json` → KeyContentReJson
-
-2. **FormatViewer** → 根据 `selectedView` 动态选择查看器：
-   - Text, Hex, Json, Binary, Msgpack, PHPSerialize, JavaSerialize, Pickle
-   - Brotli, Gzip, Deflate, DeflateRaw, Protobuf, OverSize, Custom
-
-3. **KeyList** → 使用 `keyListType` 动态渲染（当前固定为 KeyListVirtualTree）
-
-#### 2.2.5 流式扫描模式（Stream Scan）
-
-所有键列表和内容加载都使用 ioredis 的 `scanBufferStream` 流式 API：
-
-```
-SCAN 流程:
-1. 创建 scanStream (match, count)
-2. stream.on('data') → 累积数据
-3. 达到 pageSize → stream.pause()
-4. 用户点击 "Load More" → stream.resume()
-5. stream.on('end') → 扫描完成
-```
-
-**使用流式扫描的组件：**
-- `KeyList.vue` → `scanBufferStream` (键列表)
-- `KeyContentHash.vue` → `hscanBufferStream` (Hash 字段)
-- `KeyContentSet.vue` → `sscanBufferStream` (Set 成员)
-- `KeyContentZset.vue` → `zscanBufferStream` (ZSet 成员搜索模式)
-- `MemoryAnalysis.vue` → `scanBufferStream` + `MEMORY USAGE`
-- `DeleteBatch.vue` → `scanBufferStream` (批量删除扫描)
-
-### 2.3 数据流
-
-```
-用户操作 → 组件方法 → ioredis 命令 → Redis 服务器
-                ↓
-         $bus.$emit(event) → 其他组件响应
-                ↓
-         $storage.saveXxx() → localStorage 持久化
-```
-
-**无状态管理库**：项目不使用 Vuex/Pinia，所有状态通过以下方式管理：
-1. 组件 `data()` 本地状态
-2. `$bus` 事件跨组件通信
-3. `$storage` (localStorage) 持久化
-4. `props` 父子组件传递
+| 模式 | 实现 | 说明 |
+|------|------|------|
+| **全局事件总线** | `bus.js` (Vue 实例) | 20+ 事件名，跨组件通信 |
+| **全局原型注入** | `Vue.prototype.$xxx` | $bus, $util, $storage, $shortcut |
+| **Monkey Patch** | `redisClient.js` | 拦截 ioredis sendCommand 实现命令日志和只读模式 |
+| **Stream 背压** | SCAN/HSCAN/SSCAN/ZSCAN 流 | pause/resume 控制内存 |
+| **虚拟滚动** | vue-virtual-scroller + vue-easy-tree | 大数据量列表渲染 |
+| **动态组件** | `<component :is="xxx">` | Tab 内容和 Key 内容编辑器 |
+| **localStorage 持久化** | `storage.js` | 连接配置、设置、搜索历史、自定义格式化器 |
+| **父子链访问** | `this.$parent.$parent.$parent` | 深层组件通信（反模式） |
 
 ---
 
 ## 三、模块设计
 
-### 3.1 入口模块
+### 3.1 核心基础设施层
 
-#### [`main.js`](AnotherRedisDesktopManager/src/main.js)
+#### 3.1.1 `src/main.js` — 应用入口 (46 行)
+- 创建 Vue 实例，挂载 App.vue
+- 注入全局原型：`$bus`、`$util`、`$storage`、`$shortcut`
+- 全局异常处理：`process.on('uncaughtException')`
 
-**职责**：Vue 应用入口，全局配置
-
+#### 3.1.2 `src/bus.js` — 事件总线 (18 行)
 ```javascript
-// 关键初始化：
-Vue.use(ElementUI, { size: 'small' });     // Element UI 小尺寸
-Vue.prototype.$bus = bus;                   // 事件总线
-Vue.prototype.$util = util;                 // 工具函数
-Vue.prototype.$storage = storage;           // 存储管理
-Vue.prototype.$shortcut = shortcut;         // 快捷键
-
-// 全局异常处理
-Vue.config.errorHandler = () => $bus.$emit('closeConnection');
+// Vue 实例作为事件中心
+const bus = new Vue();
+export default { $on, $emit, $off, $once };
 ```
 
-#### [`addon.js`](AnotherRedisDesktopManager/src/addon.js)
+**完整事件列表：**
 
-**职责**：Electron 环境初始化（CLI 参数、字体、缩放、链接跳转）
+| 事件名 | 发送者 | 接收者 | 用途 |
+|--------|--------|--------|------|
+| `clickedKey` | KeyList/KeyListVirtualTree/KeyListNormal | Tabs | 点击 Key 打开详情 |
+| `openStatus` | ConnectionMenu | Tabs | 打开状态面板 |
+| `openCli` | ConnectionMenu | Tabs | 打开 CLI |
+| `openDelBatch` | KeyListVirtualTree | Tabs | 打开批量删除 |
+| `memoryAnalysis` | ConnectionMenu | Tabs | 打开内存分析 |
+| `slowLog` | ConnectionMenu | Tabs | 打开慢日志 |
+| `removePreTab` | CliTab/DeleteBatch | Tabs | 关闭当前标签 |
+| `removeAllTab` | — | Tabs | 关闭所有标签 |
+| `closeConnection` | ConnectionMenu/Setting | ConnectionWrapper | 关闭连接 |
+| `openConnection` | Connections | ConnectionWrapper | 打开连接 |
+| `refreshConnections` | ConnectionMenu/Setting/NewConnectionDialog | Aside/Connections | 刷新连接列表 |
+| `refreshKeyList` | CliTab/DeleteBatch/ConnectionMenu | KeyList | 刷新 Key 列表 |
+| `changeDb` | CliTab/OperateItem | CliTab | 切换 DB |
+| `changeMatchMode` | OperateItem | KeyList | 切换精确/模糊搜索 |
+| `commandLog` | redisClient (monkey-patch) | CommandLog | 记录命令日志 |
+| `reloadSettings` | Setting | App | 重新加载设置 |
+| `update-check` | Setting/UpdateCheck | UpdateCheck | 检查更新 |
+| `fontInited` | addon | CliContent/JsonEditor | 字体初始化完成 |
+| `refreshViewers` | CustomFormatter | FormatViewer | 刷新查看器 |
+| `addCustomFormatter` | — | CustomFormatter | 添加自定义格式化器 |
+| `duplicateConnection` | ConnectionMenu | ConnectionMenu | 复制连接 |
 
-- 解析 CLI 参数：`--host`, `--port`, `--auth`, `--ssh-host`, `--sentinel-master-name`, `--ssl` 等
-- 初始化字体：通过 IPC 获取系统字体列表
-- 初始化缩放：读取 localStorage 中的 zoomFactor
-- 外部链接跳转：拦截 `href` 点击，用 `shell.openExternal()` 打开
+#### 3.1.3 `src/storage.js` — 持久化存储 (193 行)
+- 基于 localStorage 的封装
+- 连接 CRUD：`getConnections()`, `addConnection()`, `deleteConnection()`, `updateConnection()`
+- 连接排序：`getSortedConnections()` 支持 custom sort
+- 设置管理：`getSetting()`, `saveSettings()`
+- 搜索历史：`getSearchTips()`, `addSearchTips()`
+- CLI 历史：`getStorageKeyByName('cli_tip', name)`
+- 自定义 DB 名：`getCustomDBNames()`, `saveCustomDBNames()`
+- 自定义格式化器：`getCustomFormatter()`, `saveCustomFormatters()`
+- 字体：`getFontFamily()`, `saveFontFamily()`
+- 侧边栏宽度：`getSidebarWidth()`, `saveSidebarWidth()`
 
-### 3.2 核心服务模块
+#### 3.1.4 `src/util.js` — 工具库 (391 行)
 
-#### [`util.js`](AnotherRedisDesktopManager/src/util.js) — 工具函数库（391 行）
+**Buffer 处理：**
+- `bufToString(buf)` — Buffer → 可显示字符串（不可见字节显示为 Hex）
+- `bufToHex(buf)` — Buffer → Hex 字符串
+- `bufToBinary(buf)` — Buffer → 二进制字符串
+- `binaryStringToBuffer(str)` — 二进制字符串 → Buffer
+- `xToBuffer(hexStr)` — Hex 字符串 → Buffer
+- `bufToQuotation(buf)` — Buffer 带引号字符串
+- `bufVisible(buf)` — 判断 Buffer 是否全部可见字符
 
-**Buffer 处理**：
-| 函数 | 用途 |
-|------|------|
-| `bufVisible(buf)` | 判断 Buffer 是否可显示为文本 |
-| `bufToString(buf)` | Buffer → UTF-8 字符串 |
-| `bufToHex(buf)` | Buffer → Hex 字符串 |
-| `xToBuffer(str)` | Hex/UTF-8 字符串 → Buffer |
-| `bufToBinary(buf)` | Buffer → 二进制字符串 |
-| `binaryStringToBuffer(str)` | 二进制字符串 → Buffer |
-| `bufToQuotation(buf)` | Buffer 带引号的字符串表示 |
+**格式检测与转换：**
+- `isJson(str)` — JSON 格式检测
+- `isMsgpack(buf)` — Msgpack 格式检测
+- `isPHPSerialize(buf)` — PHP 序列化检测
+- `isJavaSerialize(buf)` — Java 序列化检测 (0xAC 0xED 开头)
+- `isPickle(buf)` — Pickle 格式检测 (0x80 开头)
+- `isBrotli(buf)` — Brotli 压缩检测
+- `isGzip(buf)` — Gzip 压缩检测 (0x1F 0x8B)
+- `isDeflate(buf)` — Deflate 压缩检测
+- `isProtobuf(buf)` — Protobuf 检测
+- `zippedToString(buf, type)` — 解压 (brotli/gzip/deflate/deflateRaw)
 
-**格式自动检测**（按优先级）：
-1. `isJson()` — JSON 格式
-2. `isPHPSerialize()` — PHP 序列化（`a:`, `s:`, `i:` 等）
-3. `isJavaSerialize()` — Java 序列化（`0xaced0005` 魔数）
-4. `isPickle()` — Python Pickle（`0x80` 协议头）
-5. `isMsgpack()` — MessagePack
-6. `isBrotli()` — Brotli 压缩
-7. `isGzip()` — Gzip 压缩（`0x1f8b` 魔数）
-8. `isDeflate()` — Deflate 压缩
-9. `isProtobuf()` — Protobuf 编码
-10. `isDeflateRaw()` — Raw Deflate
+**Key 树构建：**
+- `keysToTree(keys, separator)` — 将扁平 Key 数组转为树结构
 
-**键树构建**：
-- `keysToTree(keys, separator)` — 将扁平键名列表转为层级树结构
-- `keysToList(keys)` — 无分隔符时直接转列表
-- `formatTreeData()` — 递归构建树节点（含 keyCount 统计）
-- `sortKeysAndFolder()` — 文件夹优先排序
-
-**其他工具**：
-- `humanFileSize(bytes)` — 人类可读文件大小
-- `leftTime(seconds)` — TTL 剩余时间格式化
-- `copyToClipboard(text)` — 复制到剪贴板（通过 Electron clipboard）
+**其他工具：**
 - `debounce(fn, delay)` — 防抖
-- `createAndDownloadFile(name, content)` — 创建并下载文件
+- `copyToClipboard(text)` — 剪贴板复制
+- `createAndDownloadFile(filename, content)` — 文件下载
+- `humanFileSize(bytes)` — 人类可读文件大小
+- `base64Encode/Decode(str)` — Base64 编解码
+- `cloneObjWithBuff(obj)` — 深克隆含 Buffer 的对象
+- `cutString(str, max)` — 截断字符串
 
-#### [`storage.js`](AnotherRedisDesktopManager/src/storage.js) — 持久化管理（193 行）
+#### 3.1.5 `src/redisClient.js` — Redis 连接管理 (380 行)
 
-**存储结构**（全部在 localStorage）：
+**连接模式：**
+1. **Standalone** — 直连单节点
+2. **Cluster** — 集群模式 (`new Redis.Cluster`)
+3. **Sentinel** — 哨兵模式 (`new Redis({sentinels, name, ...})`)
+4. **SSH Tunnel** — SSH 隧道 (`ssh2-client`)
+5. **SSL/TLS** — 加密连接
 
-| Key | 内容 |
-|-----|------|
-| `connections` | 所有连接配置（JSON 数组） |
-| `settings` | 全局设置（字体、缩放、分页大小） |
-| `custom_formatter` | 自定义格式化器列表 |
-| `cliTips_{name}` | 每个连接的 CLI 命令历史 |
-| `lastSelectedDb_{name}` | 每个连接最后选择的 DB |
-| `customDbName_{name}` | 每个连接的自定义 DB 名称 |
-| `searchTips_{name}` | 每个连接的搜索历史 |
-| `theme` | 主题模式 (system/light/dark) |
-| `sidebar_width` | 侧边栏宽度 |
+**核心机制：**
+- **Monkey Patch**: 拦截 `Redis.prototype.sendCommand` 实现命令日志记录
+- **Readonly 模式**: 拦截写命令，返回错误提示
+- **HGETALL Transformer**: 自动将 `[k1,v1,k2,v2]` 转为 `{k1:v1, k2:v2}`
+- **重试策略**: `retryStrategy(times)` 指数退避
+- **SSH + Cluster NAT 映射**: `natMap` 处理 SSH 隧道下的集群节点地址转换
+- **命令日志格式**: `{command: {name, args}, cost, time, connectionName}`
 
-**连接 CRUD**：
+#### 3.1.6 `src/commands.js` — Redis 命令定义 (200 行)
+- `adminCMD` — 管理命令 (INFO, CONFIG, CLIENT, SLOWLOG 等)
+- `readCMD` — 读命令 (GET, HGET, LRANGE, SMEMBERS 等)
+- `writeCMD` — 写命令 (SET, HSET, LPUSH, SADD, ZADD, DEL 等)
+- `allCMD` — 全部命令（含子命令如 CONFIG SET/GET），用于 CLI 自动补全
+
+#### 3.1.7 `src/shortcut.js` — 快捷键管理 (31 行)
+- 基于 `keymaster` 库
+- 支持 Scope 隔离（每个 Tab 独立快捷键作用域）
+- `bind(key, scope, handler)` — 绑定快捷键
+- `deleteScope(scope)` — 删除作用域
+- `setScope(scope)` — 切换作用域
+
+#### 3.1.8 `src/addon.js` — Electron 集成 (121 行)
+- 字体初始化：通过 IPC 获取系统字体列表
+- 页面缩放：`webFrame.setZoomFactor()`
+- CLI 参数处理：`--new` 新窗口，`--href` 打开 Redis URL
+- 暗黑主题：监听 OS 主题变化
+- 窗口控制：最小化、最大化、隐藏
+
+---
+
+### 3.2 布局层
+
+#### 3.2.1 `src/App.vue` — 根组件 (251 行)
+- **两栏布局**: 可拖拽侧边栏 (Aside) + 主内容区 (Tabs)
+- **侧边栏拖拽**: mousedown/mousemove/mouseup 实现，宽度 200-600px
+- **暗黑模式**: `.dark-mode` CSS 类切换
+- **vxe-table 暗黑**: CSS 变量覆盖
+- **全局对话框**: Setting, CommandLog, HotKeys, CustomFormatter, NewConnectionDialog
+
+#### 3.2.2 `src/Aside.vue` — 左侧边栏 (108 行)
+- 新建连接按钮
+- 设置/命令日志/快捷键/自定义格式化器对话框入口
+- 连接列表 `<Connections />`
+
+#### 3.2.3 `src/router/index.js` — 路由 (15 行)
+- 单一路由 `/` → Tabs 组件
+- 实际页面切换通过 Tab 组件内部管理，非 Vue Router
+
+---
+
+### 3.3 连接管理层
+
+#### 3.3.1 `src/components/Connections.vue` — 连接列表 (119 行)
+- 搜索过滤连接
+- `sortablejs` 拖拽排序
+- 展开/折叠连接 → 触发 `openConnection`/`closeConnection`
+
+#### 3.3.2 `src/components/ConnectionWrapper.vue` — 连接生命周期 (262 行)
+- 调用 `redisClient.js` 创建连接
+- Ping 心跳保活 (30s 间隔)
+- DB 选择与 Key 数量获取 (`INFO KEYSPACE`)
+- 颜色标记
+- 包含子组件：ConnectionMenu + OperateItem + KeyList
+
+#### 3.3.3 `src/components/NewConnectionDialog.vue` — 连接表单 (342 行)
+**表单字段：**
+- 基础：Host, Port, Auth, Username, Name, Separator
+- SSH：Host, Port, Username, Password, PrivateKey, Passphrase, Timeout
+- SSL：Key, Cert, CA, SNI
+- Sentinel：MasterName, NodePassword
+- Cluster：复选框
+- Readonly：复选框
+
+**模式：** 新建 / 编辑（`editMode` prop）
+
+#### 3.3.4 `src/components/ConnectionMenu.vue` — 连接菜单 (454 行)
+**操作列表：**
+- 状态页 / CLI / 刷新连接
+- 关闭 / 编辑 / 删除 / 复制连接
+- 颜色标记
+- 内存分析 / 慢日志
+- 导入 Key (RESTORE 命令，CSV 格式：hex_key,hex_content,ttl)
+- 导入 CMD (splitargs 解析 + callBuffer 执行)
+- Flush DB (需输入 'y' 确认)
+
+---
+
+### 3.4 Key 浏览层
+
+#### 3.4.1 `src/components/KeyList.vue` — Key 扫描引擎 (349 行)
+**SCAN 流程：**
+```
+SCAN → pause at pageSize → 用户点击"加载更多" → resume
+```
+- `scanBufferStream()` 流式扫描
+- Cluster 并行扫描：`client.nodes('master')` 所有主节点
+- 精确匹配模式：`GET` 确认 Key 存在
+- 加载更多/加载全部
+- 批量导出：`DUMP` + `PTTL` → CSV 文件
+
+#### 3.4.2 `src/components/KeyListVirtualTree.vue` — 虚拟树浏览器 (622 行)
+**核心特性：**
+- `@qii404/vue-easy-tree` 虚拟滚动树
+- 分隔符 (`:`) 分割构建树结构
+- 文件夹/Key 图标 + Key 数量显示
+- 右键菜单：复制/删除/多选/新标签打开/导出/加载文件夹/内存分析/删除文件夹
+- Shift+Click 多选 + Checkbox 批量操作
+- 200K 节点溢出限制
+- 展开状态持久化
+
+#### 3.4.3 `src/components/KeyListNormal.vue` — 扁平列表浏览器 (99 行)
+- 简单 `<ul>` 列表 + RightClickMenu
+- 点击/右键打开 Key
+
+#### 3.4.4 `src/components/OperateItem.vue` — DB/搜索/新建面板 (471 行)
+- DB 选择器：`INFO KEYSPACE` 获取 Key 数量
+- 自定义 DB 名称（localStorage 存储）
+- 搜索输入 + 自动补全历史
+- 精确搜索复选框
+- 新建 Key 对话框（7 种类型：string, hash, list, set, zset, stream, ReJSON）
+
+---
+
+### 3.5 Key 详情层
+
+#### 3.5.1 `src/components/KeyDetail.vue` — Key 详情包装器 (158 行)
+**类型→组件映射：**
 ```javascript
-storage.getConnections(sorted)     // 获取所有连接
-storage.addConnection(config)      // 添加连接
-storage.editConnectionByKey(key, config) // 编辑连接
-storage.deleteConnection(key)      // 删除连接（含清理）
+string    → KeyContentString
+hash      → KeyContentHash
+zset      → KeyContentZset
+set       → KeyContentSet
+list      → KeyContentList
+stream    → KeyContentStream
+ReJSON-RL → KeyContentReJson  // RedisJSON 模块
+json      → KeyContentReJson  // TairJSON
+tair-json → KeyContentReJson
 ```
 
-#### [`redisClient.js`](AnotherRedisDesktopManager/src/redisClient.js) — 连接工厂（380 行）
+#### 3.5.2 `src/components/KeyHeader.vue` — Key 头部操作 (307 行)
+- Key 名称输入 + 重命名 (RENAME，需输入 'y' 确认)
+- TTL 输入 + PERSIST/EXPIRE
+- 删除按钮 (DEL)
+- 自动刷新开关 (setInterval)
+- Dump 命令按钮
+- 快捷键：Ctrl+R 刷新，Ctrl+D 删除
 
-**连接类型矩阵**：
+---
 
-| 模式 | ioredis API | 特殊处理 |
-|------|-------------|----------|
-| Standalone | `new Redis(options)` | 基础连接 |
-| Cluster | `new Redis.Cluster(nodes, options)` | natMap 地址映射 |
-| Sentinel | `new Redis(sentinelOptions)` | sentinels 列表 |
-| SSH + Standalone | `tunnel-ssh` → `new Redis` | SSH 隧道端口映射 |
-| SSH + Cluster | 多个 `tunnel-ssh` → `new Redis.Cluster` | 每个节点一条隧道 |
-| SSH + Sentinel | `tunnel-ssh` → `new Redis(sentinelOptions)` | 隧道到 Sentinel |
+### 3.6 数据类型编辑器
 
-**全局行为注入**：
-```javascript
-// 命令日志
-const originSendCommand = Redis.prototype.sendCommand;
-Redis.prototype.sendCommand = function(command) {
-  $bus.$emit('commandLog', command);
-  return originSendCommand.call(this, command);
-};
-
-// 只读模式
-Redis.prototype.sendCommand = function(command) {
-  if (writeCMD[command.name]) {
-    return; // 阻止写命令
-  }
-};
-```
-
-#### [`commands.js`](AnotherRedisDesktopManager/src/commands.js) — 命令分类（200 行）
-
-三大分类：
-- **adminCMD** — 管理命令（ACL, CONFIG, CLUSTER, DEBUG, INFO...）
-- **readCMD** — 读命令（GET, HGET, SCAN, TYPE, TTL...）
-- **writeCMD** — 写命令（SET, DEL, HSET, LPUSH, SADD, ZADD, FLUSHDB...）
-
-导出 `{ allCMD, writeCMD }`，其中 `allCMD` 用于 CLI 自动补全提示。
-
-### 3.3 布局组件
-
-#### [`App.vue`](AnotherRedisDesktopManager/src/App.vue) — 根布局
-
-```
-┌──────────────────────────────────────────────┐
-│ ┌──────────┐ ┌────────────────────────────┐  │
-│ │  Aside    │ │         Tabs               │  │
-│ │  侧边栏   │ │         主内容区            │  │
-│ │ (可拖拽宽) │ │                            │  │
-│ │ 200~1500px│ │                            │  │
-│ └──────────┘ └────────────────────────────┘  │
-│                          UpdateCheck 浮层     │
-└──────────────────────────────────────────────┘
-```
-
-- 侧边栏宽度可拖拽调整，持久化到 localStorage
-- 暗色模式通过 CSS class `.dark-mode` 控制
-- 监听 `reloadSettings` 事件更新全局设置
-
-#### [`Aside.vue`](AnotherRedisDesktopManager/src/Aside.vue) — 侧边栏
-
-包含：
-- 顶部按钮栏：CommandLog、Settings、New Connection
-- Connections 组件列表
-- NewConnectionDialog 弹窗
-- Setting 弹窗
-- CommandLog 弹窗
-- HotKeys 弹窗
-- CustomFormatter 弹窗
-
-快捷键：`Ctrl+N` (新建连接), `Ctrl+,` (设置), `Ctrl+G` (命令日志)
-
-### 3.4 连接管理模块
-
-#### [`Connections.vue`](AnotherRedisDesktopManager/src/components/Connections.vue)
-
-- 连接列表渲染，支持搜索过滤（≥4 个连接时显示搜索框）
-- SortableJS 拖拽排序，更新 `order` 字段
-- 监听 `refreshConnections` 事件刷新列表
-
-#### [`ConnectionWrapper.vue`](AnotherRedisDesktopManager/src/components/ConnectionWrapper.vue)
-
-**每个连接的容器组件**，管理连接生命周期：
-
-```
-ConnectionWrapper
-├── ConnectionMenu    (连接标题、操作按钮)
-├── OperateItem       (DB 选择、搜索、新建键)
-└── KeyList           (键列表)
-```
-
-**生命周期**：
-1. `created` → 调用 `redisClient.createRedisClient()` 创建连接
-2. `pingInterval` → 每 30 秒 PING 保活
-3. 关闭时 → `client.quit()` + 清除定时器
-
-**自定义颜色**：每个连接可设置颜色，通过 CSS 变量 `--menu-color` 应用
-
-#### [`ConnectionMenu.vue`](AnotherRedisDesktopManager/src/components/ConnectionMenu.vue)
-
-**连接操作菜单**：
-
-| 操作 | 功能 |
-|------|------|
-| Status | 打开服务器状态 Tab |
-| CLI | 打开命令行 Tab |
-| Refresh | 刷新 DB 键数量 |
-| Close | 关闭连接 |
-| Edit | 编辑连接配置 |
-| Delete | 删除连接 |
-| Duplicate | 复制连接 |
-| Color | 设置连接颜色 |
-| Memory Analysis | 内存分析 |
-| Slow Log | 慢日志 |
-| Import Keys | 导入键（CSV → RESTORE） |
-| Import CMD | 导入命令（文件 → 逐行执行） |
-| FlushDB | 清空数据库（需输入确认） |
-
-#### [`NewConnectionDialog.vue`](AnotherRedisDesktopManager/src/components/NewConnectionDialog.vue)
-
-**连接配置表单**：
-
-| 分区 | 字段 |
-|------|------|
-| 基础 | host, port, password, username, connection name, separator |
-| SSH | host, port, username, password, private key, passphrase, timeout |
-| SSL | key, ca, cert, SNI |
-| Sentinel | nodePassword, masterName |
-| Cluster | 开关 |
-| Readonly | 开关 |
-
-#### [`OperateItem.vue`](AnotherRedisDesktopManager/src/components/OperateItem.vue)
-
-**数据库操作栏**：
-
-- **DB 选择器**：显示每个 DB 的键数量，支持自定义名称，可过滤
-- **搜索框**：带自动补全历史，支持精确匹配模式
-- **新建键**：选择类型（String/Hash/List/Set/Zset/Stream/ReJSON），输入键名
-- **取消扫描**：长时间扫描时显示取消按钮
-
-### 3.5 键管理模块
-
-#### [`KeyList.vue`](AnotherRedisDesktopManager/src/components/KeyList.vue)
-
-**键列表容器**，管理 SCAN 生命周期：
-
-```
-SCAN 流程:
-1. initScanStreamsAndScan()
-   ├── 单机: [client]
-   └── 集群: client.nodes('master')
-2. 每个节点创建 scanBufferStream
-3. data 事件 → keyList.concat(keys)
-4. 达到 pageSize → stream.pause()
-5. Load More → stream.resume()
-6. Load All → 重新创建 scanStream(count=50000)
-```
-
-**集群优化**：`keysPageSize` 除以 master 节点数
-
-**导出功能**：DUMP + PTTL → CSV 文件下载
-
-#### [`KeyListVirtualTree.vue`](AnotherRedisDesktopManager/src/components/KeyListVirtualTree.vue)（622 行）
-
-**虚拟树组件**，核心渲染组件：
-
-- 使用 `@qii401/vue-easy-tree` 实现虚拟滚动
-- 树节点由 `util.keysToTree()` 从扁平键名构建
-- 节点限制 200,000（超出截断并警告）
-- 展开状态通过 `expandedKeys: Set` 维护
-- 右键菜单：文件夹（多选/内存分析/加载当前文件夹/删除文件夹）、键（复制/删除/多选/新标签打开/导出）
-- 多选模式：Shift 批量勾选、全选/取消全选、批量删除/导出
-
-#### [`KeyDetail.vue`](AnotherRedisDesktopManager/src/components/KeyDetail.vue)
-
-**键详情容器**，根据类型动态选择内容组件：
-
-```javascript
-const typeMap = {
-  string: 'KeyContentString',
-  hash: 'KeyContentHash',
-  zset: 'KeyContentZset',
-  set: 'KeyContentSet',
-  list: 'KeyContentList',
-  stream: 'KeyContentStream',
-  'ReJSON-RL': 'KeyContentReJson',
-  json: 'KeyContentReJson',       // Upstash Redis
-  'tair-json': 'KeyContentReJson', // Tair Redis
-};
-```
-
-#### [`KeyHeader.vue`](AnotherRedisDesktopManager/src/components/KeyHeader.vue)
-
-**键头部操作栏**：
-
-| 操作 | 快捷键 | 功能 |
-|------|--------|------|
-| 重命名 | Enter | RENAME 命令（需输入 'y' 确认） |
-| TTL | Enter | EXPIRE 命令 |
-| Persist | 点击图标 | PERSIST 命令（移除过期） |
-| 删除 | Ctrl+D | DEL 命令（需确认） |
-| 刷新 | Ctrl+R / F5 | 重新加载键内容 |
-| 自动刷新 | 开关 | 每 2 秒自动刷新 |
-| Dump | 按钮 | 复制 RESTORE 命令到剪贴板 |
-
-### 3.6 数据类型编辑模块
-
-所有内容组件遵循统一模式：
-
-| 特性 | String | Hash | List | Set | ZSet | Stream | ReJSON |
-|------|--------|------|------|-----|------|--------|--------|
-| 数据加载 | GET | HSCAN | LRANGE | SSCAN | ZRANGE/ZSCAN | XREVRANGE | JSON.GET |
-| 分页加载 | - | ✅ | ✅ | ✅ | ✅ | ✅ | - |
-| 新增行 | - | ✅ | ✅ | ✅ | ✅ | ✅ | - |
-| 编辑行 | - | ✅ | ✅ | ✅ | ✅ | 只读 | - |
-| 删除行 | - | ✅ | ✅ | ✅ | ✅ | ✅ | - |
-| 搜索过滤 | - | ✅ | ✅ | ✅ | ✅ | ✅ | - |
-| Dump 命令 | SET | HSET | RPUSH | SADD | ZADD | XADD | JSON.SET |
-| 保存 | SET | HSET | LINSERT+LREM | SADD+SREM | ZADD+ZREM | XADD | JSON.SET |
-| 快捷键保存 | Ctrl+S | - | - | - | - | - | Ctrl+S |
-| 表格组件 | - | vxe-table | vxe-table | vxe-table | vxe-table | vxe-table | - |
-| 特殊功能 | - | HTTL (7.4+) | - | - | ASC/DESC 切换 | Groups/Consumers | - |
-
-#### [`KeyContentHash.vue`](AnotherRedisDesktopManager/src/components/contents/KeyContentHash.vue)
-- 使用 `hscanBufferStream` 流式加载
-- 支持 Redis 7.4+ 的 `HTTL`/`HEXPIRE` 字段级 TTL
-- 编辑时如果 field 变更，自动 `HDEL` 旧 field
-
-#### [`KeyContentList.vue`](AnotherRedisDesktopManager/src/components/contents/KeyContentList.vue)
-- 使用 `LRANGE` 分页加载（pageIndex × pageSize）
-- 编辑使用 `LINSERT AFTER` + `LREM` 保持顺序
-- 递归加载直到填满 pageSize
-
-#### [`KeyContentSet.vue`](AnotherRedisDesktopManager/src/components/contents/KeyContentSet.vue)
-- 使用 `sscanBufferStream` 流式加载
-- 编辑使用 `SADD` 新值 + `SREM` 旧值
-
-#### [`KeyContentZset.vue`](AnotherRedisDesktopManager/src/components/contents/KeyContentZset.vue)
-- 默认模式：`ZREVRANGE`/`ZRANGE` 有序分页
-- 搜索模式：`zscanBufferStream` 无序扫描
-- 支持 ASC/DESC 排序切换
-
-#### [`KeyContentStream.vue`](AnotherRedisDesktopManager/src/components/contents/KeyContentStream.vue)
-- 使用 `XREVRANGE` 按时间倒序加载
-- 支持 Min/Max ID 过滤
-- Groups/Consumers 信息查看（`XINFO GROUPS`/`XINFO CONSUMERS`）
-- 只能新增 Stream Entry，不能编辑
-
-#### [`KeyContentString.vue`](AnotherRedisDesktopManager/src/components/contents/KeyContentString.vue) / [`KeyContentReJson.vue`](AnotherRedisDesktopManager/src/components/contents/KeyContentReJson.vue)
-- 单值编辑，使用 FormatViewer 显示和编辑
+#### 3.6.1 `KeyContentString.vue` — String 编辑器 (103 行)
+- `FormatViewer` 自动格式检测
+- GET/SET 操作
 - Ctrl+S 保存
-- ReJSON 使用 `JSON.GET`/`JSON.SET` 命令
+- Dump 为 SET 命令
 
-### 3.7 格式查看器模块
+#### 3.6.2 `KeyContentHash.vue` — Hash 编辑器 (333 行)
+- vxe-table 表格展示
+- `HSCAN` 流式扫描 + pause/resume
+- `HLEN` 总数
+- `HTTL`/`HEXPIRE` (Redis >= 7.4) 字段级 TTL
+- 编辑：HSET new + HDEL old
+- 新增：HSET
+- 删除：HDEL
+- Dump 为 HSET 命令
 
-#### [`FormatViewer.vue`](AnotherRedisDesktopManager/src/components/FormatViewer.vue) — 格式查看器容器
+#### 3.6.3 `KeyContentList.vue` — List 编辑器 (295 行)
+- `LRANGE` 分页加载
+- `LLEN` 总数
+- 编辑：`LINSERT AFTER` + `LREM` (保持顺序)
+- 新增：`RPUSH`
+- 删除：`LREM`
+- Dump 为 RPUSH 命令
 
-**自动格式检测链**（首次加载时自动执行）：
+#### 3.6.4 `KeyContentSet.vue` — Set 编辑器 (283 行)
+- `SSCAN` 流式扫描
+- `SCARD` 总数
+- 编辑：`SADD` new + `SREM` old
+- 删除：`SREM`
+- Dump 为 SADD 命令
 
+#### 3.6.5 `KeyContentZset.vue` — Zset 编辑器 (328 行)
+- **双模式**: ZRANGE/ZREVRANGE (有序，默认) 或 ZSCAN (搜索模式)
+- `ZCARD` 总数
+- ASC/DESC 切换
+- 编辑：`ZADD` new + `ZREM` old
+- Dump 为 ZADD 命令
+
+#### 3.6.6 `KeyContentStream.vue` — Stream 编辑器 (427 行)
+- `XREVRANGE` 分页加载
+- `XLEN` 总数
+- Min/Max ID 过滤
+- `XADD` 新增
+- `XDEL` 删除
+- Groups 信息：`XINFO GROUPS` + `XINFO CONSUMERS`
+- Dump 为 XADD 命令
+
+#### 3.6.7 `KeyContentReJson.vue` — ReJSON 编辑器 (102 行)
+- `JSON.GET` / `JSON.SET`
+- JSON 验证
+- Ctrl+S 保存
+- Dump 为 JSON.SET 命令
+
+---
+
+### 3.7 格式化查看器层
+
+#### 3.7.1 `src/components/FormatViewer.vue` — 自动格式检测 (293 行)
+**14 种内置查看器：**
+1. ViewerText — 纯文本
+2. ViewerHex — Hex 显示
+3. ViewerJson — JSON (JSONbig 支持大整数)
+4. ViewerBinary — 二进制显示
+5. ViewerMsgpack — Msgpack (algo-msgpack-with-bigint)
+6. ViewerPHPSerialize — PHP 序列化 (php-serialize)
+7. ViewerJavaSerialize — Java 序列化 (java-object-serialization, 只读)
+8. ViewerPickle — Python Pickle (pickleparser, 只读)
+9. ViewerBrotli — Brotli 压缩 (zlib.brotliDecompressSync)
+10. ViewerGzip — Gzip 压缩 (zlib.gunzipSync)
+11. ViewerDeflate — Deflate 压缩 (zlib.inflateSync)
+12. ViewerDeflateRaw — DeflateRaw 压缩 (zlib.inflateRawSync)
+13. ViewerProtobuf — Protobuf (rawproto + protobufjs, 可选 .proto 文件)
+14. ViewerOverSize — 超大文件 (>20MB, 只读截断)
+15. ViewerCustom — 自定义格式化器 (shell exec)
+
+**自动检测链：**
 ```
-content 为空 → Text
-content > 20MB → OverSize
-isJson → Json
-isPHPSerialize → PHPSerialize
-isJavaSerialize → JavaSerialize
-isPickle → Pickle
-isMsgpack → Msgpack
-isBrotli → Brotli
-isGzip → Gzip
-isDeflate → Deflate
-isProtobuf → Protobuf
-isDeflateRaw → DeflateRaw
-!bufVisible → Hex
-默认 → Text
+JSON → PHPSerialize → JavaSerialize → Pickle → Msgpack → Brotli → Gzip → Deflate → Protobuf → DeflateRaw → Hex → Text
 ```
 
-**14 个内置查看器 + 自定义查看器**：
+#### 3.7.2 `src/components/JsonEditor.vue` — JSON 编辑器 (238 行)
+- Monaco Editor 0.30
+- JSONbig 支持大整数
+- 折叠/展开全部
+- JSON 验证
+- 字体跟随全局设置
 
-| 查看器 | 功能 | 可编辑 |
-|--------|------|--------|
-| ViewerText | 纯文本 textarea | ✅ |
-| ViewerHex | Hex 显示 | ✅ |
-| ViewerJson | Monaco Editor (JSON 高亮) | ✅ |
-| ViewerBinary | 二进制显示 | ❌ |
-| ViewerMsgpack | MessagePack 解码 | ✅ |
-| ViewerPHPSerialize | PHP 反序列化 | ✅ |
-| ViewerJavaSerialize | Java 反序列化 (只读) | ❌ |
-| ViewerPickle | Python Pickle 解码 | ✅ |
-| ViewerBrotli | Brotli 解压 | ✅ |
-| ViewerGzip | Gzip 解压 | ✅ |
-| ViewerDeflate | Deflate 解压 | ✅ |
-| ViewerDeflateRaw | Raw Deflate 解压 | ✅ |
-| ViewerProtobuf | Protobuf 解码 (树形显示) | ✅ |
-| ViewerOverSize | 大文件提示 (>20MB) | ❌ |
-| ViewerCustom | 用户自定义 JS 格式化 | ✅ |
+#### 3.7.3 `src/components/CliContent.vue` — CLI 内容显示 (165 行)
+- Monaco Editor (只读模式)
+- `vs-dark` 主题
+- 自动滚动到底部
+- 自定义滚动条样式
 
-### 3.8 CLI 模块
+---
 
-#### [`CliTab.vue`](AnotherRedisDesktopManager/src/components/CliTab.vue)（466 行）
+### 3.8 多标签页层
 
-**完整的 Redis 命令行模拟器**：
+#### 3.8.1 `src/components/Tabs.vue` — 标签页管理器 (447 行)
+**6 种标签类型：**
 
-**核心功能**：
-- 命令输入：`el-autocomplete` + Redis 命令自动补全
-- 命令历史：上下箭头浏览，持久化到 localStorage
-- 命令解析：`@qii401/redis-splitargs` 解析参数（支持引号、转义）
-- 结果展示：递归格式化 Buffer/Array/Object
+| 类型 | 组件 | 命名规则 |
+|------|------|---------|
+| Status | Status | `status_{name}` |
+| CliTab | CliTab | `cli_{name}_{random}` |
+| DeleteBatch | DeleteBatch | `del_batch_{name}` |
+| MemoryAnalysis | MemoryAnalysis | `memory_{name}` |
+| SlowLog | SlowLog | `slow_log_{name}` |
+| KeyDetail | KeyDetail | `{keyStr} \| {name} \| DB{db}` |
 
-**特殊命令处理**：
+**标签策略：**
+- Key 标签：替换当前 Key 标签 OR 新标签 (Ctrl+Click)
+- 非 Key 标签：始终新开
+- 右键菜单：关闭/关闭其他/关闭右侧/关闭左侧
+- 鼠标滚轮切换标签
+- 每个标签独立快捷键 Scope
 
-| 命令 | 行为 |
-|------|------|
-| `exit`/`quit` | 关闭 CLI Tab |
-| `clear` | 清空输出 |
-| `help` | 显示帮助 |
-| `multi` | 开始事务队列 |
-| `exec` | 执行事务 |
-| `discard` | 取消事务 |
-| `subscribe`/`psubscribe` | 进入订阅模式 |
-| `monitor` | 进入监控模式 |
-| `select` | 切换 DB（同步到其他组件） |
-| 写命令 (set/hset/...) | 触发 `refreshKeyList` |
+---
 
-**独立连接**：CLI 使用 `client.duplicate()` 创建独立连接，不影响主连接
+### 3.9 CLI 层
 
-### 3.9 工具模块
+#### 3.9.1 `src/components/CliTab.vue` — 命令行界面 (466 行)
+**功能：**
+- `client.duplicate()` 独立连接
+- 命令自动补全（allCMD + 历史命令）
+- MULTI/EXEC 事务队列
+- SUBSCRIBE/PSUBSCRIBE 订阅模式 + 停止按钮
+- MONITOR 监控模式 + 停止按钮
+- UP/DOWN 历史导航
+- Ctrl+L 清屏
+- 递归结果格式化（处理嵌套数组/pipeline 结果）
+- 写命令执行后自动刷新 Key 列表
+- 历史命令持久化（localStorage，最多 200 条）
 
-#### [`Status.vue`](AnotherRedisDesktopManager/src/components/Status.vue) — 服务器状态
+---
 
-- **INFO 命令**解析为 key-value 对象
-- 三个卡片：Server（版本/OS/PID）、Memory（used/peak/lua）、Stats（clients/connections/commands）
-- DB Keys 表格：解析 `db0=db=keys=100,expires=50,avg_ttl=3600` 格式
-- 集群模式：每个 master 节点单独查询 `INFO KEYSPACE`
-- 自动刷新（2 秒间隔）
-- 全量 INFO 搜索过滤
+### 3.10 工具层
 
-#### [`SlowLog.vue`](AnotherRedisDesktopManager/src/components/SlowLog.vue) — 慢日志
+#### 3.10.1 `src/components/Status.vue` — 服务器状态 (423 行)
+- 自动刷新 (2s 间隔)
+- 3 张卡片：Server (version/OS/PID), Memory (used/peak/lua), Stats (clients/connections/commands)
+- Key 统计表：DB/Keys/Expires/Avg TTL
+- Cluster 节点并行 INFO KEYSPACE
+- 全量 INFO 搜索表
 
-- `SLOWLOG GET 20000` 获取慢日志
-- `CONFIG GET slowlog-log-slower-than` / `slowlog-max-len` 显示配置
-- RecycleScroller 虚拟滚动渲染
-- 按 Cost 排序（升序/降序切换）
-- 集群模式：每个 master 节点单独查询
+#### 3.10.2 `src/components/MemoryAnalysis.vue` — 内存分析 (330 行)
+- SCAN + MEMORY USAGE 并行
+- RecycleScroller 虚拟滚动
+- 暂停/继续扫描
+- 大小排序 (ASC/DESC)
+- 最小大小过滤
+- 200K 扫描上限
+- 点击跳转 Key 详情
 
-#### [`MemoryAnalysis.vue`](AnotherRedisDesktopManager/src/components/MemoryAnalysis.vue) — 内存分析
-
-- SCAN 扫描所有键 + `MEMORY USAGE` 获取每个键内存大小
-- 支持最小大小过滤（KB）
-- 支持暂停/继续/重新开始
-- 最大扫描 200,000 键
-- 点击键可跳转到键详情
+#### 3.10.3 `src/components/SlowLog.vue` — 慢日志 (234 行)
+- `SLOWLOG GET` 获取慢日志
+- `CONFIG GET slowlog-log-slower-than/max-len` 获取配置
+- 耗时排序 (ASC/DESC)
 - RecycleScroller 虚拟滚动
 
-#### [`DeleteBatch.vue`](AnotherRedisDesktopManager/src/components/DeleteBatch.vue) — 批量删除
-
-- 支持指定键 + 模式匹配扫描
-- Standalone：每 5000 键批量 `DEL`
-- Cluster：逐个 `DEL`（不支持批量）
-- 扫描可暂停/继续
+#### 3.10.4 `src/components/DeleteBatch.vue` — 批量删除 (256 行)
+- 支持指定 Key 列表 + Pattern 扫描
+- SCAN 流式扫描 + 暂停/继续
+- Standalone: 批量 DEL (5000 一批)
+- Cluster: 逐个 DEL
 - RecycleScroller 虚拟滚动
 
-### 3.10 设置模块
+#### 3.10.5 `src/components/CommandLog.vue` — 命令日志 (120 行)
+- vxe-table 展示
+- 最大 5000 条记录
+- 过滤：关键词 + 仅写命令
+- 隐藏 ping 命令
+- Auth 命令参数脱敏 (`***`)
 
-#### [`Setting.vue`](AnotherRedisDesktopManager/src/components/Setting.vue)
+#### 3.10.6 `src/components/Setting.vue` — 设置对话框 (356 行)
+- UI 设置：主题 (system/light/dark)、语言、缩放、字体
+- 通用设置：KeysPageSize (10-20000)
+- 连接导入/导出 (Base64 编码的 JSON)
+- 版本信息、清除缓存、检查更新
 
-| 设置项 | 存储 | 说明 |
-|--------|------|------|
-| 主题 | `localStorage.theme` | system/light/dark |
-| 语言 | vue-i18n `locale` | 14 种语言 |
-| 页面缩放 | `settings.zoomFactor` | 0.5~2.0 |
-| 字体 | `settings.fontFamily` | 系统字体选择（多选） |
-| 分页大小 | `settings.keysPageSize` | 10~20000 |
-| 导出连接 | 文件下载 (.ano) | Base64 编码 JSON |
-| 导入连接 | 文件上传 (.ano) | 替换所有连接 |
-| 清除缓存 | `localStorage.clear()` | 清空所有数据 |
+#### 3.10.7 `src/components/CustomFormatter.vue` — 自定义格式化器 (176 行)
+- 管理自定义格式化器列表
+- 每个格式化器：Name + Command + Params
+- 模板变量：`{KEY}`, `{VALUE}`, `{FIELD}`, `{SCORE}`, `{MEMBER}`, `{HEX}`, `{HEX_FILE}`
+- 长内容 (>8000) 自动写入临时文件
 
-### 3.11 Electron 主进程
+---
 
-#### [`electron-main.js`](AnotherRedisDesktopManager/pack/electron/electron-main.js)
+### 3.11 辅助组件
 
-**窗口管理**：
-- `winState` 持久化窗口位置/大小/最大化状态
-- `autoHideMenuBar: true` 隐藏菜单栏
-- `nodeIntegration: true` + `contextIsolation: false`（渲染进程可直接使用 Node.js）
-
-**IPC 通道**：
-
-| 通道 | 方向 | 功能 |
+| 组件 | 行数 | 功能 |
 |------|------|------|
-| `hideWindow` | 渲染→主 | 隐藏窗口 |
-| `minimizeWindow` | 渲染→主 | 最小化窗口 |
-| `toggleMaximize` | 渲染→主 | 切换最大化 |
-| `getMainArgs` | 渲染→主 | 获取命令行参数和版本 |
-| `changeTheme` | 渲染→主 | 切换主题 |
-| `os-theme-updated` | 主→渲染 | 系统主题变更通知 |
-| `getTempPath` | 渲染→主 | 获取临时目录 |
-| `get-all-fonts` | 渲染→主 | 获取系统字体列表 |
-| `send-all-fonts` | 主→渲染 | 返回字体列表 |
-| `closingWindow` | 主→渲染 | 窗口关闭前通知 |
+| `RightClickMenu.vue` | 105 | 通用右键菜单 |
+| `ScrollToTop.vue` | 130 | 回到顶部按钮 (requestAnimationFrame 动画) |
+| `HotKeys.vue` | 56 | 快捷键提示表格 |
+| `UpdateCheck.vue` | 155 | 自动更新检查 (electron-updater) |
+| `LanguageSelector.vue` | 45 | 语言选择器 (13 种语言) |
+| `InputBinary.vue` | 46 | 二进制输入 (自动 Hex/可见字符切换) |
+| `InputPassword.vue` | ~50 | 密码输入 (显示/隐藏切换) |
+| `FileInput.vue` | ~40 | 文件路径输入 (Electron dialog) |
+| `PaginationTable.vue` | ~40 | 分页表格 |
 
-**macOS 特殊处理**：自定义应用菜单（App/Edit/View/Window/Help）
+---
 
-#### [`update.js`](AnotherRedisDesktopManager/pack/electron/update.js)
-- 使用 `electron-updater` 自动更新
-- 生产环境自动检查 GitHub Releases
+### 3.12 Electron 主进程层
 
-#### [`win-state.js`](AnotherRedisDesktopManager/pack/electron/win-state.js)
-- 窗口位置/大小持久化到文件
-- `getLastState()` 获取上次窗口状态
-- `watchClose(browserWindow)` 保存关闭时的状态
+#### 3.12.1 `pack/electron/electron-main.js` (226 行)
+- BrowserWindow 创建 + 窗口状态恢复
+- `nodeIntegration: true`, `contextIsolation: false` (安全性较低)
+- IPC：hideWindow, minimizeWindow, toggleMaximize, getMainArgs, changeTheme, getTempPath
+- OS 主题变化通知
+- macOS 菜单栏配置
+- URL 参数传递：version, dark
 
-### 3.12 国际化模块
+#### 3.12.2 `pack/electron/update.js` (54 行)
+- electron-updater 自动更新
+- 禁用自动下载，用户确认后手动下载
+- 进度通知
 
-#### [`i18n.js`](AnotherRedisDesktopManager/src/i18n/i18n.js)
+#### 3.12.3 `pack/electron/win-state.js` (115 行)
+- 窗口位置/大小持久化 (JSON 文件)
+- 主显示器检测，外部显示器位置重置
+- 最小窗口尺寸保护 (250x250)
 
-- 使用 `vue-i18n` 8.x
-- 14 种语言：cn, tw, en, de, fr, es, it, ko, pt, ru, tr, ua, vi
-- 默认语言：中文 (cn)
-- 语言偏好存储在 localStorage
+#### 3.12.4 `pack/electron/font-manager.js` (19 行)
+- IPC 处理获取系统字体列表 (font-list 库)
+
+---
+
+### 3.13 国际化层
+
+#### 3.13.1 `src/i18n/i18n.js` (97 行)
+- vue-i18n 8.x (Vue 2 模式)
+- Element UI locale 集成
+- 13 种语言：en, cn, tw, tr, ru, pt, de, fr, ua, it, es, ko, vi
 
 ---
 
 ## 四、功能设计
 
-### 4.1 连接管理功能
+### 4.1 功能矩阵
 
+| 功能模块 | 子功能 | 实现方式 |
+|---------|--------|---------|
+| **连接管理** | 新建/编辑/删除/复制连接 | storage.js CRUD |
+| | SSH 隧道 | ssh2-client |
+| | SSL/TLS | ioredis tls 选项 |
+| | Sentinel | ioredis sentinel 选项 |
+| | Cluster | ioredis Cluster |
+| | Readonly 模式 | sendCommand 拦截 |
+| | 连接排序 | sortablejs |
+| | 颜色标记 | el-color-picker |
+| **Key 浏览** | SCAN 流式扫描 | scanBufferStream |
+| | 虚拟树视图 | vue-easy-tree |
+| | 扁平列表视图 | ul + RightClickMenu |
+| | 精确搜索 | GET 确认 |
+| | 模糊搜索 | SCAN MATCH |
+| | Cluster 并行扫描 | nodes('master') |
+| | Key 导出 | DUMP + PTTL → CSV |
+| | Key 导入 | RESTORE from CSV |
+| | 批量删除 | DEL (standalone: 5000/batch) |
+| **数据编辑** | String (GET/SET) | FormatViewer + 保存 |
+| | Hash (HSCAN/HSET/HDEL) | vxe-table + inline edit |
+| | List (LRANGE/RPUSH/LREM) | vxe-table + pagination |
+| | Set (SSCAN/SADD/SREM) | vxe-table + streaming |
+| | Zset (ZRANGE/ZADD/ZREM) | vxe-table + dual mode |
+| | Stream (XREVRANGE/XADD/XDEL) | vxe-table + groups |
+| | ReJSON (JSON.GET/JSON.SET) | FormatViewer + save |
+| **格式查看** | 14 种自动检测 | util.js isXxx() |
+| | 自定义格式化器 | shell exec + template |
+| | Protobuf (.proto 文件) | rawproto + protobufjs |
+| **CLI** | 命令自动补全 | allCMD + history |
+| | MULTI/EXEC | multi queue |
+| | SUBSCRIBE/MONITOR | duplicate client |
+| | 历史导航 | UP/DOWN keys |
+| **服务器工具** | 状态面板 | INFO + auto refresh |
+| | 内存分析 | MEMORY USAGE |
+| | 慢日志 | SLOWLOG GET |
+| | 命令日志 | sendCommand monkey-patch |
+| | Flush DB | FLUSHDB (y 确认) |
+| **UI 功能** | 多标签页 | 6 种 Tab 类型 |
+| | 暗黑模式 | CSS class 切换 |
+| | 13 种语言 | vue-i18n |
+| | 字体选择 | font-list + monaco |
+| | 页面缩放 | webFrame.setZoomFactor |
+| | 自动更新 | electron-updater |
+
+### 4.2 数据流详解
+
+#### 4.2.1 连接打开流程
 ```
-连接生命周期:
-创建 → 编辑 → 测试连接 → 打开 → 使用 → 关闭
-  ↓                                    ↓
-复制                              自动重连(3次)
-删除
-导出/导入
+Connections.vue (click)
+  → bus.$emit('openConnection', config)
+    → ConnectionWrapper.vue
+      → redisClient.js (createClient)
+        → ioredis new Redis / new Redis.Cluster
+          → SSH tunnel (if needed)
+          → Sentinel resolution (if needed)
+      → ping interval start
+      → INFO KEYSPACE → DB key counts
 ```
 
-**连接配置项**：
-- 基础：Host, Port, Auth, Username, Name, Separator
-- SSH 隧道：Host, Port, User, Password/PrivateKey, Passphrase, Timeout
-- SSL/TLS：Key, CA, Cert, SNI
-- Sentinel：节点密码, Master 名称
-- Cluster：开关
-- Readonly：只读模式
+#### 4.2.2 Key 扫描流程
+```
+OperateItem.vue (search input)
+  → KeyList.vue initShow()
+    → scanBufferStream({match, count})
+      → stream.on('data', keys => ...)
+        → pause at pageSize
+        → user clicks "load more"
+          → resume stream
+    → cluster: nodes('master').map(node => node.scanBufferStream())
+```
 
-### 4.2 键操作功能
-
-**键浏览**：
-- SCAN 流式扫描（分页加载）
-- 树形视图（按分隔符层级展示）
-- 虚拟滚动（大数据量性能优化）
-- 精确匹配模式（EXISTS 命令）
-- 搜索历史自动补全
-
-**键操作**：
-- 查看详情（7 种数据类型）
-- 新建键（选择类型）
-- 重命名键（需确认）
-- 删除键（需确认）
-- 修改 TTL / Persist
-- 自动刷新（2 秒间隔）
-- Dump 命令复制
-- 批量导出（DUMP + PTTL → CSV）
-
-**批量操作**：
-- Shift 多选
-- 全选/取消全选
-- 批量删除
-- 批量导出
-
-### 4.3 数据编辑功能
-
-**通用模式**：
-- 分页加载（pageSize=200，搜索时 pageSize=2000）
-- 行内操作：复制、编辑、删除、Dump
-- 搜索过滤（表格头部搜索框）
-- 加载更多（滚动到底部自动加载）
-
-**各类型特殊功能**：
-- Hash：Redis 7.4+ 字段级 TTL
-- List：LINSERT + LREM 保持顺序编辑
-- ZSet：ASC/DESC 排序切换
-- Stream：Groups/Consumers 查看，Min/Max ID 过滤
-- ReJSON：JSON 格式验证
-
-### 4.4 格式查看功能
-
-**自动检测**：首次加载自动识别格式并选择最佳查看器
-
-**手动切换**：下拉选择器可手动切换 14 种格式
-
-**自定义格式化器**：用户可编写 JavaScript 函数自定义解码逻辑
-
-### 4.5 CLI 功能
-
-- 完整的 Redis 命令行模拟
-- 命令自动补全（基于 allCMD 字典）
-- 命令历史（上下箭头，持久化）
-- 事务支持（MULTI/EXEC/DISCARD）
-- 订阅模式（SUBSCRIBE/PSUBSCRIBE）
-- 监控模式（MONITOR）
-- 结果递归格式化（Buffer/Array/Object）
-- Ctrl+L 清屏
-
-### 4.6 工具功能
-
-**服务器状态**：Server/Memory/Stats 三大面板 + DB Keys 表 + 全量 INFO 搜索
-
-**慢日志**：SLOWLOG GET + CONFIG 查询 + Cost 排序
-
-**内存分析**：MEMORY USAGE 逐键分析 + 大小排序 + 最小过滤
-
-**批量删除**：SCAN + DEL 批量删除 + 暂停/继续
-
-### 4.7 设置功能
-
-- 主题切换（System/Light/Dark）
-- 14 种语言切换
-- 页面缩放（0.5~2.0）
-- 字体选择（系统字体列表）
-- 分页大小配置
-- 连接导入/导出
-- 缓存清理
-- 版本信息/更新检查
+#### 4.2.3 Key 编辑流程 (以 Hash 为例)
+```
+KeyContentHash.vue
+  → HSCAN streaming → lineData[]
+  → User clicks edit
+    → FormatViewer auto-detect format
+    → User modifies value
+    → Save: HSET key field newValue + HDEL key oldField
+  → User clicks add
+    → HSET key field value
+  → User clicks delete
+    → HDEL key field
+```
 
 ---
 
 ## 五、设计规范
 
-### 5.1 组件命名规范
+### 5.1 代码风格
 
-| 类型 | 规范 | 示例 |
+| 规范 | 实际做法 |
+|------|---------|
+| 组件风格 | Vue 2 Options API (data/methods/computed/watch/mounted) |
+| 模板语法 | `<template>` + `<script>` + `<style>` SFC |
+| CSS 作用域 | 全局 CSS + `.dark-mode` 前缀 |
+| 状态管理 | 无 Vuex/Pinia，纯 data + localStorage + bus |
+| 类型系统 | 无 TypeScript，纯 JavaScript |
+| 异步处理 | Promise.then/catch (无 async/await) |
+| 组件通信 | bus.$emit/$on + $parent 链 + props/$emit |
+
+### 5.2 CSS 规范
+
+- 全局 CSS，无 scoped
+- 暗黑模式：`.dark-mode` 前缀选择器
+- 命名：BEM-like 但不严格 (`connection-menu-title`, `keys-body`, `del-batch-card`)
+- 高度计算：`calc(100vh - Npx)` 精确像素计算
+- 颜色硬编码：`#263238`, `#324148`, `#f7f7f7` 等
+
+### 5.3 组件设计模式
+
+```
+组件结构:
+├── template (HTML 模板)
+├── script (Options API)
+│   ├── data() — 响应式状态
+│   ├── props — 输入
+│   ├── computed — 派生状态
+│   ├── watch — 侦听器
+│   ├── methods — 方法
+│   ├── created — 创建钩子 (bus.$on)
+│   ├── mounted — 挂载钩子 (initShow, initShortcut)
+│   └── beforeDestroy — 销毁钩子 (cleanup)
+└── style (全局 CSS)
+```
+
+### 5.4 命名约定
+
+| 类型 | 约定 | 示例 |
 |------|------|------|
 | 组件文件 | PascalCase.vue | `KeyDetail.vue`, `CliTab.vue` |
-| 内容子组件 | 目录/PascalCase.vue | `contents/KeyContentHash.vue` |
-| 查看器子组件 | 目录/PascalCase.vue | `viewers/ViewerJson.vue` |
-| 工具模块 | camelCase.js | `redisClient.js`, `util.js` |
+| 组件目录 | kebab-case | `contents/`, `viewers/` |
+| data 属性 | camelCase | `lineData`, `scanStreams` |
+| 方法 | camelCase | `initShow`, `execSave` |
+| 事件名 | camelCase | `clickedKey`, `openStatus` |
+| CSS 类 | kebab-case | `connection-menu-title` |
+| localStorage key | 描述性 | `ardm_connections`, `theme`, `lang` |
 
-### 5.2 组件结构规范
+### 5.5 错误处理模式
 
-每个 Vue 组件遵循固定结构：
+```javascript
+// Promise catch 链
+this.client.call('CMD', args).then(reply => {
+  // 成功处理
+}).catch(e => {
+  this.$message.error(e.message);
+});
 
-```vue
-<template>
-  <!-- HTML 模板 -->
-</template>
-
-<script>
-// 1. import 依赖
-// 2. export default {
-//      data()        - 本地状态
-//      props         - 外部传入
-//      components    - 子组件注册
-//      computed      - 计算属性
-//      watch         - 侦听器
-//      created()     - 创建时钩子（事件监听注册）
-//      methods       - 方法
-//      mounted()     - 挂载后钩子（初始化）
-//      beforeDestroy() - 销毁前钩子（清理）
-//    }
-</script>
-
-<style type="text/css">
-  /* 局部样式（无 scoped） */
-</style>
+// 确认对话框
+this.$confirm('确认删除?', { type: 'warning' })
+  .then(() => { /* 执行 */ })
+  .catch(() => {}); // 取消静默
 ```
-
-### 5.3 样式规范
-
-**全局样式**：
-- 所有样式无 `scoped`，通过 CSS class 命名避免冲突
-- 暗色模式通过 `.dark-mode` 前缀选择器实现
-- 大量使用 `calc(100vh - Npx)` 实现全屏高度适配
-
-**典型暗色模式写法**：
-```css
-.normal-element { background: #fafafa; }
-.dark-mode .normal-element { background: #263238; }
-```
-
-**主题切换**：
-- 通过替换 `<link>` 标签的 CSS 文件实现（`static/theme/{light,dark}/index.css`）
-- Element UI 主题通过预编译的 CSS 覆盖
-
-### 5.4 数据处理规范
-
-**Buffer 优先**：
-- 所有 Redis 键名和值使用 `Buffer` 类型传输（`*Buffer` 后缀 API）
-- 显示时通过 `$util.bufToString()` 转换
-- 二进制数据通过 `$util.bufToHex()` 显示
-
-**BigInt 安全**：
-- JSON 解析使用 `@qii401/json-bigint` 避免精度丢失
-
-**编辑不重新加载**：
-- 编辑操作后直接修改本地数据数组（`this.$set()` / `splice()`）
-- 不重新调用 `initShow()`（注释 `// do not reinit, #786`）
-
-### 5.5 交互规范
-
-**确认对话框**：
-- 删除操作：`this.$confirm()` 二次确认
-- 重命名：`this.$prompt()` 需输入 'y' 确认
-- FlushDB：`this.$prompt()` 需输入 'y' 确认
-
-**消息提示**：
-- 成功：`this.$message.success({ duration: 1000 })`
-- 失败：`this.$message.error()`
-- 警告：`this.$message.warning()`
-
-**快捷键**：
-- 全局：Ctrl+N (新建), Ctrl+, (设置), Ctrl+G (日志), Ctrl+W (关闭 Tab)
-- Tab 作用域：Ctrl+R/F5 (刷新), Ctrl+S (保存), Ctrl+D (删除), Ctrl+L (清屏)
-- 使用 `keymaster` 库 + scope 机制避免冲突
-
-### 5.6 性能优化规范
-
-**虚拟滚动**：
-- 键列表：`@qii401/vue-easy-tree`（虚拟树）
-- 慢日志/内存分析/批量删除：`vue-virtual-scroller` (RecycleScroller)
-- 数据表格：`vxe-table` 内置虚拟滚动
-
-**流式加载**：
-- 所有 SCAN 操作使用 ioredis Stream API
-- 达到 pageSize 自动暂停，用户触发继续
-
-**数据量限制**：
-- 树节点上限 200,000（超出截断）
-- CLI 历史上限 2,000 行
-- CLI 命令提示持久化最近 200 条
-- 内存分析上限 200,000 键
-- 慢日志上限 20,000 条
-
-### 5.7 错误处理规范
-
-**连接错误**：
-- 重试策略：最多 3 次，指数退避
-- SCAN 错误：检测 `unknown command scan` 特殊提示
-- 连接断开：全局 `errorHandler` → `$bus.$emit('closeConnection')`
-
-**命令错误**：
-- `try/catch` 包裹所有 Redis 命令
-- 错误消息通过 `this.$message.error()` 显示
-- SCAN 流错误：`stream.on('error')` 处理
-
-### 5.8 代码组织规范
-
-**无类型系统**：纯 JavaScript，无 TypeScript
-
-**Options API**：全部使用 Vue 2 Options API
-
-**无状态管理**：不使用 Vuex，通过 Event Bus + localStorage + props 管理
-
-**无 API 层**：直接在组件中调用 ioredis，无中间服务层
-
-**全局变量**：
-- `global.APP_ENV` — 环境标识（development/production）
-- `globalChangeTheme()` — 全局主题切换函数（定义在 index.html）
 
 ---
 
-## 六、总结
+## 六、依赖分析
 
-### 6.1 架构特点
+### 6.1 核心依赖
 
-| 优点 | 缺点 |
-|------|------|
-| 事件总线解耦组件 | 事件流难以追踪和调试 |
-| 流式加载处理大数据 | 无流控/背压机制 |
-| 格式自动检测用户友好 | 检测逻辑不可扩展（硬编码） |
-| 虚拟滚动性能优秀 | 树操作复杂度高 |
-| 14 种语言国际化 | 语言文件维护成本高 |
-| 多种 Redis 部署模式支持 | SSH+Cluster 实现复杂 |
-| CLI 功能完整 | 无命令验证/沙箱 |
+| 依赖 | 版本 | 用途 | 迁移替代 |
+|------|------|------|---------|
+| `vue` | 2.6.14 | UI 框架 | Vue 3.5 |
+| `element-ui` | 2.15.14 | UI 组件库 | Element Plus |
+| `ioredis` | 5.3.2 | Redis 客户端 | Rust redis 0.27 |
+| `electron` | 12.2.3 | 桌面框架 | Tauri 2 |
+| `vxe-table` | 3.9.x | 数据表格 | @visactor/vtable |
+| `monaco-editor` | 0.30.1 | 代码编辑器 | Monaco (保留) |
+| `vue-virtual-scroller` | 2.x | 虚拟滚动 | @visactor/vtable |
+| `@qii404/vue-easy-tree` | — | 虚拟树 | @visactor/vtable |
+| `keymaster` | 1.6.2 | 快捷键 | 自定义 composable |
+| `sortablejs` | 1.15.0 | 拖拽排序 | vuedraggable-next |
+| `ssh2-client` | — | SSH 隧道 | Rust russh |
+| `@qii404/redis-splitargs` | — | 命令解析 | Rust 实现 |
+| `@qii404/json-bigint` | — | 大整数 JSON | 自定义解析 |
+| `algo-msgpack-with-bigint` | — | Msgpack | Rust 库 |
+| `php-serialize` | — | PHP 序列化 | Rust 库 |
+| `java-object-serialization` | — | Java 序列化 | Rust 库 |
+| `pickleparser` | — | Python Pickle | Rust 库 |
+| `rawproto` | — | Protobuf 解析 | Rust protobuf |
+| `protobufjs` | — | Protobuf 编解码 | Rust protobuf |
+| `font-list` | 1.4.5 | 系统字体列表 | Tauri API |
+| `electron-updater` | 4.6.5 | 自动更新 | Tauri updater |
 
-### 6.2 关键数据流
+### 6.2 依赖关系图
 
 ```
-用户点击键 → KeyListVirtualTree.nodeClick()
-  → $bus.$emit('clickedKey', client, key)
-  → Tabs.addKeyTab(client, key)
-    → client.type(key) → 获取类型
-    → Tabs.addTab(tabItem)
-      → KeyDetail 渲染
-        → KeyHeader (名称/TTL/操作)
-        → KeyContent* (类型对应编辑器)
-          → FormatViewer (格式查看/编辑)
+App.vue
+├── Aside.vue
+│   ├── Connections.vue (sortablejs)
+│   ├── NewConnectionDialog.vue
+│   ├── Setting.vue (LanguageSelector)
+│   ├── CommandLog.vue (vxe-table)
+│   ├── HotKeys.vue
+│   └── CustomFormatter.vue (FileInput)
+└── Tabs.vue
+    ├── Status.vue (ScrollToTop)
+    ├── CliTab.vue (CliContent → monaco-editor)
+    ├── DeleteBatch.vue (RecycleScroller)
+    ├── MemoryAnalysis.vue (RecycleScroller)
+    ├── SlowLog.vue (RecycleScroller)
+    └── KeyDetail.vue
+        ├── KeyHeader.vue
+        ├── KeyContentString.vue (FormatViewer)
+        ├── KeyContentHash.vue (vxe-table, FormatViewer)
+        ├── KeyContentList.vue (vxe-table)
+        ├── KeyContentSet.vue (vxe-table)
+        ├── KeyContentZset.vue (vxe-table)
+        ├── KeyContentStream.vue (vxe-table)
+        └── KeyContentReJson.vue (FormatViewer)
+
+FormatViewer.vue
+├── ViewerText.vue
+├── ViewerHex.vue
+├── ViewerJson.vue (JsonEditor → monaco-editor)
+├── ViewerBinary.vue
+├── ViewerMsgpack.vue (JsonEditor)
+├── ViewerPHPSerialize.vue (JsonEditor)
+├── ViewerJavaSerialize.vue (JsonEditor)
+├── ViewerPickle.vue (JsonEditor)
+├── ViewerBrotli.vue (JsonEditor)
+├── ViewerGzip.vue (JsonEditor)
+├── ViewerDeflate.vue (JsonEditor)
+├── ViewerProtobuf.vue (JsonEditor)
+├── ViewerOverSize.vue
+└── ViewerCustom.vue (JsonEditor, shell exec)
 ```
 
-### 6.3 迁移关注点
+---
 
-1. **Event Bus → Pinia/Composable**：所有 `$bus` 事件需要重写为响应式状态管理
-2. **Options API → Composition API**：所有组件需要用 `<script setup>` + TSX 重写
-3. **localStorage → tauri-plugin-store**：存储层需要替换
-4. **ioredis → Rust redis**：连接管理需要用 Rust 重写
-5. **Electron IPC → Tauri IPC**：主进程通信需要替换
-6. **Element UI → Element Plus**：UI 组件库升级
-7. **vxe-table → VTable**：数据表格替换
-8. **Monaco Editor → 独立加载**：JSON 编辑器集成方式变更
-9. **Buffer 处理 → Uint8Array**：二进制数据处理方式变更
-10. **无类型 → TypeScript**：全量类型定义
+## 七、迁移要点
+
+### 7.1 架构级变更
+
+| 原架构 | 新架构 | 影响 |
+|--------|--------|------|
+| Electron Main/Renderer | Tauri Rust/Frontend | 全部主进程代码重写 |
+| Vue 2 Options API | Vue 3 Composition API + TSX | 全部组件重写 |
+| Element UI | Element Plus | API 差异，部分组件行为变化 |
+| ioredis (Node.js) | redis (Rust) | 连接管理完全重写 |
+| localStorage | tauri-plugin-store | 存储层替换 |
+| bus.js (Vue 事件) | mitt + Pinia | 状态管理升级 |
+| vxe-table | @visactor/vtable | 表格 API 完全不同 |
+| vue-easy-tree | @visactor/vtable | 树组件替换 |
+| keymaster | 自定义 composable | 快捷键系统重写 |
+
+### 7.2 功能迁移优先级
+
+**Phase 1 — 核心功能 (MVP):**
+1. 连接管理 (CRUD + SSH/SSL/Cluster/Sentinel)
+2. Key 扫描与浏览 (SCAN + 虚拟树)
+3. Key 详情 (7 种数据类型编辑)
+4. 多标签页
+5. DB 选择器
+
+**Phase 2 — 高级功能:**
+1. CLI 命令行
+2. 格式化查看器 (14 种)
+3. 命令日志
+4. 自定义格式化器
+
+**Phase 3 — 工具功能:**
+1. 服务器状态
+2. 内存分析
+3. 慢日志
+4. 批量删除
+5. Key 导入/导出
+
+**Phase 4 — UI 增强:**
+1. 暗黑模式
+2. 多语言 (13 种)
+3. 快捷键系统
+4. 字体选择
+5. 自动更新
+
+### 7.3 关键技术挑战
+
+1. **SCAN 流式传输**: Rust redis 库不支持 SCAN stream，需自行实现分页 SCAN
+2. **SSH 隧道**: russh 库异步 API，需与 redis 连接集成
+3. **Cluster NAT 映射**: SSH + Cluster 场景下的节点地址转换
+4. **格式检测链**: 14 种格式的检测逻辑需在 Rust 或前端重新实现
+5. **虚拟树 + 虚拟列表**: @visactor/vtable 的 API 与 vue-easy-tree 完全不同
+6. **Monaco Editor**: 在 Tauri 中使用需确认兼容性
+7. **自定义格式化器**: Shell exec 在 Tauri 中需通过 Rust Command 实现
+8. **Protobuf**: .proto 文件加载和编解码需 Rust protobuf 库
+
+---
+
+## 八、文件索引
+
+### 8.1 源文件清单
+
+| 文件路径 | 行数 | 职责 |
+|---------|------|------|
+| `src/main.js` | 46 | 应用入口 |
+| `src/App.vue` | 251 | 根组件布局 |
+| `src/Aside.vue` | 108 | 左侧边栏 |
+| `src/bus.js` | 18 | 事件总线 |
+| `src/shortcut.js` | 31 | 快捷键管理 |
+| `src/storage.js` | 193 | 持久化存储 |
+| `src/addon.js` | 121 | Electron 集成 |
+| `src/redisClient.js` | 380 | Redis 连接管理 |
+| `src/util.js` | 391 | 工具函数库 |
+| `src/commands.js` | 200 | Redis 命令定义 |
+| `src/router/index.js` | 15 | 路由配置 |
+| `src/components/Tabs.vue` | 447 | 多标签页管理 |
+| `src/components/Connections.vue` | 119 | 连接列表 |
+| `src/components/ConnectionWrapper.vue` | 262 | 连接生命周期 |
+| `src/components/ConnectionMenu.vue` | 454 | 连接菜单 |
+| `src/components/NewConnectionDialog.vue` | 342 | 连接表单 |
+| `src/components/KeyList.vue` | 349 | Key 扫描引擎 |
+| `src/components/KeyListVirtualTree.vue` | 622 | 虚拟树浏览器 |
+| `src/components/KeyListNormal.vue` | 99 | 扁平列表浏览器 |
+| `src/components/OperateItem.vue` | 471 | DB/搜索/新建面板 |
+| `src/components/KeyDetail.vue` | 158 | Key 详情包装器 |
+| `src/components/KeyHeader.vue` | 307 | Key 头部操作 |
+| `src/components/FormatViewer.vue` | 293 | 自动格式检测 |
+| `src/components/JsonEditor.vue` | 238 | JSON 编辑器 |
+| `src/components/CliContent.vue` | 165 | CLI 内容显示 |
+| `src/components/CliTab.vue` | 466 | CLI 命令行 |
+| `src/components/Status.vue` | 423 | 服务器状态 |
+| `src/components/MemoryAnalysis.vue` | 330 | 内存分析 |
+| `src/components/SlowLog.vue` | 234 | 慢日志 |
+| `src/components/DeleteBatch.vue` | 256 | 批量删除 |
+| `src/components/CommandLog.vue` | 120 | 命令日志 |
+| `src/components/Setting.vue` | 356 | 设置对话框 |
+| `src/components/CustomFormatter.vue` | 176 | 自定义格式化器 |
+| `src/components/ScrollToTop.vue` | 130 | 回到顶部 |
+| `src/components/RightClickMenu.vue` | 105 | 右键菜单 |
+| `src/components/HotKeys.vue` | 56 | 快捷键提示 |
+| `src/components/UpdateCheck.vue` | 155 | 更新检查 |
+| `src/components/LanguageSelector.vue` | 45 | 语言选择器 |
+| `src/components/InputBinary.vue` | 46 | 二进制输入 |
+| `src/components/contents/KeyContentString.vue` | 103 | String 编辑器 |
+| `src/components/contents/KeyContentHash.vue` | 333 | Hash 编辑器 |
+| `src/components/contents/KeyContentList.vue` | 295 | List 编辑器 |
+| `src/components/contents/KeyContentSet.vue` | 283 | Set 编辑器 |
+| `src/components/contents/KeyContentZset.vue` | 328 | Zset 编辑器 |
+| `src/components/contents/KeyContentStream.vue` | 427 | Stream 编辑器 |
+| `src/components/contents/KeyContentReJson.vue` | 102 | ReJSON 编辑器 |
+| `src/components/viewers/ViewerText.vue` | 57 | 文本查看器 |
+| `src/components/viewers/ViewerHex.vue` | 31 | Hex 查看器 |
+| `src/components/viewers/ViewerJson.vue` | 46 | JSON 查看器 |
+| `src/components/viewers/ViewerBinary.vue` | 31 | 二进制查看器 |
+| `src/components/viewers/ViewerMsgpack.vue` | 52 | Msgpack 查看器 |
+| `src/components/viewers/ViewerPHPSerialize.vue` | 56 | PHP 序列化查看器 |
+| `src/components/viewers/ViewerJavaSerialize.vue` | 39 | Java 序列化查看器 |
+| `src/components/viewers/ViewerPickle.vue` | 31 | Pickle 查看器 |
+| `src/components/viewers/ViewerBrotli.vue` | 42 | Brotli 查看器 |
+| `src/components/viewers/ViewerGzip.vue` | 42 | Gzip 查看器 |
+| `src/components/viewers/ViewerDeflate.vue` | 42 | Deflate 查看器 |
+| `src/components/viewers/ViewerDeflateRaw.vue` | 42 | DeflateRaw 查看器 |
+| `src/components/viewers/ViewerProtobuf.vue` | 153 | Protobuf 查看器 |
+| `src/components/viewers/ViewerOverSize.vue` | 43 | 超大文件查看器 |
+| `src/components/viewers/ViewerCustom.vue` | 178 | 自定义查看器 |
+| `src/i18n/i18n.js` | 97 | i18n 配置 |
+| `src/i18n/langs/*.js` | ~13 文件 | 13 种语言翻译 |
+| `pack/electron/electron-main.js` | 226 | Electron 主进程 |
+| `pack/electron/update.js` | 54 | 自动更新 |
+| `pack/electron/win-state.js` | 115 | 窗口状态 |
+| `pack/electron/font-manager.js` | 19 | 字体管理 |
+| `pack/electron/package.json` | 71 | Electron 构建配置 |
+
+---
+
+> **文档生成时间**: 2026-05-15  
+> **分析文件数**: 65+  
+> **总代码行数**: ~12,000 行 (不含 node_modules/static/i18n 详细翻译)
