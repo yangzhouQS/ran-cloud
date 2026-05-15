@@ -3,28 +3,34 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.0.0",
   "scripts": {
     "dev": "rsbuild dev",
     "build": "rsbuild build",
     "preview": "rsbuild preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "lint": "eslint ./src",
+    "lint:fix": "eslint --fix ./src"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
-    "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-shell": "^2",
+    "@tauri-apps/api": "^2.11.0",
+    "@tauri-apps/plugin-shell": "^2.3.5",
+    "@visactor/vtable": "^1.26.1",
     "element-plus": "^2.14.0",
-    "vue": "^3.5"
+    "vue": "^3.5.34"
   },
   "devDependencies": {
-    "@rsbuild/core": "^2",
-    "@rsbuild/plugin-babel": "^1",
-    "@rsbuild/plugin-vue": "^1",
-    "@rsbuild/plugin-vue-jsx": "^2",
-    "@tauri-apps/cli": "^2",
-    "@types/node": "^22",
-    "typescript": "^5.8"
+    "@cs/js-eslint-config-library": "0.2.7",
+    "@rsbuild/core": "^2.0.6",
+    "@rsbuild/plugin-babel": "^1.1.2",
+    "@rsbuild/plugin-less": "^1.6.3",
+    "@rsbuild/plugin-vue": "^1.2.8",
+    "@rsbuild/plugin-vue-jsx": "^2.0.0",
+    "@tauri-apps/cli": "^2.11.1",
+    "@types/node": "^25.8.0",
+    "typescript": "5.9.3"
   }
 }

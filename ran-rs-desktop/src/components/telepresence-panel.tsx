@@ -21,6 +21,8 @@ import {
   getStatus,
   type ConnectParams,
 } from '../services/telepresence';
+import { useCsNamespace } from '../hooks/use-namespace';
+import './telepresence-panel.less';
 
 /** 操作日志条目 */
 interface LogEntry {
@@ -38,6 +40,11 @@ const TelepresencePanel = defineComponent({
     },
   },
   setup(props) {
+    // ===== BEM 命名空间 =====
+    const ns = useCsNamespace('telepresence');
+    const nsPage = useCsNamespace('content-page');
+    const nsSection = useCsNamespace('content-section');
+
     // ===== 命名空间选项 =====
     const namespaceOptions = [
       { label: 'dev-mc (默认)', value: 'dev-mc' },
@@ -81,7 +88,7 @@ const TelepresencePanel = defineComponent({
 
     const scrollToBottom = () => {
       setTimeout(() => {
-        const el = document.querySelector('.terminal-output');
+        const el = document.querySelector(`.${ns.e('terminal')}`);
         if (el) el.scrollTop = el.scrollHeight;
       }, 50);
     };
@@ -242,9 +249,9 @@ const TelepresencePanel = defineComponent({
 
     // ===== 渲染：连接管理 =====
     const renderConnect = () => (
-      <div class="content-page">
-        <div class="content-page-header">
-          <h2 class="content-page-title">
+      <div class={nsPage.b()}>
+        <div class={nsPage.e('header')}>
+          <h2 class={nsPage.e('title')}>
             <el-icon style={{ marginRight: '8px', verticalAlign: 'middle' }}>
               <Connection />
             </el-icon>
@@ -259,9 +266,9 @@ const TelepresencePanel = defineComponent({
         </div>
 
         {/* 操作按钮 */}
-        <div class="content-section">
-          <h3 class="section-title">快捷操作</h3>
-          <div class="action-buttons-horizontal">
+        <div class={nsSection.b()}>
+          <h3 class={nsSection.e('title')}>快捷操作</h3>
+          <div class={ns.e('actions')}>
             <el-button
               type="primary"
               icon={Connection}
@@ -293,9 +300,9 @@ const TelepresencePanel = defineComponent({
         </div>
 
         {/* 命令预览 */}
-        <div class="content-section">
-          <h3 class="section-title">执行命令</h3>
-          <code class="command-inline">
+        <div class={nsSection.b()}>
+          <h3 class={nsSection.e('title')}>执行命令</h3>
+          <code class={ns.e('command')}>
             telepresence connect --kubeconfig {config.kubeconfig}
             {config.skipTlsVerify ? ' --insecure-skip-tls-verify' : ''}
             {' '}--namespace {config.namespace}
@@ -306,9 +313,9 @@ const TelepresencePanel = defineComponent({
 
     // ===== 渲染：状态监控 =====
     const renderStatus = () => (
-      <div class="content-page">
-        <div class="content-page-header">
-          <h2 class="content-page-title">
+      <div class={nsPage.b()}>
+        <div class={nsPage.e('header')}>
+          <h2 class={nsPage.e('title')}>
             <el-icon style={{ marginRight: '8px', verticalAlign: 'middle' }}>
               <Monitor />
             </el-icon>
@@ -325,15 +332,15 @@ const TelepresencePanel = defineComponent({
           </el-button>
         </div>
 
-        <div class="content-section">
-          <div class="status-card">
-            <div class="status-indicator">
+        <div class={nsSection.b()}>
+          <div class={ns.e('status')}>
+            <div class={ns.e('status-indicator')}>
               <el-icon size={48} color={isConnected.value ? '#67c23a' : '#f56c6c'}>
                 {isConnected.value ? <CircleCheck /> : <CircleClose />}
               </el-icon>
-              <div class="status-info">
-                <span class="status-label">连接状态</span>
-                <span class={`status-value ${isConnected.value ? 'connected' : 'disconnected'}`}>
+              <div class={ns.e('status-info')}>
+                <span class={ns.e('status-label')}>连接状态</span>
+                <span class={[ns.e('status-value'), isConnected.value ? ns.is('connected') : ns.is('disconnected')]}>
                   {statusText.value}
                 </span>
               </div>
@@ -345,9 +352,9 @@ const TelepresencePanel = defineComponent({
 
     // ===== 渲染：配置管理 =====
     const renderConfig = () => (
-      <div class="content-page">
-        <div class="content-page-header">
-          <h2 class="content-page-title">
+      <div class={nsPage.b()}>
+        <div class={nsPage.e('header')}>
+          <h2 class={nsPage.e('title')}>
             <el-icon style={{ marginRight: '8px', verticalAlign: 'middle' }}>
               <Setting />
             </el-icon>
@@ -355,11 +362,11 @@ const TelepresencePanel = defineComponent({
           </h2>
         </div>
 
-        <div class="content-section">
-          <div class="config-form-compact">
-            <div class="form-row">
-              <label class="form-label">Kubeconfig 路径</label>
-              <div class="form-input-group">
+        <div class={nsSection.b()}>
+          <div class={ns.e('form')}>
+            <div class={ns.e('form-row')}>
+              <label class={ns.e('form-label')}>Kubeconfig 路径</label>
+              <div class={ns.e('form-input-group')}>
                 <el-input
                   v-model={config.kubeconfig}
                   placeholder="请输入 kubeconfig 文件路径"
@@ -371,8 +378,8 @@ const TelepresencePanel = defineComponent({
               </div>
             </div>
 
-            <div class="form-row">
-              <label class="form-label">命名空间</label>
+            <div class={ns.e('form-row')}>
+              <label class={ns.e('form-label')}>命名空间</label>
               <el-select
                 v-model={config.namespace}
                 placeholder="选择命名空间"
@@ -385,15 +392,15 @@ const TelepresencePanel = defineComponent({
               </el-select>
             </div>
 
-            <div class="form-row">
-              <label class="form-label">TLS 验证</label>
+            <div class={ns.e('form-row')}>
+              <label class={ns.e('form-label')}>TLS 验证</label>
               <el-switch
                 v-model={config.skipTlsVerify}
                 activeText="跳过 TLS 证书验证"
                 inactiveText="验证 TLS 证书"
               />
               <el-tooltip content="开发环境通常使用自签名证书，建议开启此选项。" placement="right">
-                <el-icon class="info-icon" size={14} color="#909399">
+                <el-icon class={ns.e('info-icon')} size={14} color="#909399">
                   <InfoFilled />
                 </el-icon>
               </el-tooltip>
@@ -405,9 +412,9 @@ const TelepresencePanel = defineComponent({
 
     // ===== 渲染：操作日志 =====
     const renderLogs = () => (
-      <div class="content-page">
-        <div class="content-page-header">
-          <h2 class="content-page-title">
+      <div class={nsPage.b()}>
+        <div class={nsPage.e('header')}>
+          <h2 class={nsPage.e('title')}>
             <el-icon style={{ marginRight: '8px', verticalAlign: 'middle' }}>
               <Document />
             </el-icon>
@@ -418,15 +425,15 @@ const TelepresencePanel = defineComponent({
           </el-button>
         </div>
 
-        <div class="content-section" style={{ padding: 0 }}>
-          <div class="terminal-output">
+        <div class={nsSection.b()} style={{ padding: 0 }}>
+          <div class={ns.e('terminal')}>
             {logs.value.length === 0 ? (
-              <div class="terminal-empty">暂无日志输出</div>
+              <div class={ns.e('terminal-empty')}>暂无日志输出</div>
             ) : (
               logs.value.map((log, index) => (
-                <div key={index} class={`log-line log-${log.type}`}>
-                  <span class="log-time">[{log.timestamp}]</span>
-                  <span class="log-message">{log.message}</span>
+                <div key={index} class={[ns.e('log-line'), ns.em('log-line', log.type)]}>
+                  <span class={ns.e('log-time')}>[{log.timestamp}]</span>
+                  <span class={ns.e('log-message')}>{log.message}</span>
                 </div>
               ))
             )}

@@ -4,6 +4,8 @@ import { ElMessage } from 'element-plus';
 import Layout from './components/layout';
 import { getCategoriesByNav, getCategoryTitle } from './components/category-panel';
 import TelepresencePanel from './components/telepresence-panel';
+import { useCsNamespace } from './hooks/use-namespace';
+import './components/layout.less';
 
 /** 检测是否运行在 Tauri 环境中 */
 const isTauri = () => '__TAURI_INTERNALS__' in window;
@@ -17,6 +19,9 @@ const buildWindowUrl = (hash: string) => {
 const App = defineComponent({
   name: 'App',
   setup() {
+    // ===== BEM 命名空间 =====
+    const nsPage = useCsNamespace('content-page');
+
     // ===== 导航状态 =====
     const activeNav = ref('k8s');
     const activeCategory = ref('connect');
@@ -27,6 +32,12 @@ const App = defineComponent({
 
     // ===== 事件处理 =====
     const handleNavSelect = (key: string) => {
+      // Redis 模块打开独立窗口
+      if (key === 'redis') {
+        openRedisWindow();
+        return;
+      }
+
       activeNav.value = key;
       const cats = getCategoriesByNav(key);
       if (cats.length > 0) {
@@ -96,6 +107,47 @@ const App = defineComponent({
       }
     };
 
+    /** 打开 Redis Desktop Manager 独立窗口 */
+    const openRedisWindow = async () => {
+      if (!isTauri()) {
+        window.open(buildWindowUrl('/redis'), '_blank');
+        return;
+      }
+
+      const windowLabel = 'redis';
+
+      try {
+        const existingWin = await WebviewWindow.getByLabel(windowLabel);
+        if (existingWin) {
+          try {
+            await existingWin.setFocus();
+          } catch (err) {
+            console.log(err);
+          }
+          return;
+        }
+
+        const webview = new WebviewWindow(windowLabel, {
+          url: buildWindowUrl('/redis'),
+          title: 'Redis Desktop Manager - Ran RS Desktop',
+          width: 1200,
+          height: 800,
+          center: true,
+          minimizable: true,
+          closable: true,
+          resizable: true,
+        });
+
+        webview.once('tauri://error', (e) => {
+          console.error('[Tauri] Redis 窗口创建错误:', e);
+          ElMessage.error('无法打开 Redis Desktop Manager 窗口');
+        });
+      } catch (err) {
+        console.error('[Tauri] 创建 Redis 窗口异常:', err);
+        ElMessage.error('创建 Redis 窗口失败，请检查 Tauri 权限配置');
+      }
+    };
+
     // ===== 渲染主内容 =====
     const renderMainContent = () => {
       switch (activeNav.value) {
@@ -103,9 +155,9 @@ const App = defineComponent({
           return <TelepresencePanel activeCategory={activeCategory.value} />;
         case 'home':
           return (
-            <div class="content-page">
-              <h2 class="content-page-title">首页</h2>
-              <div class="content-placeholder">
+            <div class={nsPage.b()}>
+              <h2 class={nsPage.e('title')}>首页</h2>
+              <div class={nsPage.e('placeholder')}>
                 <el-empty description="欢迎使用 Ran RS Desktop" />
               </div>
             </div>

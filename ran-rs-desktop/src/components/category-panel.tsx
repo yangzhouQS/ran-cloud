@@ -8,6 +8,8 @@ import {
   Document,
   Grid,
 } from '@element-plus/icons-vue';
+import { useCsNamespace } from '../hooks/use-namespace';
+import './category-panel.less';
 
 /** 分类项定义 */
 export interface CategoryItem {
@@ -95,28 +97,30 @@ const CategoryPanel = defineComponent({
     },
   },
   setup(props) {
+    const ns = useCsNamespace('category');
+
     return () => (
-      <div class="category-panel">
+      <div class={ns.b()}>
         {props.title && (
-          <div class="category-title">{props.title}</div>
+          <div class={ns.e('title')}>{props.title}</div>
         )}
-        <div class="category-list">
+        <div class={ns.e('list')}>
           {props.categories.map((item) => (
             <div
               key={item.key}
               class={[
-                'category-item',
-                props.activeKey === item.key && 'is-active',
+                ns.e('item'),
+                props.activeKey === item.key && ns.is('active'),
               ]}
               onClick={() => props.onSelect(item.key)}
             >
-              <el-icon size={16} class="category-item-icon">
+              <el-icon size={16} class={ns.e('item-icon')}>
                 <item.icon />
               </el-icon>
-              <div class="category-item-content">
-                <span class="category-item-label">{item.label}</span>
+              <div class={ns.e('item-content')}>
+                <span class={ns.e('item-label')}>{item.label}</span>
                 {item.description && (
-                  <span class="category-item-desc">{item.description}</span>
+                  <span class={ns.e('item-desc')}>{item.description}</span>
                 )}
               </div>
             </div>

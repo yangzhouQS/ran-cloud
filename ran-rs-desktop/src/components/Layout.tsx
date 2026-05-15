@@ -1,6 +1,8 @@
 import { defineComponent, type PropType } from 'vue';
 import Sidebar from './sidebar';
 import CategoryPanel, { type CategoryItem } from './category-panel';
+import { useCsNamespace } from '../hooks/use-namespace';
+import './layout.less';
 
 const Layout = defineComponent({
   name: 'Layout',
@@ -14,8 +16,10 @@ const Layout = defineComponent({
     onToolClick: { type: Function as PropType<(key: string) => void>, required: true },
   },
   setup(props, { slots }) {
+    const ns = useCsNamespace('layout');
+
     return () => (
-      <div class="app-layout">
+      <div class={ns.b()}>
         <Sidebar
           activeKey={props.activeNav}
           onSelect={props.onNavSelect}
@@ -27,7 +31,7 @@ const Layout = defineComponent({
           activeKey={props.activeCategory}
           onSelect={props.onCategorySelect}
         />
-        <div class="main-content">
+        <div class={ns.e('main')}>
           {slots.default?.()}
         </div>
       </div>

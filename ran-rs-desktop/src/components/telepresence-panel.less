@@ -1,0 +1,156 @@
+/* ============================================================
+   Telepresence 连接管理面板 — BEM: ran-telepresence
+   ============================================================ */
+
+@import (reference) '../assets/styles/global.less';
+
+.ran-telepresence {
+  // ---- 操作按钮 ----
+  &__actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  // ---- 命令预览（内联） ----
+  &__command {
+    display: block;
+    padding: 12px 16px;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    border-radius: 8px;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    word-break: break-all;
+    white-space: pre-wrap;
+  }
+
+  // ---- 状态监控 ----
+  &__status {
+    display: flex;
+    align-items: center;
+  }
+
+  &__status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  &__status-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__status-label {
+    font-size: 13px;
+    color: @color-text-secondary;
+  }
+
+  &__status-value {
+    font-size: 20px;
+    font-weight: 600;
+
+    &.is-connected {
+      color: @color-success;
+    }
+
+    &.is-disconnected {
+      color: @color-danger;
+    }
+  }
+
+  // ---- 配置管理 ----
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  &__form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__form-label {
+    font-size: 13px;
+    color: @color-text-regular;
+    font-weight: 500;
+  }
+
+  &__form-input-group {
+    display: flex;
+    gap: 8px;
+
+    .el-input {
+      flex: 1;
+    }
+  }
+
+  &__info-icon {
+    cursor: help;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  // ---- 操作日志 - 终端 ----
+  &__terminal {
+    background: #1e1e1e;
+    border-radius: 0 0 10px 10px;
+    padding: 16px;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    min-height: 300px;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #2d2d2d;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #555;
+      border-radius: 3px;
+
+      &:hover {
+        background: #777;
+      }
+    }
+  }
+
+  &__terminal-empty {
+    color: #555;
+    text-align: center;
+    padding: 40px 0;
+    font-style: italic;
+  }
+
+  // ---- 日志行 ----
+  &__log-line {
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  }
+
+  &__log-time {
+    color: #6a9955;
+    margin-right: 8px;
+  }
+
+  &__log-message {
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  // 日志类型修饰符
+  &__log-line--command .ran-telepresence__log-message { color: #569cd6; }
+  &__log-line--info .ran-telepresence__log-message { color: #d4d4d4; }
+  &__log-line--success .ran-telepresence__log-message { color: #4ec9b0; }
+  &__log-line--error .ran-telepresence__log-message { color: #f44747; }
+}

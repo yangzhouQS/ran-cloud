@@ -6,7 +6,8 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue';
 import App from './app';
 import SettingsPage from './pages/settings-page';
 import AboutPage from './pages/about-page';
-import './assets/styles/index.css';
+import RedisDesktopManager from './modules/redis-desktop-manager';
+import './assets/styles/global.less';
 
 // 根据 URL hash 判断渲染哪个页面
 const hash = window.location.hash || '#/';
@@ -16,6 +17,8 @@ if (hash === '#/settings') {
   RootComponent = SettingsPage;
 } else if (hash === '#/about') {
   RootComponent = AboutPage;
+} else if (hash === '#/redis') {
+  RootComponent = RedisDesktopManager;
 } else {
   RootComponent = App;
 }
