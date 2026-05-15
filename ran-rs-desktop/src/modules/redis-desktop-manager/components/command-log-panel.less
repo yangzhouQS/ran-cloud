@@ -1,0 +1,188 @@
+/**
+ * @component CommandLogPanel
+ * @description 命令日志面板样式 — 展示 Redis 命令执行日志
+ * @block ran-command-log
+ * @elements __toolbar, __toolbar-left, __toolbar-right, __count,
+ *           __list, __empty, __item, __item-header, __item-time,
+ *           __item-status, __item-duration, __item-db,
+ *           __item-command, __item-cmd-name, __item-cmd-args, __item-error
+ */
+
+@import (reference) "../../../assets/styles/global.less";
+
+.ran-command-log {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  // ---- 工具栏 ----
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    border-bottom: 1px solid @color-border;
+    flex-shrink: 0;
+  }
+
+  &__toolbar-left {
+    display: flex;
+    align-items: center;
+  }
+
+  &__toolbar-right {
+    display: flex;
+    align-items: center;
+  }
+
+  &__count {
+    font-size: 12px;
+    color: @color-text-secondary;
+  }
+
+  // ---- 日志列表 ----
+  &__list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+
+  &__empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+  }
+
+  // ---- 日志条目 ----
+  &__item {
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    font-size: 12px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    background: #fafbfc;
+    border: 1px solid transparent;
+    transition: border-color 0.15s;
+
+    &:hover {
+      border-color: #d9ecff;
+    }
+
+    &.is-error {
+      background: #fef0f0;
+      border-color: #fde2e2;
+    }
+  }
+
+  &__item-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  &__item-time {
+    color: @color-text-secondary;
+    font-size: 11px;
+  }
+
+  &__item-status {
+    font-weight: 600;
+    font-size: 12px;
+
+    &.is-success {
+      color: #67c23a;
+    }
+
+    &.is-error {
+      color: #f56c6c;
+    }
+  }
+
+  &__item-duration {
+    color: #e6a23c;
+    font-size: 11px;
+  }
+
+  &__item-db {
+    color: #909399;
+    font-size: 11px;
+    background: #f0f2f5;
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  // ---- 命令行 ----
+  &__item-command {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    overflow: hidden;
+  }
+
+  &__item-cmd-name {
+    color: #409eff;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  &__item-cmd-args {
+    color: @color-text-primary;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // ---- 错误信息 ----
+  &__item-error {
+    margin-top: 4px;
+    color: #f56c6c;
+    font-size: 11px;
+    word-break: break-all;
+  }
+}
+
+// ---- 暗黑主题 ----
+html.dark {
+  .ran-command-log {
+    &__toolbar {
+      border-bottom-color: #363637;
+    }
+
+    &__item {
+      background: #262727;
+
+      &:hover {
+        border-color: #363637;
+      }
+
+      &.is-error {
+        background: #2a1a1a;
+        border-color: #4c2a2a;
+      }
+    }
+
+    &__item-time {
+      color: #a3a6ad;
+    }
+
+    &__item-db {
+      background: #363637;
+      color: #a3a6ad;
+    }
+
+    &__item-cmd-name {
+      color: #79bbff;
+    }
+
+    &__item-cmd-args {
+      color: #e5eaf3;
+    }
+
+    &__item-error {
+      color: #f56c6c;
+    }
+  }
+}

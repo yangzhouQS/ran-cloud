@@ -1,0 +1,192 @@
+/**
+ * @component KeyPanel
+ * @description Key 面板样式 — 中间面板，显示 Key 列表、搜索和 SCAN 进度
+ * @block ran-key-panel
+ * @elements __search, __progress, __progress-info, __toolbar, __list, __list-inner,
+ *           __key-item, __key-info, __key-name, __key-meta, __key-ttl, __key-actions, __status, __empty
+ */
+
+@import (reference) "../../../assets/styles/global.less";
+
+.ran-key-panel {
+  width: 320px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-right: 1px solid @color-border;
+  flex-shrink: 0;
+  overflow: hidden;
+
+  // ---- 搜索栏 ----
+  &__search {
+    padding: 12px;
+    border-bottom: 1px solid @color-border;
+    flex-shrink: 0;
+  }
+
+  // ---- SCAN 进度 ----
+  &__progress {
+    padding: 8px 12px;
+    border-bottom: 1px solid @color-border-light;
+    background: #f0f9eb;
+    flex-shrink: 0;
+  }
+
+  // ---- 进度信息 ----
+  &__progress-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+    font-size: 12px;
+    color: @color-text-secondary;
+  }
+
+  // ---- 工具栏 ----
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #fdf6ec;
+    border-bottom: 1px solid @color-border-light;
+    font-size: 12px;
+    color: @color-text-secondary;
+    flex-shrink: 0;
+  }
+
+  // ---- Key 列表容器 ----
+  &__list {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  // ---- Key 列表内部滚动区 ----
+  &__list-inner {
+    height: 100%;
+    overflow-y: auto;
+  }
+
+  // ---- Key 项 ----
+  &__key-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid @color-border-light;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    gap: 8px;
+
+    &:hover {
+      background-color: #f5f7fa;
+    }
+
+    &.is-selected {
+      background-color: #ecf5ff;
+    }
+  }
+
+  // ---- Key 信息区 ----
+  &__key-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  // ---- Key 名称 ----
+  &__key-name {
+    display: block;
+    font-size: 13px;
+    color: @color-text-primary;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  // ---- Key 元信息 ----
+  &__key-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  // ---- Key TTL ----
+  &__key-ttl {
+    font-size: 11px;
+    color: @color-text-secondary;
+  }
+
+  // ---- Key 操作按钮 ----
+  &__key-actions {
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+
+    .ran-key-panel__key-item:hover & {
+      opacity: 1;
+    }
+  }
+
+  // ---- 底部状态栏 ----
+  &__status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    border-top: 1px solid @color-border;
+    font-size: 12px;
+    color: @color-text-secondary;
+    flex-shrink: 0;
+  }
+
+  // ---- 空状态 ----
+  &__empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+  }
+}
+
+// ---- 暗黑主题 ----
+html.dark {
+  .ran-key-panel {
+    background: #1d1e1f;
+    border-right-color: #363637;
+
+    &__search {
+      border-bottom-color: #363637;
+    }
+
+    &__progress {
+      background: #1a2e1a;
+      border-bottom-color: #363637;
+    }
+
+    &__toolbar {
+      background: #2e2a1e;
+      border-bottom-color: #363637;
+    }
+
+    &__key-item {
+      border-bottom-color: #363637;
+
+      &:hover {
+        background-color: #262727;
+      }
+
+      &.is-selected {
+        background-color: #1a3a5c;
+      }
+    }
+
+    &__key-name {
+      color: #e5eaf3;
+    }
+
+    &__status {
+      border-top-color: #363637;
+    }
+  }
+}

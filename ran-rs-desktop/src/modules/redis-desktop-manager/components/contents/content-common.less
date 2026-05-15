@@ -1,0 +1,42 @@
+/**
+ * 数据类型编辑器共享样式
+ *
+ * 所有 content-* 组件的通用样式定义
+ * 各组件通过 @import 引入此文件
+ *
+ * @block ran-content-*
+ */
+
+/* ====== 工具栏 ====== */
+.content-toolbar() {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid @color-border-light;
+  margin-bottom: 12px;
+
+  .total {
+    font-size: 13px;
+    color: #606266;
+  }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+  }
+}
+
+/* ====== 搜索区域 ====== */
+.content-search() {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ====== 分页 ====== */
+.content-pagination() {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 0;
+}

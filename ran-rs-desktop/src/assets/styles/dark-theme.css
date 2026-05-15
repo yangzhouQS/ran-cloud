@@ -1,0 +1,146 @@
+/**
+ * 暗黑主题 CSS 变量
+ *
+ * 基于 Element Plus dark 模式，扩展自定义组件的暗黑主题变量。
+ * 当 <html> 元素包含 .dark 类时自动生效。
+ *
+ * 命名规范：--ran-{block}__{element}--{modifier}
+ */
+
+/* ============================================
+ * 暗黑主题变量覆盖
+ * ============================================ */
+html.dark {
+  /* ---- 全局颜色 ---- */
+  --ran-bg-color: #1a1a2e;
+  --ran-bg-color-secondary: #16213e;
+  --ran-bg-color-tertiary: #0f3460;
+  --ran-text-color: #e0e0e0;
+  --ran-text-color-secondary: #a0a0a0;
+  --ran-text-color-placeholder: #6c6c6c;
+  --ran-border-color: #2a2a4a;
+  --ran-border-color-light: #1e1e3a;
+
+  /* ---- 侧边栏 ---- */
+  --ran-sidebar-bg: #16213e;
+  --ran-sidebar-text: #a0a0b0;
+  --ran-sidebar-text-active: #e0e0f0;
+  --ran-sidebar-icon: #8080a0;
+  --ran-sidebar-icon-active: #e0e0f0;
+  --ran-sidebar-hover-bg: #1e2d50;
+
+  /* ---- 分类面板 ---- */
+  --ran-category-bg: #1a1a2e;
+  --ran-category-header-bg: #16213e;
+  --ran-category-item-bg: #1e2d50;
+  --ran-category-item-hover-bg: #253a5e;
+  --ran-category-item-active-bg: #2a4a70;
+  --ran-category-item-text: #c0c0d0;
+  --ran-category-item-active-text: #ffffff;
+
+  /* ---- 键列表 ---- */
+  --ran-key-list-bg: #1a1a2e;
+  --ran-key-item-bg: transparent;
+  --ran-key-item-hover-bg: #253a5e;
+  --ran-key-item-active-bg: #2a4a70;
+  --ran-key-item-text: #c0c0d0;
+  --ran-key-item-active-text: #ffffff;
+  --ran-key-tree-line: #2a2a4a;
+
+  /* ---- 数据查看器 ---- */
+  --ran-data-viewer-bg: #1a1a2e;
+  --ran-data-table-header-bg: #16213e;
+  --ran-data-table-row-bg: #1a1a2e;
+  --ran-data-table-row-alt-bg: #16213e;
+  --ran-data-table-row-hover-bg: #253a5e;
+  --ran-data-table-border: #2a2a4a;
+
+  /* ---- CLI 终端 ---- */
+  --ran-cli-bg: #0d0d1a;
+  --ran-cli-text: #00ff88;
+  --ran-cli-prompt: #6c6cff;
+  --ran-cli-error: #ff4444;
+  --ran-cli-border: #2a2a4a;
+
+  /* ---- 标签页 ---- */
+  --ran-tab-bg: #16213e;
+  --ran-tab-text: #a0a0b0;
+  --ran-tab-active-text: #e0e0f0;
+  --ran-tab-active-bg: #1a1a2e;
+  --ran-tab-hover-bg: #1e2d50;
+  --ran-tab-border: #2a2a4a;
+
+  /* ---- 滚动条 ---- */
+  --ran-scrollbar-thumb: #3a3a5a;
+  --ran-scrollbar-thumb-hover: #4a4a6a;
+  --ran-scrollbar-track: transparent;
+}
+
+/* ============================================
+ * 浅色主题变量（默认）
+ * ============================================ */
+:root {
+  /* ---- 全局颜色 ---- */
+  --ran-bg-color: #ffffff;
+  --ran-bg-color-secondary: #f5f7fa;
+  --ran-bg-color-tertiary: #ebeef5;
+  --ran-text-color: #303133;
+  --ran-text-color-secondary: #606266;
+  --ran-text-color-placeholder: #c0c4cc;
+  --ran-border-color: #dcdfe6;
+  --ran-border-color-light: #e4e7ed;
+
+  /* ---- 侧边栏 ---- */
+  --ran-sidebar-bg: #f5f7fa;
+  --ran-sidebar-text: #606266;
+  --ran-sidebar-text-active: #409eff;
+  --ran-sidebar-icon: #909399;
+  --ran-sidebar-icon-active: #409eff;
+  --ran-sidebar-hover-bg: #ecf5ff;
+
+  /* ---- 分类面板 ---- */
+  --ran-category-bg: #ffffff;
+  --ran-category-header-bg: #f5f7fa;
+  --ran-category-item-bg: transparent;
+  --ran-category-item-hover-bg: #ecf5ff;
+  --ran-category-item-active-bg: #d9ecff;
+  --ran-category-item-text: #606266;
+  --ran-category-item-active-text: #409eff;
+
+  /* ---- 键列表 ---- */
+  --ran-key-list-bg: #ffffff;
+  --ran-key-item-bg: transparent;
+  --ran-key-item-hover-bg: #ecf5ff;
+  --ran-key-item-active-bg: #d9ecff;
+  --ran-key-item-text: #606266;
+  --ran-key-item-active-text: #409eff;
+  --ran-key-tree-line: #dcdfe6;
+
+  /* ---- 数据查看器 ---- */
+  --ran-data-viewer-bg: #ffffff;
+  --ran-data-table-header-bg: #f5f7fa;
+  --ran-data-table-row-bg: #ffffff;
+  --ran-data-table-row-alt-bg: #fafafa;
+  --ran-data-table-row-hover-bg: #ecf5ff;
+  --ran-data-table-border: #ebeef5;
+
+  /* ---- CLI 终端 ---- */
+  --ran-cli-bg: #1e1e1e;
+  --ran-cli-text: #d4d4d4;
+  --ran-cli-prompt: #569cd6;
+  --ran-cli-error: #f44747;
+  --ran-cli-border: #dcdfe6;
+
+  /* ---- 标签页 ---- */
+  --ran-tab-bg: #f5f7fa;
+  --ran-tab-text: #909399;
+  --ran-tab-active-text: #303133;
+  --ran-tab-active-bg: #ffffff;
+  --ran-tab-hover-bg: #ecf5ff;
+  --ran-tab-border: #e4e7ed;
+
+  /* ---- 滚动条 ---- */
+  --ran-scrollbar-thumb: #c0c4cc;
+  --ran-scrollbar-thumb-hover: #909399;
+  --ran-scrollbar-track: transparent;
+}

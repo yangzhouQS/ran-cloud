@@ -1,36 +1,52 @@
-import * as ElementPlusIconsVue from "@element-plus/icons-vue";
-import ElementPlus from "element-plus";
-import zhCn from "element-plus/es/locale/lang/zh-cn";
-import { createApp } from "vue";
-import App from "./app";
-import RedisDesktopManager from "./modules/redis-desktop-manager";
-import AboutPage from "./pages/about-page";
-import SettingsPage from "./pages/settings-page";
-import "element-plus/dist/index.css";
-import "./assets/styles/global.less";
+/**
+ * 应用入口文件
+ *
+ * 集成：
+ * - Vue 3 应用实例
+ * - Vue Router（hash 模式，支持 Tauri 多窗口）
+ * - vue-i18n 9.x（中英文国际化）
+ * - Element Plus（含暗黑主题）
+ * - Pinia（状态管理）
+ * - 暗黑主题系统
+ */
 
-// 根据 URL hash 判断渲染哪个页面
-const hash = window.location.hash || "#/";
-let RootComponent;
+import * as ElementPlusIconsVue from '@element-plus/icons-vue';
+import ElementPlus from 'element-plus';
+import 'element-plus/dist/index.css';
+import 'element-plus/theme-chalk/dark/css-vars.css';
+import { createPinia } from 'pinia';
+import { createApp } from 'vue';
 
-if (hash === "#/settings") {
-  RootComponent = SettingsPage;
-} else if (hash === "#/about") {
-  RootComponent = AboutPage;
-} else if (hash === "#/redis") {
-  RootComponent = RedisDesktopManager;
-} else {
-  RootComponent = App;
-}
+import './assets/styles/global.less';
+import './assets/styles/dark-theme.css';
+import i18n from './i18n';
+import router from './router';
+import RootApp from './root-app';
+import { setupTheme } from './hooks/use-theme';
 
-const app = createApp(RootComponent);
+// 初始化暗黑主题系统（尽早执行，避免闪烁）
+setupTheme();
 
-// 注册 Element Plus
-app.use(ElementPlus, { locale: zhCn });
+// 创建 Vue 应用（RootApp 仅包含 <router-view>）
+const app = createApp(RootApp);
 
-// 注册所有图标
+// 注册 Pinia 状态管理
+const pinia = createPinia();
+app.use(pinia);
+
+// 注册 Vue Router
+app.use(router);
+
+// 注册 vue-i18n
+app.use(i18n);
+
+// 注册 Element Plus（使用 i18n 语言配置）
+app.use(ElementPlus);
+
+// 注册所有 Element Plus 图标
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component);
 }
 
-app.mount("#root");
+// 挂载应用
+app.mount('#root');

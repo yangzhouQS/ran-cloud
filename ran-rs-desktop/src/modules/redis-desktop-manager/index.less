@@ -1,48 +1,82 @@
 /**
  * @component RedisDesktopManager
- * @description Redis Desktop Manager 模块入口 — 独立窗口页面，包含顶部标题栏和主体内容区
- *              当前为初始骨架，后续将集成连接管理、数据浏览、命令操作等功能
- * @block ran-redis
- * @elements __header, __header-title, __body, __empty
+ * @description Redis 桌面管理器主布局样式 — 三栏布局
+ * @block ran-redis-desktop
+ * @elements __sidebar, __key-panel, __main, __content, __content-empty, __content-placeholder
  */
 
 @import (reference) "../../assets/styles/global.less";
 
-.ran-redis {
-  width: 100%;
-  height: 100vh;
+.ran-redis-desktop {
+  height: 100%;
   display: flex;
-  flex-direction: column;
-  background: @color-bg;
+  overflow: hidden;
+  background: #ffffff;
 
-  // ---- 顶部标题栏 ----
-  &__header {
-    padding: 16px 24px;
-    background: #ffffff;
-    border-bottom: 1px solid @color-border;
+  // ---- 左栏：连接侧边栏 ----
+  &__sidebar {
+    width: 260px;
+    min-width: 260px;
+    height: 100%;
+    border-right: 1px solid @color-border;
     flex-shrink: 0;
+    overflow: hidden;
   }
 
-  // ---- 标题文本 ----
-  &__header-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 16px;
-    font-weight: 600;
-    color: @color-text-primary;
+  // ---- 中栏：Key 列表面板 ----
+  &__key-panel {
+    width: 280px;
+    min-width: 280px;
+    height: 100%;
+    border-right: 1px solid @color-border;
+    flex-shrink: 0;
+    overflow: hidden;
   }
 
-  // ---- 主体内容区 ----
-  &__body {
+  // ---- 右栏：标签栏 + 内容区 ----
+  &__main {
     flex: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  // ---- 内容区 ----
+  &__content {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  // ---- 空状态 ----
+  &__content-empty {
     display: flex;
     align-items: center;
     justify-content: center;
+    height: 100%;
   }
 
-  // ---- 空状态占位 ----
-  &__empty {
-    text-align: center;
+  // ---- 占位提示 ----
+  &__content-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+  }
+}
+
+// ---- 暗黑主题 ----
+html.dark {
+  .ran-redis-desktop {
+    background: #1d1e1f;
+
+    &__sidebar {
+      border-right-color: #363637;
+    }
+
+    &__key-panel {
+      border-right-color: #363637;
+    }
   }
 }
