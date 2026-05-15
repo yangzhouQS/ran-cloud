@@ -68,6 +68,16 @@ body,
   gap: 4px;
 }
 
+.sidebar-tools {
+  width: 100%;
+  padding: 8px 0 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
 .sidebar-nav-item {
   width: 44px;
   height: 44px;
@@ -408,4 +418,145 @@ body,
   .content-page {
     padding: 16px;
   }
+}
+
+/* ============================================================
+   独立窗口页面样式（设置、关于等）
+   ============================================================ */
+
+.standalone-page {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f5f7fa;
+  overflow: hidden;
+}
+
+.standalone-page-header {
+  padding: 20px 24px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #e8e8e8;
+  flex-shrink: 0;
+}
+
+.standalone-page-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.standalone-page-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+
+/* 设置页面 */
+.settings-section {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.settings-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0 0 16px;
+}
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-item-label {
+  font-size: 14px;
+  color: #303133;
+  font-weight: 500;
+}
+
+.settings-item-desc {
+  font-size: 12px;
+  color: #c0c4cc;
+}
+
+.settings-placeholder {
+  text-align: center;
+  padding: 32px 0;
+  color: #c0c4cc;
+}
+
+.settings-placeholder p {
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+/* 关于页面 */
+.about-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-top: 32px;
+}
+
+.about-logo-large {
+  margin-bottom: 16px;
+}
+
+.about-app-name {
+  font-size: 22px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0 0 8px;
+}
+
+.about-app-version {
+  font-size: 14px;
+  color: #909399;
+  margin: 0;
+}
+
+.about-info-list {
+  width: 100%;
+  max-width: 360px;
+}
+
+.about-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.about-info-label {
+  font-size: 13px;
+  color: #909399;
+  flex-shrink: 0;
+}
+
+.about-info-value {
+  font-size: 13px;
+  color: #606266;
+  text-align: right;
+}
+
+.about-copyright {
+  font-size: 12px;
+  color: #c0c4cc;
+  margin: 0;
 }

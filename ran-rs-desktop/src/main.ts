@@ -4,9 +4,23 @@ import 'element-plus/dist/index.css';
 import zhCn from 'element-plus/es/locale/lang/zh-cn';
 import * as ElementPlusIconsVue from '@element-plus/icons-vue';
 import App from './App';
+import SettingsPage from './pages/SettingsPage';
+import AboutPage from './pages/AboutPage';
 import './assets/styles/index.css';
 
-const app = createApp(App);
+// 根据 URL hash 判断渲染哪个页面
+const hash = window.location.hash || '#/';
+let RootComponent;
+
+if (hash === '#/settings') {
+  RootComponent = SettingsPage;
+} else if (hash === '#/about') {
+  RootComponent = AboutPage;
+} else {
+  RootComponent = App;
+}
+
+const app = createApp(RootComponent);
 
 // 注册 Element Plus
 app.use(ElementPlus, { locale: zhCn });
