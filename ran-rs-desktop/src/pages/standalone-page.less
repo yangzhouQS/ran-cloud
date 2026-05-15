@@ -1,6 +1,14 @@
-/* ============================================================
-   独立窗口页面样式 — BEM: ran-standalone / ran-settings / ran-about
-   ============================================================ */
+/**
+ * @component StandalonePage / SettingsPage / AboutPage
+ * @description 独立窗口页面样式 — 用于设置、关于等弹出为独立 OS 级窗口的页面
+ *              ran-standalone: 通用独立窗口容器（header + body）
+ *              ran-settings: 设置页面内容（分区、配置项）
+ *              ran-about: 关于页面内容（Logo、版本信息、版权）
+ * @blocks ran-standalone, ran-settings, ran-about
+ * @elements ran-standalone: __header, __title, __body
+ *           ran-settings: __section, __section-title, __item, __item-content, __item-label, __item-desc, __placeholder
+ *           ran-about: __logo, __name, __version, __info-list, __info-row, __info-label, __info-value, __copyright
+ */
 
 @import (reference) "../assets/styles/global.less";
 

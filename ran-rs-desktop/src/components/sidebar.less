@@ -1,6 +1,10 @@
-/* ============================================================
-   全局导航侧边栏 — BEM: ran-sidebar
-   ============================================================ */
+/**
+ * @component Sidebar
+ * @description 全局导航侧边栏 — 固定宽度 64px，深色背景，包含 Logo、主导航列表、底部工具按钮
+ * @block ran-sidebar
+ * @elements __logo, __nav, __tools, __item, __icon-img
+ * @modifiers is-active（导航项高亮状态）
+ */
 
 @import (reference) "../assets/styles/global.less";
 
@@ -15,6 +19,7 @@
   user-select: none;
   z-index: 10;
 
+  // ---- Logo 区域 ----
   &__logo {
     width: 100%;
     height: 56px;
@@ -25,6 +30,7 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   }
 
+  // ---- 主导航列表 ----
   &__nav {
     flex: 1;
     width: 100%;
@@ -35,6 +41,7 @@
     gap: 4px;
   }
 
+  // ---- 底部工具按钮区 ----
   &__tools {
     width: 100%;
     padding: 8px 0 12px;
@@ -45,6 +52,7 @@
     border-top: 1px solid rgba(255, 255, 255, 0.06);
   }
 
+  // ---- 导航/工具按钮项 ----
   &__item {
     width: 44px;
     height: 44px;
@@ -61,6 +69,7 @@
       color: rgba(255, 255, 255, 0.85);
     }
 
+    // 激活状态
     &.is-active {
       background: @color-primary-light;
       color: @color-primary;
@@ -71,6 +80,7 @@
     }
   }
 
+  // ---- 自定义图标图片（如 Redis 图标） ----
   &__icon-img {
     width: 22px;
     height: 22px;

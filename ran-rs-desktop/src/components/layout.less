@@ -1,6 +1,10 @@
-/* ============================================================
-   三栏布局 — BEM: ran-layout / ran-content-page / ran-content-section
-   ============================================================ */
+/**
+ * @component Layout
+ * @description 三栏布局容器 — 左侧 Sidebar + 中间 CategoryPanel + 右侧主内容区
+ *              同时包含 ran-content-page（内容页面）和 ran-content-section（内容分区）两个共享块
+ * @blocks ran-layout, ran-content-page, ran-content-section
+ * @elements ran-layout: __main | ran-content-page: __header, __title, __placeholder | ran-content-section: __title
+ */
 
 @import (reference) "../assets/styles/global.less";
 

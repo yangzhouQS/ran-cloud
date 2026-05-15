@@ -1,6 +1,10 @@
-/* ============================================================
-   二级分类列表 — BEM: ran-category
-   ============================================================ */
+/**
+ * @component CategoryPanel
+ * @description 二级分类列表面板 — 固定宽度 200px，白色背景，展示当前导航模块下的功能分类项
+ * @block ran-category
+ * @elements __title, __list, __item, __item-icon, __item-content, __item-label, __item-desc
+ * @modifiers is-active（分类项选中状态）
+ */
 
 @import (reference) "../assets/styles/global.less";
 
@@ -14,6 +18,7 @@
   flex-direction: column;
   overflow: hidden;
 
+  // ---- 分类标题 ----
   &__title {
     padding: 16px 20px 12px;
     font-size: 13px;
@@ -23,12 +28,14 @@
     letter-spacing: 0.5px;
   }
 
+  // ---- 分类列表容器 ----
   &__list {
     flex: 1;
     padding: 4px 8px;
     overflow-y: auto;
   }
 
+  // ---- 分类项 ----
   &__item {
     display: flex;
     align-items: center;
@@ -43,6 +50,7 @@
       background: @color-bg;
     }
 
+    // 选中状态
     &.is-active {
       background: @color-primary-lighter;
 
@@ -57,17 +65,20 @@
     }
   }
 
+  // ---- 分类项图标 ----
   &__item-icon {
     color: @color-text-secondary;
     flex-shrink: 0;
   }
 
+  // ---- 分类项文本内容区 ----
   &__item-content {
     display: flex;
     flex-direction: column;
     min-width: 0;
   }
 
+  // ---- 分类项名称 ----
   &__item-label {
     font-size: 14px;
     color: @color-text-regular;
@@ -76,6 +87,7 @@
     text-overflow: ellipsis;
   }
 
+  // ---- 分类项描述 ----
   &__item-desc {
     font-size: 11px;
     color: @color-text-placeholder;
@@ -85,6 +97,8 @@
     text-overflow: ellipsis;
   }
 }
+
+// ==================== 响应式适配 ====================
 
 @media (max-width: 768px) {
   .ran-category {

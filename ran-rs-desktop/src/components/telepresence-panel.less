@@ -1,6 +1,13 @@
-/* ============================================================
-   Telepresence 连接管理面板 — BEM: ran-telepresence
-   ============================================================ */
+/**
+ * @component TelepresencePanel
+ * @description Telepresence 连接管理面板 — 包含连接操作按钮、命令预览、状态监控、配置表单、操作日志终端
+ * @block ran-telepresence
+ * @elements __actions, __command, __status, __status-indicator, __status-info, __status-label, __status-value,
+ *           __form, __form-row, __form-label, __form-input-group, __info-icon,
+ *           __terminal, __terminal-empty, __log-line, __log-time, __log-message
+ * @modifiers __log-line--command, __log-line--info, __log-line--success, __log-line--error
+ * @states is-connected, is-disconnected
+ */
 
 @import (reference) "../assets/styles/global.less";
 
