@@ -1,22 +1,24 @@
-import { defineComponent, type PropType } from 'vue';
-import Sidebar from './sidebar';
-import CategoryPanel, { type CategoryItem } from './category-panel';
-import { useCsNamespace } from '../hooks/use-namespace';
-import './layout.less';
+import type { PropType } from "vue";
+import type { CategoryItem } from "./category-panel";
+import { defineComponent } from "vue";
+import { useCsNamespace } from "../hooks/use-namespace";
+import CategoryPanel from "./category-panel";
+import Sidebar from "./sidebar";
+import "./layout.less";
 
 const Layout = defineComponent({
-  name: 'Layout',
+  name: "Layout",
   props: {
     activeNav: { type: String, required: true },
     activeCategory: { type: String, required: true },
     categories: { type: Array as PropType<CategoryItem[]>, required: true },
-    categoryTitle: { type: String, default: '' },
+    categoryTitle: { type: String, default: "" },
     onNavSelect: { type: Function as PropType<(key: string) => void>, required: true },
     onCategorySelect: { type: Function as PropType<(key: string) => void>, required: true },
     onToolClick: { type: Function as PropType<(key: string) => void>, required: true },
   },
   setup(props, { slots }) {
-    const ns = useCsNamespace('layout');
+    const ns = useCsNamespace("layout");
 
     return () => (
       <div class={ns.b()}>
@@ -31,7 +33,7 @@ const Layout = defineComponent({
           activeKey={props.activeCategory}
           onSelect={props.onCategorySelect}
         />
-        <div class={ns.e('main')}>
+        <div class={ns.e("main")}>
           {slots.default?.()}
         </div>
       </div>

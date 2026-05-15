@@ -1,14 +1,15 @@
-import { defineComponent, type PropType } from 'vue';
+import type { PropType } from "vue";
 import {
   HomeFilled,
-  Link as LinkIcon,
-  Setting,
   InfoFilled,
+  Link as LinkIcon,
   Monitor,
-} from '@element-plus/icons-vue';
-import iconRedis from '../assets/images/icon-redis.jpeg';
-import { useCsNamespace } from '../hooks/use-namespace';
-import './sidebar.less';
+  Setting,
+} from "@element-plus/icons-vue";
+import { defineComponent } from "vue";
+import iconRedis from "../assets/images/icon-redis.jpeg";
+import { useCsNamespace } from "../hooks/use-namespace";
+import "./sidebar.less";
 
 /** 主导航项（顶部） */
 export interface NavItem {
@@ -28,19 +29,19 @@ export interface ToolItem {
 
 /** 主导航项 */
 export const navItems: NavItem[] = [
-  { key: 'home', label: '首页', icon: HomeFilled },
-  { key: 'k8s', label: 'K8s 连接', icon: LinkIcon },
-  { key: 'redis', label: 'Redis', iconSrc: iconRedis },
+  { key: "home", label: "首页", icon: HomeFilled },
+  { key: "k8s", label: "K8s 连接", icon: LinkIcon },
+  { key: "redis", label: "Redis", iconSrc: iconRedis },
 ];
 
 /** 底部工具项 */
 export const toolItems: ToolItem[] = [
-  { key: 'settings', label: '设置', icon: Setting },
-  { key: 'about', label: '关于', icon: InfoFilled },
+  { key: "settings", label: "设置", icon: Setting },
+  { key: "about", label: "关于", icon: InfoFilled },
 ];
 
 const Sidebar = defineComponent({
-  name: 'Sidebar',
+  name: "Sidebar",
   props: {
     activeKey: {
       type: String,
@@ -56,20 +57,20 @@ const Sidebar = defineComponent({
     },
   },
   setup(props) {
-    const ns = useCsNamespace('sidebar');
+    const ns = useCsNamespace("sidebar");
 
     return () => (
       <div class={ns.b()}>
         {/* Logo */}
-        <div class={ns.e('logo')}>
+        <div class={ns.e("logo")}>
           <el-icon size={24} color="#fff">
             <Monitor />
           </el-icon>
         </div>
 
         {/* 主导航（顶部） */}
-        <div class={ns.e('nav')}>
-          {navItems.map((item) => (
+        <div class={ns.e("nav")}>
+          {navItems.map(item => (
             <el-tooltip
               key={item.key}
               content={item.label}
@@ -78,26 +79,28 @@ const Sidebar = defineComponent({
             >
               <div
                 class={[
-                  ns.e('item'),
-                  props.activeKey === item.key && ns.is('active'),
+                  ns.e("item"),
+                  props.activeKey === item.key && ns.is("active"),
                 ]}
                 onClick={() => props.onSelect(item.key)}
               >
-                {item.iconSrc ? (
-                  <img src={item.iconSrc} class={ns.e('icon-img')} alt={item.label} />
-                ) : (
-                  <el-icon size={20}>
-                    <item.icon />
-                  </el-icon>
-                )}
+                {item.iconSrc
+                  ? (
+                      <img src={item.iconSrc} class={ns.e("icon-img")} alt={item.label} />
+                    )
+                  : (
+                      <el-icon size={20}>
+                        <item.icon />
+                      </el-icon>
+                    )}
               </div>
             </el-tooltip>
           ))}
         </div>
 
         {/* 底部工具栏 */}
-        <div class={ns.e('tools')}>
-          {toolItems.map((item) => (
+        <div class={ns.e("tools")}>
+          {toolItems.map(item => (
             <el-tooltip
               key={item.key}
               content={item.label}
@@ -105,7 +108,7 @@ const Sidebar = defineComponent({
               showAfter={300}
             >
               <div
-                class={ns.e('item')}
+                class={ns.e("item")}
                 onClick={() => props.onToolClick(item.key)}
               >
                 <el-icon size={20}>
