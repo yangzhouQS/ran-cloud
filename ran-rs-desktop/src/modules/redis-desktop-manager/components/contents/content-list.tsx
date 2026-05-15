@@ -10,18 +10,18 @@
  * @block ran-content-list
  */
 
-import { Delete, Edit, Plus } from '@element-plus/icons-vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { defineComponent, ref, watch } from 'vue';
-import { useCsNamespace } from '../../../../hooks/use-namespace';
-import { useRedisStore } from '../../stores/redis-store';
-import type { ListEntry, ListPageParams } from '../../types';
-import { redisDataListPage, redisDataListAdd, redisDataListUpdate, redisDataListDelete } from '../../services/redis-commands';
+import type { ListEntry, ListPageParams } from "../../types";
+import { Delete, Edit, Plus } from "@element-plus/icons-vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { defineComponent, ref, watch } from "vue";
+import { useCsNamespace } from "../../../../hooks/use-namespace";
+import { redisDataListAdd, redisDataListDelete, redisDataListPage, redisDataListUpdate } from "../../services/redis-commands";
+import { useRedisStore } from "../../stores/redis-store";
 
 const ContentList = defineComponent({
-  name: 'ContentList',
+  name: "ContentList",
   setup() {
-    const ns = useCsNamespace('content-list');
+    const ns = useCsNamespace("content-list");
     const store = useRedisStore();
 
     const loading = ref(false);
@@ -32,23 +32,27 @@ const ContentList = defineComponent({
 
     // 添加对话框
     const addVisible = ref(false);
-    const addValue = ref('');
-    const addPosition = ref<'left' | 'right'>('right');
+    const addValue = ref("");
+    const addPosition = ref<"left" | "right">("right");
 
     // 编辑对话框
     const editVisible = ref(false);
     const editIndex = ref(0);
-    const editValue = ref('');
+    const editValue = ref("");
 
     function getKeyInfo() {
       const tab = store.activeTab;
-      if (!tab || tab.type !== 'key-detail') return null;
+      if (!tab || tab.type !== "key-detail") {
+        return null;
+      }
       return { connectionId: tab.connectionId, db: tab.db, key: tab.key! };
     }
 
     async function loadData() {
       const info = getKeyInfo();
-      if (!info) return;
+      if (!info) {
+        return;
+      }
 
       loading.value = true;
       try {
@@ -70,14 +74,16 @@ const ContentList = defineComponent({
     }
 
     function showAddDialog() {
-      addValue.value = '';
-      addPosition.value = 'right';
+      addValue.value = "";
+      addPosition.value = "right";
       addVisible.value = true;
     }
 
     async function confirmAdd() {
       const info = getKeyInfo();
-      if (!info || !addValue.value.trim()) return;
+      if (!info || !addValue.value.trim()) {
+        return;
+      }
 
       try {
         await redisDataListAdd({
@@ -87,7 +93,7 @@ const ContentList = defineComponent({
           value: addValue.value,
           position: addPosition.value,
         });
-        ElMessage.success('添加成功');
+        ElMessage.success("添加成功");
         addVisible.value = false;
         loadData();
       } catch (e) {
@@ -103,7 +109,9 @@ const ContentList = defineComponent({
 
     async function confirmEdit() {
       const info = getKeyInfo();
-      if (!info) return;
+      if (!info) {
+        return;
+      }
 
       try {
         await redisDataListUpdate({
@@ -114,7 +122,7 @@ const ContentList = defineComponent({
           index: editIndex.value,
           value: editValue.value,
         });
-        ElMessage.success('更新成功');
+        ElMessage.success("更新成功");
         editVisible.value = false;
         loadData();
       } catch (e) {
@@ -124,13 +132,15 @@ const ContentList = defineComponent({
 
     async function handleDelete(row: ListEntry) {
       const info = getKeyInfo();
-      if (!info) return;
+      if (!info) {
+        return;
+      }
 
       try {
         await ElMessageBox.confirm(
           `确定要删除索引 ${row.index} 的元素吗？`,
-          '删除确认',
-          { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' },
+          "删除确认",
+          { confirmButtonText: "删除", cancelButtonText: "取消", type: "warning" },
         );
         await redisDataListDelete({
           connectionId: info.connectionId,
@@ -139,7 +149,7 @@ const ContentList = defineComponent({
           value: row.value,
           count: 1,
         });
-        ElMessage.success('删除成功');
+        ElMessage.success("删除成功");
         loadData();
       } catch {
         // 用户取消
@@ -154,7 +164,7 @@ const ContentList = defineComponent({
     watch(
       () => [store.activeTabId, store.keyDetail?.key],
       () => {
-        if (store.keyDetail?.keyType === 'list') {
+        if (store.keyDetail?.keyType === "list") {
           currentPage.value = 1;
           loadData();
         }
@@ -164,13 +174,20 @@ const ContentList = defineComponent({
 
     return () => {
       const info = getKeyInfo();
-      if (!info) return null;
+      if (!info) {
+        return null;
+      }
 
       return (
         <div class={ns.b()}>
-          <div class={ns.e('toolbar')}>
-            <span class={ns.e('total')}>共 {total.value} 个元素</span>
-            <div class={ns.e('actions')}>
+          <div class={ns.e("toolbar")}>
+            <span class={ns.e("total")}>
+              共
+              {total.value}
+              {" "}
+              个元素
+            </span>
+            <div class={ns.e("actions")}>
               <el-button size="small" type="primary" icon={Plus} onClick={showAddDialog}>添加</el-button>
               <el-button size="small" loading={loading.value} onClick={loadData}>刷新</el-button>
             </div>
@@ -190,7 +207,7 @@ const ContentList = defineComponent({
           </el-table>
 
           {total.value > pageSize.value && (
-            <div class={ns.e('pagination')}>
+            <div class={ns.e("pagination")}>
               <el-pagination
                 currentPage={currentPage.value}
                 pageSize={pageSize.value}
@@ -217,7 +234,12 @@ const ContentList = defineComponent({
             {{
               footer: () => (
                 <div>
-                  <el-button onClick={() => { addVisible.value = false; }}>取消</el-button>
+                  <el-button onClick={() => {
+                    addVisible.value = false;
+                  }}
+                  >
+                    取消
+                  </el-button>
                   <el-button type="primary" onClick={confirmAdd}>确定</el-button>
                 </div>
               ),
@@ -237,7 +259,12 @@ const ContentList = defineComponent({
             {{
               footer: () => (
                 <div>
-                  <el-button onClick={() => { editVisible.value = false; }}>取消</el-button>
+                  <el-button onClick={() => {
+                    editVisible.value = false;
+                  }}
+                  >
+                    取消
+                  </el-button>
                   <el-button type="primary" onClick={confirmEdit}>确定</el-button>
                 </div>
               ),

@@ -10,33 +10,34 @@
  * 使用 hash 模式路由，兼容 Tauri WebviewWindow。
  */
 
-import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-router';
+import type { RouteRecordRaw } from "vue-router";
+import { createRouter, createWebHashHistory } from "vue-router";
 
 /** 路由配置 */
 const routes: RouteRecordRaw[] = [
   {
-    path: '/',
-    name: 'home',
-    component: () => import('../app'),
-    meta: { title: 'Ran RS Desktop' },
+    path: "/",
+    name: "home",
+    component: () => import("../app"),
+    meta: { title: "Ran RS Desktop" },
   },
   {
-    path: '/redis',
-    name: 'redis',
-    component: () => import('../modules/redis-desktop-manager'),
-    meta: { title: 'Redis Desktop Manager' },
+    path: "/redis",
+    name: "redis",
+    component: () => import("../modules/redis-desktop-manager"),
+    meta: { title: "Redis Desktop Manager" },
   },
   {
-    path: '/settings',
-    name: 'settings',
-    component: () => import('../pages/settings-page'),
-    meta: { title: '设置' },
+    path: "/settings",
+    name: "settings",
+    component: () => import("../pages/settings-page"),
+    meta: { title: "设置" },
   },
   {
-    path: '/about',
-    name: 'about',
-    component: () => import('../pages/about-page'),
-    meta: { title: '关于' },
+    path: "/about",
+    name: "about",
+    component: () => import("../pages/about-page"),
+    meta: { title: "关于" },
   },
 ];
 

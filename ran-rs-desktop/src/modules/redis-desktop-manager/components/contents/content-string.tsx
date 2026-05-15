@@ -9,29 +9,31 @@
  * @block ran-content-string
  */
 
-import { ElMessage } from 'element-plus';
-import { defineComponent, ref, watch } from 'vue';
-import { useCsNamespace } from '../../../../hooks/use-namespace';
-import { useRedisStore } from '../../stores/redis-store';
-import { redisDataStringGet, redisDataStringSet } from '../../services/redis-commands';
+import { ElMessage } from "element-plus";
+import { defineComponent, ref, watch } from "vue";
+import { useCsNamespace } from "../../../../hooks/use-namespace";
+import { redisDataStringGet, redisDataStringSet } from "../../services/redis-commands";
+import { useRedisStore } from "../../stores/redis-store";
 
 const ContentString = defineComponent({
-  name: 'ContentString',
+  name: "ContentString",
   setup() {
-    const ns = useCsNamespace('content-string');
+    const ns = useCsNamespace("content-string");
     const store = useRedisStore();
 
     const loading = ref(false);
     const saving = ref(false);
-    const stringValue = ref('');
-    const originalValue = ref('');
-    const encoding = ref('');
+    const stringValue = ref("");
+    const originalValue = ref("");
+    const encoding = ref("");
     const valueLength = ref(0);
 
     /** 当前 key 信息 */
     function getKeyInfo() {
       const tab = store.activeTab;
-      if (!tab || tab.type !== 'key-detail') return null;
+      if (!tab || tab.type !== "key-detail") {
+        return null;
+      }
       return {
         connectionId: tab.connectionId,
         db: tab.db,
@@ -42,7 +44,9 @@ const ContentString = defineComponent({
     /** 加载 String 值 */
     async function loadValue() {
       const info = getKeyInfo();
-      if (!info) return;
+      if (!info) {
+        return;
+      }
 
       loading.value = true;
       try {
@@ -61,13 +65,15 @@ const ContentString = defineComponent({
     /** 保存 String 值 */
     async function saveValue() {
       const info = getKeyInfo();
-      if (!info) return;
+      if (!info) {
+        return;
+      }
 
       saving.value = true;
       try {
         await redisDataStringSet(info.connectionId, info.db, info.key, stringValue.value);
         originalValue.value = stringValue.value;
-        ElMessage.success('保存成功');
+        ElMessage.success("保存成功");
       } catch (e) {
         ElMessage.error(`保存失败: ${e instanceof Error ? e.message : String(e)}`);
       } finally {
@@ -84,7 +90,7 @@ const ContentString = defineComponent({
     watch(
       () => [store.activeTabId, store.keyDetail?.key],
       () => {
-        if (store.keyDetail?.keyType === 'string') {
+        if (store.keyDetail?.keyType === "string") {
           loadValue();
         }
       },
@@ -93,17 +99,25 @@ const ContentString = defineComponent({
 
     return () => {
       const info = getKeyInfo();
-      if (!info) return null;
+      if (!info) {
+        return null;
+      }
 
       return (
         <div class={ns.b()}>
           {/* 工具栏 */}
-          <div class={ns.e('toolbar')}>
-            <div class={ns.e('info')}>
-              <span>长度: {valueLength.value}</span>
-              <span>编码: {encoding.value}</span>
+          <div class={ns.e("toolbar")}>
+            <div class={ns.e("info")}>
+              <span>
+                长度:
+                {valueLength.value}
+              </span>
+              <span>
+                编码:
+                {encoding.value}
+              </span>
             </div>
-            <div class={ns.e('actions')}>
+            <div class={ns.e("actions")}>
               <el-button
                 size="small"
                 loading={loading.value}
@@ -124,7 +138,7 @@ const ContentString = defineComponent({
           </div>
 
           {/* 编辑区域 */}
-          <div class={ns.e('editor')}>
+          <div class={ns.e("editor")}>
             <el-input
               v-model={stringValue.value}
               type="textarea"

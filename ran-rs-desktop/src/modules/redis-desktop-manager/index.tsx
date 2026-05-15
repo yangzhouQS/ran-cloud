@@ -9,22 +9,22 @@
  * @block ran-redis-desktop
  */
 
-import { listen } from '@tauri-apps/api/event';
-import { computed, defineComponent, onMounted, onUnmounted } from 'vue';
-import { useCsNamespace } from '../../hooks/use-namespace';
-import { useRedisStore } from './stores/redis-store';
-import type { TabItem } from './stores/redis-store';
-import ConnectionSidebar from './components/connection-sidebar';
-import KeyPanel from './components/key-panel';
-import TabBar from './components/tab-bar';
-import KeyDetail from './components/key-detail';
-import CommandLogPanel from './components/command-log-panel';
-import './index.less';
+import type { TabItem } from "./stores/redis-store";
+import { listen } from "@tauri-apps/api/event";
+import { computed, defineComponent, onMounted, onUnmounted } from "vue";
+import { useCsNamespace } from "../../hooks/use-namespace";
+import CommandLogPanel from "./components/command-log-panel";
+import ConnectionSidebar from "./components/connection-sidebar";
+import KeyDetail from "./components/key-detail";
+import KeyPanel from "./components/key-panel";
+import TabBar from "./components/tab-bar";
+import { useRedisStore } from "./stores/redis-store";
+import "./index.less";
 
 const RedisDesktopManager = defineComponent({
-  name: 'RedisDesktopManager',
+  name: "RedisDesktopManager",
   setup() {
-    const ns = useCsNamespace('redis-desktop');
+    const ns = useCsNamespace("redis-desktop");
     const store = useRedisStore();
 
     // ---- Tauri 事件监听 ----
@@ -35,7 +35,7 @@ const RedisDesktopManager = defineComponent({
       await store.loadConnections();
 
       // 监听 SCAN 进度事件
-      const unlistenScan = await listen('redis:key:scan:progress', (event) => {
+      const unlistenScan = await listen("redis:key:scan:progress", (event) => {
         store.handleScanProgress(event.payload as any);
       });
       unlisteners.push(unlistenScan);
@@ -53,44 +53,44 @@ const RedisDesktopManager = defineComponent({
     const renderTabContent = (tab: TabItem | undefined) => {
       if (!tab) {
         return (
-          <div class={ns.e('content-empty')}>
+          <div class={ns.e("content-empty")}>
             <el-empty description="请选择一个连接开始" />
           </div>
         );
       }
 
       switch (tab.type) {
-        case 'status':
+        case "status":
           return (
-            <div class={ns.e('content-placeholder')}>
+            <div class={ns.e("content-placeholder")}>
               <el-empty description="服务器状态面板将在 Phase 4 实现" />
             </div>
           );
-        case 'cli':
+        case "cli":
           return (
-            <div class={ns.e('content-placeholder')}>
+            <div class={ns.e("content-placeholder")}>
               <el-empty description="CLI 终端将在 Phase 4 实现" />
             </div>
           );
-        case 'key-detail':
+        case "key-detail":
           return <KeyDetail />;
-        case 'slow-log':
+        case "slow-log":
           return (
-            <div class={ns.e('content-placeholder')}>
+            <div class={ns.e("content-placeholder")}>
               <el-empty description="慢日志面板将在 Phase 4 实现" />
             </div>
           );
-        case 'memory-analysis':
+        case "memory-analysis":
           return (
-            <div class={ns.e('content-placeholder')}>
+            <div class={ns.e("content-placeholder")}>
               <el-empty description="内存分析将在 Phase 4 实现" />
             </div>
           );
-        case 'command-log':
+        case "command-log":
           return <CommandLogPanel />;
         default:
           return (
-            <div class={ns.e('content-placeholder')}>
+            <div class={ns.e("content-placeholder")}>
               <el-empty description="未知标签类型" />
             </div>
           );
@@ -100,21 +100,21 @@ const RedisDesktopManager = defineComponent({
     return () => (
       <div class={ns.b()}>
         {/* ---- 左栏：连接侧边栏 ---- */}
-        <div class={ns.e('sidebar')}>
+        <div class={ns.e("sidebar")}>
           <ConnectionSidebar />
         </div>
 
         {/* ---- 中栏：Key 列表面板 ---- */}
         {hasActiveConnection.value && (
-          <div class={ns.e('key-panel')}>
+          <div class={ns.e("key-panel")}>
             <KeyPanel />
           </div>
         )}
 
         {/* ---- 右栏：标签栏 + 内容区 ---- */}
-        <div class={ns.e('main')}>
+        <div class={ns.e("main")}>
           {store.tabs.length > 0 && <TabBar />}
-          <div class={ns.e('content')}>
+          <div class={ns.e("content")}>
             {renderTabContent(activeTab.value)}
           </div>
         </div>

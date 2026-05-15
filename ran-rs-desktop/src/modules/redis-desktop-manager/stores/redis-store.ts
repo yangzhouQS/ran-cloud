@@ -9,38 +9,38 @@
  * - 命令日志
  */
 
-import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
 import type {
   ConnectionConfig,
   ConnectionInfo,
   KeyDetail,
   KeyScanResult,
-} from '../types';
-import { ConnectionStatus } from '../types';
+} from "../types";
+import { defineStore } from "pinia";
+import { computed, ref } from "vue";
+import { useModuleBus } from "../../_shared/use-module-bus";
 import {
+  redisConnectionClose,
+  redisConnectionCreate,
+  redisConnectionPing,
+  redisConnectionStatus,
+  redisKeyDelete,
+  redisKeyDetail,
+  redisKeyExpire,
+  redisKeyRename,
+  redisKeyScanCancel,
+  redisKeyScanStart,
+  redisStorageDeleteConnection,
   redisStorageLoadConnections,
   redisStorageSaveConnection,
-  redisStorageDeleteConnection,
-  redisConnectionCreate,
-  redisConnectionClose,
-  redisConnectionStatus,
-  redisConnectionPing,
-  redisKeyScanStart,
-  redisKeyScanCancel,
-  redisKeyDetail,
-  redisKeyDelete,
-  redisKeyRename,
-  redisKeyExpire,
-  redisToolCommandLogList,
   redisToolCommandLogClear,
-} from '../services/redis-commands';
-import { useModuleBus } from '../../_shared/use-module-bus';
+  redisToolCommandLogList,
+} from "../services/redis-commands";
+import { ConnectionStatus } from "../types";
 
 /** 标签页类型 */
 export interface TabItem {
   id: string;
-  type: 'status' | 'cli' | 'key-detail' | 'slow-log' | 'memory-analysis' | 'command-log';
+  type: "status" | "cli" | "key-detail" | "slow-log" | "memory-analysis" | "command-log";
   title: string;
   connectionId: string;
   db: number;
@@ -65,14 +65,14 @@ export interface ScanState {
   pattern: string;
 }
 
-export const useRedisStore = defineStore('redis-desktop', () => {
+export const useRedisStore = defineStore("redis-desktop", () => {
   // ===== 事件总线 =====
   const bus = useModuleBus();
 
   // ===== 连接管理 =====
   const connections = ref<ConnectionConfig[]>([]);
   const connectionInfos = ref<Map<string, ConnectionInfo>>(new Map());
-  const activeConnectionId = ref<string>('');
+  const activeConnectionId = ref<string>("");
   const activeDb = ref<number>(0);
 
   // ===== Key 管理 =====
@@ -81,14 +81,14 @@ export const useRedisStore = defineStore('redis-desktop', () => {
     scanning: false,
     progress: 0,
     total: 0,
-    pattern: '*',
+    pattern: "*",
   });
-  const selectedKey = ref<string>('');
+  const selectedKey = ref<string>("");
   const keyDetail = ref<KeyDetail | null>(null);
 
   // ===== 标签页管理 =====
   const tabs = ref<TabItem[]>([]);
-  const activeTabId = ref<string>('');
+  const activeTabId = ref<string>("");
 
   // ===== 命令日志 =====
   const commandLogs = ref<Array<{
@@ -105,26 +105,26 @@ export const useRedisStore = defineStore('redis-desktop', () => {
 
   // ===== 计算属性 =====
   const activeConnection = computed(() =>
-    connections.value.find(c => c.id === activeConnectionId.value)
+    connections.value.find(c => c.id === activeConnectionId.value),
   );
 
   const activeConnectionInfo = computed(() =>
-    connectionInfos.value.get(activeConnectionId.value)
+    connectionInfos.value.get(activeConnectionId.value),
   );
 
   const activeTab = computed(() =>
-    tabs.value.find(t => t.id === activeTabId.value)
+    tabs.value.find(t => t.id === activeTabId.value),
   );
 
   const connectionList = computed(() =>
-    connections.value.map(config => {
+    connections.value.map((config) => {
       const info = connectionInfos.value.get(config.id);
       return {
         config,
         status: info?.status ?? ConnectionStatus.Disconnected,
         info,
       };
-    })
+    }),
   );
 
   // ===== 连接操作 =====
@@ -134,7 +134,7 @@ export const useRedisStore = defineStore('redis-desktop', () => {
     try {
       connections.value = await redisStorageLoadConnections();
     } catch (e) {
-      console.error('[RedisStore] 加载连接列表失败:', e);
+      console.error("[RedisStore] 加载连接列表失败:", e);
     }
   }
 
@@ -154,7 +154,7 @@ export const useRedisStore = defineStore('redis-desktop', () => {
     await redisStorageDeleteConnection(id);
     connections.value = connections.value.filter(c => c.id !== id);
     if (activeConnectionId.value === id) {
-      activeConnectionId.value = '';
+      activeConnectionId.value = "";
       keys.value = [];
       tabs.value = [];
     }
@@ -185,8 +185,8 @@ export const useRedisStore = defineStore('redis-desktop', () => {
       // 打开状态标签页
       openStatusTab(config.id, config.db);
 
-      bus.emit('redis:connection:opened', { id: config.id, name: config.name });
-      bus.emit('redis:connection:status', { id: config.id, status: 'connected' });
+      bus.emit("redis:connection:opened", { id: config.id, name: config.name });
+      bus.emit("redis:connection:status", { id: config.id, status: "connected" });
     } catch (e: unknown) {
       const errorMsg = e instanceof Error ? e.message : String(e);
       const errorInfo: ConnectionInfo = {
@@ -194,7 +194,7 @@ export const useRedisStore = defineStore('redis-desktop', () => {
         status: ConnectionStatus.Error,
       };
       connectionInfos.value.set(config.id, errorInfo);
-      bus.emit('redis:connection:status', { id: config.id, status: 'error', error: errorMsg });
+      bus.emit("redis:connection:status", { id: config.id, status: "error", error: errorMsg });
       throw e;
     }
   }
@@ -209,24 +209,24 @@ export const useRedisStore = defineStore('redis-desktop', () => {
         connectionInfos.value.set(connectionId, { ...info });
       }
       if (activeConnectionId.value === connectionId) {
-        activeConnectionId.value = '';
+        activeConnectionId.value = "";
         keys.value = [];
-        selectedKey.value = '';
+        selectedKey.value = "";
         keyDetail.value = null;
-        scanState.value = { scanning: false, progress: 0, total: 0, pattern: '*' };
+        scanState.value = { scanning: false, progress: 0, total: 0, pattern: "*" };
       }
       // 关闭该连接的所有标签页
       tabs.value = tabs.value.filter(t => t.connectionId !== connectionId);
       if (tabs.value.length > 0) {
         activeTabId.value = tabs.value[0].id;
       } else {
-        activeTabId.value = '';
+        activeTabId.value = "";
       }
 
-      bus.emit('redis:connection:closed', { id: connectionId });
-      bus.emit('redis:connection:status', { id: connectionId, status: 'disconnected' });
+      bus.emit("redis:connection:closed", { id: connectionId });
+      bus.emit("redis:connection:status", { id: connectionId, status: "disconnected" });
     } catch (e) {
-      console.error('[RedisStore] 断开连接失败:', e);
+      console.error("[RedisStore] 断开连接失败:", e);
     }
   }
 
@@ -241,7 +241,7 @@ export const useRedisStore = defineStore('redis-desktop', () => {
       const status = await redisConnectionStatus(connectionId);
       const info = connectionInfos.value.get(connectionId);
       if (info) {
-        info.status = status === 'connected' ? ConnectionStatus.Connected : ConnectionStatus.Disconnected;
+        info.status = status === "connected" ? ConnectionStatus.Connected : ConnectionStatus.Disconnected;
         connectionInfos.value.set(connectionId, { ...info });
       }
     } catch {
@@ -252,8 +252,10 @@ export const useRedisStore = defineStore('redis-desktop', () => {
   // ===== Key 操作 =====
 
   /** 开始扫描 Key */
-  async function startScan(pattern: string = '*', count: number = 200) {
-    if (!activeConnectionId.value) return;
+  async function startScan(pattern: string = "*", count: number = 200) {
+    if (!activeConnectionId.value) {
+      return;
+    }
 
     scanState.value = {
       scanning: true,
@@ -271,14 +273,16 @@ export const useRedisStore = defineStore('redis-desktop', () => {
         count,
       });
     } catch (e) {
-      console.error('[RedisStore] SCAN 启动失败:', e);
+      console.error("[RedisStore] SCAN 启动失败:", e);
       scanState.value.scanning = false;
     }
   }
 
   /** 取消扫描 */
   async function cancelScan() {
-    if (!activeConnectionId.value) return;
+    if (!activeConnectionId.value) {
+      return;
+    }
     await redisKeyScanCancel(activeConnectionId.value);
     scanState.value.scanning = false;
   }
@@ -297,25 +301,29 @@ export const useRedisStore = defineStore('redis-desktop', () => {
 
   /** 获取 Key 详情 */
   async function loadKeyDetail(key: string) {
-    if (!activeConnectionId.value) return;
+    if (!activeConnectionId.value) {
+      return;
+    }
     try {
       keyDetail.value = await redisKeyDetail(activeConnectionId.value, activeDb.value, key);
       selectedKey.value = key;
     } catch (e) {
-      console.error('[RedisStore] 获取 Key 详情失败:', e);
+      console.error("[RedisStore] 获取 Key 详情失败:", e);
     }
   }
 
   /** 删除 Key */
   async function deleteKeys(keyNames: string[]) {
-    if (!activeConnectionId.value) return;
+    if (!activeConnectionId.value) {
+      return;
+    }
     await redisKeyDelete(activeConnectionId.value, activeDb.value, keyNames);
     keys.value = keys.value.filter(k => !keyNames.includes(k.key));
     if (selectedKey.value && keyNames.includes(selectedKey.value)) {
-      selectedKey.value = '';
+      selectedKey.value = "";
       keyDetail.value = null;
     }
-    bus.emit('redis:key:deleted', {
+    bus.emit("redis:key:deleted", {
       connectionId: activeConnectionId.value,
       db: activeDb.value,
       keys: keyNames,
@@ -324,7 +332,9 @@ export const useRedisStore = defineStore('redis-desktop', () => {
 
   /** 重命名 Key */
   async function renameKey(oldKey: string, newKey: string) {
-    if (!activeConnectionId.value) return;
+    if (!activeConnectionId.value) {
+      return;
+    }
     await redisKeyRename(activeConnectionId.value, activeDb.value, oldKey, newKey);
     const key = keys.value.find(k => k.key === oldKey);
     if (key) {
@@ -337,7 +347,9 @@ export const useRedisStore = defineStore('redis-desktop', () => {
 
   /** 设置过期时间 */
   async function setExpire(key: string, seconds: number) {
-    if (!activeConnectionId.value) return;
+    if (!activeConnectionId.value) {
+      return;
+    }
     await redisKeyExpire(activeConnectionId.value, activeDb.value, key, seconds);
     if (keyDetail.value && keyDetail.value.key === key) {
       keyDetail.value.ttl = seconds;
@@ -350,9 +362,9 @@ export const useRedisStore = defineStore('redis-desktop', () => {
   function switchDb(db: number) {
     activeDb.value = db;
     keys.value = [];
-    selectedKey.value = '';
+    selectedKey.value = "";
     keyDetail.value = null;
-    scanState.value = { scanning: false, progress: 0, total: 0, pattern: '*' };
+    scanState.value = { scanning: false, progress: 0, total: 0, pattern: "*" };
   }
 
   // ===== 标签页操作 =====
@@ -364,13 +376,13 @@ export const useRedisStore = defineStore('redis-desktop', () => {
 
   /** 打开状态标签页 */
   function openStatusTab(connectionId: string, db: number) {
-    const id = generateTabId('status', connectionId, db);
+    const id = generateTabId("status", connectionId, db);
     let tab = tabs.value.find(t => t.id === id);
     if (!tab) {
       tab = {
         id,
-        type: 'status',
-        title: '服务器状态',
+        type: "status",
+        title: "服务器状态",
         connectionId,
         db,
         closable: false,
@@ -382,12 +394,12 @@ export const useRedisStore = defineStore('redis-desktop', () => {
 
   /** 打开 CLI 标签页 */
   function openCliTab(connectionId: string, db: number) {
-    const id = generateTabId('cli', connectionId, db);
+    const id = generateTabId("cli", connectionId, db);
     let tab = tabs.value.find(t => t.id === id);
     if (!tab) {
       tab = {
         id,
-        type: 'cli',
+        type: "cli",
         title: `CLI (db${db})`,
         connectionId,
         db,
@@ -400,14 +412,14 @@ export const useRedisStore = defineStore('redis-desktop', () => {
 
   /** 打开 Key 详情标签页 */
   function openKeyDetailTab(connectionId: string, db: number, key: string) {
-    const id = generateTabId('key-detail', connectionId, db, key);
+    const id = generateTabId("key-detail", connectionId, db, key);
     let tab = tabs.value.find(t => t.id === id);
     if (!tab) {
       // 截断过长的 key 作为标题
       const title = key.length > 30 ? `...${key.slice(-27)}` : key;
       tab = {
         id,
-        type: 'key-detail',
+        type: "key-detail",
         title,
         connectionId,
         db,
@@ -422,13 +434,13 @@ export const useRedisStore = defineStore('redis-desktop', () => {
 
   /** 打开慢日志标签页 */
   function openSlowLogTab(connectionId: string, db: number) {
-    const id = generateTabId('slow-log', connectionId, db);
+    const id = generateTabId("slow-log", connectionId, db);
     let tab = tabs.value.find(t => t.id === id);
     if (!tab) {
       tab = {
         id,
-        type: 'slow-log',
-        title: '慢日志',
+        type: "slow-log",
+        title: "慢日志",
         connectionId,
         db,
         closable: true,
@@ -440,13 +452,13 @@ export const useRedisStore = defineStore('redis-desktop', () => {
 
   /** 打开命令日志标签页 */
   function openCommandLogTab(connectionId: string, db: number) {
-    const id = generateTabId('command-log', connectionId, db);
+    const id = generateTabId("command-log", connectionId, db);
     let tab = tabs.value.find(t => t.id === id);
     if (!tab) {
       tab = {
         id,
-        type: 'command-log',
-        title: '命令日志',
+        type: "command-log",
+        title: "命令日志",
         connectionId,
         db,
         closable: true,
@@ -459,14 +471,16 @@ export const useRedisStore = defineStore('redis-desktop', () => {
   /** 关闭标签页 */
   function closeTab(tabId: string) {
     const idx = tabs.value.findIndex(t => t.id === tabId);
-    if (idx < 0) return;
+    if (idx < 0) {
+      return;
+    }
     tabs.value.splice(idx, 1);
     if (activeTabId.value === tabId) {
       if (tabs.value.length > 0) {
         const newIdx = Math.min(idx, tabs.value.length - 1);
         activeTabId.value = tabs.value[newIdx].id;
       } else {
-        activeTabId.value = '';
+        activeTabId.value = "";
       }
     }
   }
@@ -474,8 +488,8 @@ export const useRedisStore = defineStore('redis-desktop', () => {
   /** 关闭其他标签页 */
   function closeOtherTabs(tabId: string) {
     tabs.value = tabs.value.filter(t => !t.closable || t.id === tabId);
-    if (!tabs.value.find(t => t.id === activeTabId.value)) {
-      activeTabId.value = tabs.value.length > 0 ? tabs.value[0].id : '';
+    if (!tabs.value.some(t => t.id === activeTabId.value)) {
+      activeTabId.value = tabs.value.length > 0 ? tabs.value[0].id : "";
     }
   }
 
@@ -486,7 +500,7 @@ export const useRedisStore = defineStore('redis-desktop', () => {
     try {
       commandLogs.value = await redisToolCommandLogList(connectionId, limit);
     } catch (e) {
-      console.error('[RedisStore] 加载命令日志失败:', e);
+      console.error("[RedisStore] 加载命令日志失败:", e);
     }
   }
 
@@ -496,7 +510,7 @@ export const useRedisStore = defineStore('redis-desktop', () => {
       await redisToolCommandLogClear(connectionId);
       commandLogs.value = [];
     } catch (e) {
-      console.error('[RedisStore] 清除命令日志失败:', e);
+      console.error("[RedisStore] 清除命令日志失败:", e);
     }
   }
 

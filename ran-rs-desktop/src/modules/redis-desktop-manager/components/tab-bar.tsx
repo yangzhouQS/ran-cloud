@@ -9,45 +9,47 @@
  * @block ran-tab-bar
  */
 
-import { Close } from '@element-plus/icons-vue';
-import { defineComponent } from 'vue';
-import { useCsNamespace } from '../../../hooks/use-namespace';
-import { useRedisStore } from '../stores/redis-store';
-import './tab-bar.less';
+import { Close } from "@element-plus/icons-vue";
+import { defineComponent } from "vue";
+import { useCsNamespace } from "../../../hooks/use-namespace";
+import { useRedisStore } from "../stores/redis-store";
+import "./tab-bar.less";
 
 /** 标签类型图标映射 */
 const tabTypeIcon: Record<string, string> = {
-  'status': 'Monitor',
-  'cli': 'Monitor',
-  'key-detail': 'Key',
-  'slow-log': 'Timer',
-  'memory-analysis': 'DataAnalysis',
-  'command-log': 'Document',
+  "status": "Monitor",
+  "cli": "Monitor",
+  "key-detail": "Key",
+  "slow-log": "Timer",
+  "memory-analysis": "DataAnalysis",
+  "command-log": "Document",
 };
 
 const TabBar = defineComponent({
-  name: 'TabBar',
+  name: "TabBar",
   setup() {
-    const ns = useCsNamespace('tab-bar');
+    const ns = useCsNamespace("tab-bar");
     const store = useRedisStore();
 
     /** 渲染标签项 */
-    const renderTab = (tab: import('../stores/redis-store').TabItem) => {
+    const renderTab = (tab: import("../stores/redis-store").TabItem) => {
       const isActive = store.activeTabId === tab.id;
 
       return (
         <div
           key={tab.id}
           class={[
-            ns.e('item'),
-            isActive && ns.is('active'),
+            ns.e("item"),
+            isActive && ns.is("active"),
           ]}
-          onClick={() => { store.activeTabId = tab.id; }}
+          onClick={() => {
+            store.activeTabId = tab.id;
+          }}
         >
-          <span class={ns.e('item-title')}>{tab.title}</span>
+          <span class={ns.e("item-title")}>{tab.title}</span>
           {tab.closable && (
             <span
-              class={ns.e('item-close')}
+              class={ns.e("item-close")}
               onClick={(e: Event) => {
                 e.stopPropagation();
                 store.closeTab(tab.id);
@@ -62,7 +64,7 @@ const TabBar = defineComponent({
 
     return () => (
       <div class={ns.b()}>
-        <div class={ns.e('list')}>
+        <div class={ns.e("list")}>
           {store.tabs.map(tab => renderTab(tab))}
         </div>
       </div>

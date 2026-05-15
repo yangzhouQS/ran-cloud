@@ -5,10 +5,10 @@
  * 各页面由路由配置决定渲染哪个组件。
  */
 
-import { defineComponent } from 'vue';
+import { defineComponent } from "vue";
 
 const RootApp = defineComponent({
-  name: 'RootApp',
+  name: "RootApp",
   setup() {
     return () => (
       <router-view />

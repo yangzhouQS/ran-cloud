@@ -9,18 +9,18 @@
  * @block ran-content-zset
  */
 
-import { Delete, Edit, Plus, Sort, Search } from '@element-plus/icons-vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { defineComponent, ref, watch } from 'vue';
-import { useCsNamespace } from '../../../../hooks/use-namespace';
-import { useRedisStore } from '../../stores/redis-store';
-import type { ZSetEntry, ZSetPageParams } from '../../types';
-import { redisDataZsetPage, redisDataZsetAdd, redisDataZsetUpdate, redisDataZsetDelete } from '../../services/redis-commands';
+import type { ZSetEntry, ZSetPageParams } from "../../types";
+import { Delete, Edit, Plus, Search, Sort } from "@element-plus/icons-vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { defineComponent, ref, watch } from "vue";
+import { useCsNamespace } from "../../../../hooks/use-namespace";
+import { redisDataZsetAdd, redisDataZsetDelete, redisDataZsetPage, redisDataZsetUpdate } from "../../services/redis-commands";
+import { useRedisStore } from "../../stores/redis-store";
 
 const ContentZset = defineComponent({
-  name: 'ContentZset',
+  name: "ContentZset",
   setup() {
-    const ns = useCsNamespace('content-zset');
+    const ns = useCsNamespace("content-zset");
     const store = useRedisStore();
 
     const loading = ref(false);
@@ -29,23 +29,27 @@ const ContentZset = defineComponent({
     const currentPage = ref(1);
     const pageSize = ref(50);
     const reverse = ref(false);
-    const searchPattern = ref('');
+    const searchPattern = ref("");
 
     // 添加/编辑对话框
     const dialogVisible = ref(false);
-    const dialogMode = ref<'add' | 'edit'>('add');
-    const dialogMember = ref('');
+    const dialogMode = ref<"add" | "edit">("add");
+    const dialogMember = ref("");
     const dialogScore = ref(0);
 
     function getKeyInfo() {
       const tab = store.activeTab;
-      if (!tab || tab.type !== 'key-detail') return null;
+      if (!tab || tab.type !== "key-detail") {
+        return null;
+      }
       return { connectionId: tab.connectionId, db: tab.db, key: tab.key! };
     }
 
     async function loadData() {
       const info = getKeyInfo();
-      if (!info) return;
+      if (!info) {
+        return;
+      }
 
       loading.value = true;
       try {
@@ -69,14 +73,14 @@ const ContentZset = defineComponent({
     }
 
     function showAddDialog() {
-      dialogMode.value = 'add';
-      dialogMember.value = '';
+      dialogMode.value = "add";
+      dialogMember.value = "";
       dialogScore.value = 0;
       dialogVisible.value = true;
     }
 
     function showEditDialog(row: ZSetEntry) {
-      dialogMode.value = 'edit';
+      dialogMode.value = "edit";
       dialogMember.value = row.member;
       dialogScore.value = row.score;
       dialogVisible.value = true;
@@ -84,10 +88,12 @@ const ContentZset = defineComponent({
 
     async function confirmDialog() {
       const info = getKeyInfo();
-      if (!info || !dialogMember.value.trim()) return;
+      if (!info || !dialogMember.value.trim()) {
+        return;
+      }
 
       try {
-        if (dialogMode.value === 'add') {
+        if (dialogMode.value === "add") {
           await redisDataZsetAdd({
             connectionId: info.connectionId,
             db: info.db,
@@ -95,7 +101,7 @@ const ContentZset = defineComponent({
             member: dialogMember.value,
             score: dialogScore.value,
           });
-          ElMessage.success('添加成功');
+          ElMessage.success("添加成功");
         } else {
           await redisDataZsetUpdate({
             connectionId: info.connectionId,
@@ -104,24 +110,26 @@ const ContentZset = defineComponent({
             field: dialogMember.value,
             score: dialogScore.value,
           });
-          ElMessage.success('更新成功');
+          ElMessage.success("更新成功");
         }
         dialogVisible.value = false;
         loadData();
       } catch (e) {
-        ElMessage.error(`${dialogMode.value === 'add' ? '添加' : '更新'}失败: ${e instanceof Error ? e.message : String(e)}`);
+        ElMessage.error(`${dialogMode.value === "add" ? "添加" : "更新"}失败: ${e instanceof Error ? e.message : String(e)}`);
       }
     }
 
     async function handleDelete(row: ZSetEntry) {
       const info = getKeyInfo();
-      if (!info) return;
+      if (!info) {
+        return;
+      }
 
       try {
         await ElMessageBox.confirm(
           `确定要删除成员 "${row.member}" 吗？`,
-          '删除确认',
-          { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' },
+          "删除确认",
+          { confirmButtonText: "删除", cancelButtonText: "取消", type: "warning" },
         );
         await redisDataZsetDelete({
           connectionId: info.connectionId,
@@ -129,7 +137,7 @@ const ContentZset = defineComponent({
           key: info.key,
           field: row.member,
         });
-        ElMessage.success('删除成功');
+        ElMessage.success("删除成功");
         loadData();
       } catch {
         // 用户取消
@@ -150,7 +158,7 @@ const ContentZset = defineComponent({
     watch(
       () => [store.activeTabId, store.keyDetail?.key],
       () => {
-        if (store.keyDetail?.keyType === 'zset') {
+        if (store.keyDetail?.keyType === "zset") {
           currentPage.value = 1;
           loadData();
         }
@@ -160,34 +168,43 @@ const ContentZset = defineComponent({
 
     return () => {
       const info = getKeyInfo();
-      if (!info) return null;
+      if (!info) {
+        return null;
+      }
 
       return (
         <div class={ns.b()}>
-          <div class={ns.e('toolbar')}>
-            <div class={ns.e('search')}>
+          <div class={ns.e("toolbar")}>
+            <div class={ns.e("search")}>
               <el-input
                 v-model={searchPattern.value}
                 placeholder="搜索成员..."
                 prefixIcon={Search}
                 size="small"
                 clearable
-                style={{ width: '200px' }}
-                onClear={() => { currentPage.value = 1; loadData(); }}
-                onKeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') { currentPage.value = 1; loadData(); } }}
+                style={{ width: "200px" }}
+                onClear={() => {
+                  currentPage.value = 1; loadData();
+                }}
+                onKeydown={(e: KeyboardEvent) => {
+                  if (e.key === "Enter") {
+                    currentPage.value = 1;
+										loadData();
+                  }
+                }}
               />
               <el-button
                 size="small"
                 icon={Sort}
                 onClick={toggleReverse}
-                type={reverse.value ? 'primary' : 'default'}
-                title={reverse.value ? '当前: 倒序 (点击切换)' : '当前: 正序 (点击切换)'}
-                style={{ marginLeft: '8px' }}
+                type={reverse.value ? "primary" : "default"}
+                title={reverse.value ? "当前: 倒序 (点击切换)" : "当前: 正序 (点击切换)"}
+                style={{ marginLeft: "8px" }}
               >
-                {reverse.value ? '倒序' : '正序'}
+                {reverse.value ? "倒序" : "正序"}
               </el-button>
             </div>
-            <div class={ns.e('actions')}>
+            <div class={ns.e("actions")}>
               <el-button size="small" type="primary" icon={Plus} onClick={showAddDialog}>添加成员</el-button>
               <el-button size="small" loading={loading.value} onClick={loadData}>刷新</el-button>
             </div>
@@ -208,7 +225,7 @@ const ContentZset = defineComponent({
           </el-table>
 
           {total.value > pageSize.value && (
-            <div class={ns.e('pagination')}>
+            <div class={ns.e("pagination")}>
               <el-pagination
                 currentPage={currentPage.value}
                 pageSize={pageSize.value}
@@ -221,7 +238,7 @@ const ContentZset = defineComponent({
 
           <el-dialog
             v-model={dialogVisible.value}
-            title={dialogMode.value === 'add' ? '添加成员' : '编辑分值'}
+            title={dialogMode.value === "add" ? "添加成员" : "编辑分值"}
             width="500px"
             append-to-body
           >
@@ -230,17 +247,22 @@ const ContentZset = defineComponent({
                 <el-input
                   v-model={dialogMember.value}
                   placeholder="请输入成员"
-                  disabled={dialogMode.value === 'edit'}
+                  disabled={dialogMode.value === "edit"}
                 />
               </el-form-item>
               <el-form-item label="分值">
-                <el-input-number v-model={dialogScore.value} step={0.1} style={{ width: '100%' }} />
+                <el-input-number v-model={dialogScore.value} step={0.1} style={{ width: "100%" }} />
               </el-form-item>
             </el-form>
             {{
               footer: () => (
                 <div>
-                  <el-button onClick={() => { dialogVisible.value = false; }}>取消</el-button>
+                  <el-button onClick={() => {
+                    dialogVisible.value = false;
+                  }}
+                  >
+                    取消
+                  </el-button>
                   <el-button type="primary" onClick={confirmDialog}>确定</el-button>
                 </div>
               ),

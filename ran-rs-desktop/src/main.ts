@@ -10,19 +10,19 @@
  * - 暗黑主题系统
  */
 
-import * as ElementPlusIconsVue from '@element-plus/icons-vue';
-import ElementPlus from 'element-plus';
-import 'element-plus/dist/index.css';
-import 'element-plus/theme-chalk/dark/css-vars.css';
-import { createPinia } from 'pinia';
-import { createApp } from 'vue';
+import * as ElementPlusIconsVue from "@element-plus/icons-vue";
+import ElementPlus from "element-plus";
+import { createPinia } from "pinia";
+import { createApp } from "vue";
+import { setupTheme } from "./hooks/use-theme";
+import i18n from "./i18n";
 
-import './assets/styles/global.less';
-import './assets/styles/dark-theme.css';
-import i18n from './i18n';
-import router from './router';
-import RootApp from './root-app';
-import { setupTheme } from './hooks/use-theme';
+import RootApp from "./root-app";
+import router from "./router";
+import "element-plus/dist/index.css";
+import "element-plus/theme-chalk/dark/css-vars.css";
+import "./assets/styles/global.less";
+import "./assets/styles/dark-theme.css";
 
 // 初始化暗黑主题系统（尽早执行，避免闪烁）
 setupTheme();
@@ -49,4 +49,4 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 }
 
 // 挂载应用
-app.mount('#root');
+app.mount("#root");

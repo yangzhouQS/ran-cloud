@@ -88,9 +88,9 @@ export interface DataAddParams {
   field?: string;
   value: string;
   score?: number;
-  position?: 'left' | 'right';
+  position?: "left" | "right";
   /** List 插入位置（BEFORE/AFTER） */
-  insertPosition?: 'BEFORE' | 'AFTER';
+  insertPosition?: "BEFORE" | "AFTER";
   /** List 插入参考值 */
   pivot?: string;
 }

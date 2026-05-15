@@ -9,18 +9,18 @@
  * @block ran-content-set
  */
 
-import { Delete, Plus, Search } from '@element-plus/icons-vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { defineComponent, ref, watch } from 'vue';
-import { useCsNamespace } from '../../../../hooks/use-namespace';
-import { useRedisStore } from '../../stores/redis-store';
-import type { SetMember, SetPageParams } from '../../types';
-import { redisDataSetPage, redisDataSetAdd, redisDataSetDelete } from '../../services/redis-commands';
+import type { SetMember, SetPageParams } from "../../types";
+import { Delete, Plus, Search } from "@element-plus/icons-vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { defineComponent, ref, watch } from "vue";
+import { useCsNamespace } from "../../../../hooks/use-namespace";
+import { redisDataSetAdd, redisDataSetDelete, redisDataSetPage } from "../../services/redis-commands";
+import { useRedisStore } from "../../stores/redis-store";
 
 const ContentSet = defineComponent({
-  name: 'ContentSet',
+  name: "ContentSet",
   setup() {
-    const ns = useCsNamespace('content-set');
+    const ns = useCsNamespace("content-set");
     const store = useRedisStore();
 
     const loading = ref(false);
@@ -28,20 +28,24 @@ const ContentSet = defineComponent({
     const total = ref(0);
     const currentPage = ref(1);
     const pageSize = ref(50);
-    const searchPattern = ref('');
+    const searchPattern = ref("");
 
     const addVisible = ref(false);
-    const addValue = ref('');
+    const addValue = ref("");
 
     function getKeyInfo() {
       const tab = store.activeTab;
-      if (!tab || tab.type !== 'key-detail') return null;
+      if (!tab || tab.type !== "key-detail") {
+        return null;
+      }
       return { connectionId: tab.connectionId, db: tab.db, key: tab.key! };
     }
 
     async function loadData() {
       const info = getKeyInfo();
-      if (!info) return;
+      if (!info) {
+        return;
+      }
 
       loading.value = true;
       try {
@@ -64,13 +68,15 @@ const ContentSet = defineComponent({
     }
 
     function showAddDialog() {
-      addValue.value = '';
+      addValue.value = "";
       addVisible.value = true;
     }
 
     async function confirmAdd() {
       const info = getKeyInfo();
-      if (!info || !addValue.value.trim()) return;
+      if (!info || !addValue.value.trim()) {
+        return;
+      }
 
       try {
         await redisDataSetAdd({
@@ -79,7 +85,7 @@ const ContentSet = defineComponent({
           key: info.key,
           value: addValue.value,
         });
-        ElMessage.success('添加成功');
+        ElMessage.success("添加成功");
         addVisible.value = false;
         loadData();
       } catch (e) {
@@ -89,13 +95,15 @@ const ContentSet = defineComponent({
 
     async function handleDelete(row: SetMember) {
       const info = getKeyInfo();
-      if (!info) return;
+      if (!info) {
+        return;
+      }
 
       try {
         await ElMessageBox.confirm(
           `确定要删除成员 "${row.member}" 吗？`,
-          '删除确认',
-          { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' },
+          "删除确认",
+          { confirmButtonText: "删除", cancelButtonText: "取消", type: "warning" },
         );
         await redisDataSetDelete({
           connectionId: info.connectionId,
@@ -103,7 +111,7 @@ const ContentSet = defineComponent({
           key: info.key,
           field: row.member,
         });
-        ElMessage.success('删除成功');
+        ElMessage.success("删除成功");
         loadData();
       } catch {
         // 用户取消
@@ -118,7 +126,7 @@ const ContentSet = defineComponent({
     watch(
       () => [store.activeTabId, store.keyDetail?.key],
       () => {
-        if (store.keyDetail?.keyType === 'set') {
+        if (store.keyDetail?.keyType === "set") {
           currentPage.value = 1;
           loadData();
         }
@@ -128,24 +136,34 @@ const ContentSet = defineComponent({
 
     return () => {
       const info = getKeyInfo();
-      if (!info) return null;
+      if (!info) {
+        return null;
+      }
 
       return (
         <div class={ns.b()}>
-          <div class={ns.e('toolbar')}>
-            <div class={ns.e('search')}>
+          <div class={ns.e("toolbar")}>
+            <div class={ns.e("search")}>
               <el-input
                 v-model={searchPattern.value}
                 placeholder="搜索成员..."
                 prefixIcon={Search}
                 size="small"
                 clearable
-                style={{ width: '200px' }}
-                onClear={() => { currentPage.value = 1; loadData(); }}
-                onKeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') { currentPage.value = 1; loadData(); } }}
+                style={{ width: "200px" }}
+                onClear={() => {
+                  currentPage.value = 1;
+                  loadData();
+                }}
+                onKeydown={(e: KeyboardEvent) => {
+                  if (e.key === "Enter") {
+                    currentPage.value = 1;
+                    loadData();
+                  }
+                }}
               />
             </div>
-            <div class={ns.e('actions')}>
+            <div class={ns.e("actions")}>
               <el-button size="small" type="primary" icon={Plus} onClick={showAddDialog}>添加成员</el-button>
               <el-button size="small" loading={loading.value} onClick={loadData}>刷新</el-button>
             </div>
@@ -162,7 +180,7 @@ const ContentSet = defineComponent({
           </el-table>
 
           {total.value > pageSize.value && (
-            <div class={ns.e('pagination')}>
+            <div class={ns.e("pagination")}>
               <el-pagination
                 currentPage={currentPage.value}
                 pageSize={pageSize.value}
@@ -182,7 +200,12 @@ const ContentSet = defineComponent({
             {{
               footer: () => (
                 <div>
-                  <el-button onClick={() => { addVisible.value = false; }}>取消</el-button>
+                  <el-button onClick={() => {
+                    addVisible.value = false;
+                  }}
+                  >
+                    取消
+                  </el-button>
                   <el-button type="primary" onClick={confirmAdd}>确定</el-button>
                 </div>
               ),

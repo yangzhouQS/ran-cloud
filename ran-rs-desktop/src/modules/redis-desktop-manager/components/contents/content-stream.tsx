@@ -10,23 +10,23 @@
  * @block ran-content-stream
  */
 
-import { Delete, Plus, InfoFilled } from '@element-plus/icons-vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { defineComponent, ref, watch } from 'vue';
-import { useCsNamespace } from '../../../../hooks/use-namespace';
-import { useRedisStore } from '../../stores/redis-store';
-import type { StreamEntry, StreamPageParams, StreamGroupInfo } from '../../types';
+import type { StreamEntry, StreamGroupInfo, StreamPageParams } from "../../types";
+import { Delete, InfoFilled, Plus } from "@element-plus/icons-vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { defineComponent, ref, watch } from "vue";
+import { useCsNamespace } from "../../../../hooks/use-namespace";
 import {
-  redisDataStreamPage,
   redisDataStreamAdd,
   redisDataStreamDelete,
   redisDataStreamGroups,
-} from '../../services/redis-commands';
+  redisDataStreamPage,
+} from "../../services/redis-commands";
+import { useRedisStore } from "../../stores/redis-store";
 
 const ContentStream = defineComponent({
-  name: 'ContentStream',
+  name: "ContentStream",
   setup() {
-    const ns = useCsNamespace('content-stream');
+    const ns = useCsNamespace("content-stream");
     const store = useRedisStore();
 
     const loading = ref(false);
@@ -37,8 +37,8 @@ const ContentStream = defineComponent({
 
     // 添加对话框
     const addVisible = ref(false);
-    const addId = ref('*');
-    const addFields = ref<{ key: string; value: string }[]>([{ key: '', value: '' }]);
+    const addId = ref("*");
+    const addFields = ref<{ key: string; value: string }[]>([{ key: "", value: "" }]);
 
     // 消费者组对话框
     const groupsVisible = ref(false);
@@ -51,13 +51,17 @@ const ContentStream = defineComponent({
 
     function getKeyInfo() {
       const tab = store.activeTab;
-      if (!tab || tab.type !== 'key-detail') return null;
+      if (!tab || tab.type !== "key-detail") {
+        return null;
+      }
       return { connectionId: tab.connectionId, db: tab.db, key: tab.key! };
     }
 
     async function loadData() {
       const info = getKeyInfo();
-      if (!info) return;
+      if (!info) {
+        return;
+      }
 
       loading.value = true;
       try {
@@ -79,13 +83,13 @@ const ContentStream = defineComponent({
     }
 
     function showAddDialog() {
-      addId.value = '*';
-      addFields.value = [{ key: '', value: '' }];
+      addId.value = "*";
+      addFields.value = [{ key: "", value: "" }];
       addVisible.value = true;
     }
 
     function addFieldRow() {
-      addFields.value.push({ key: '', value: '' });
+      addFields.value.push({ key: "", value: "" });
     }
 
     function removeFieldRow(index: number) {
@@ -94,11 +98,13 @@ const ContentStream = defineComponent({
 
     async function confirmAdd() {
       const info = getKeyInfo();
-      if (!info) return;
+      if (!info) {
+        return;
+      }
 
-      const validFields = addFields.value.filter((f) => f.key.trim());
+      const validFields = addFields.value.filter(f => f.key.trim());
       if (validFields.length === 0) {
-        ElMessage.warning('请至少填写一个字段');
+        ElMessage.warning("请至少填写一个字段");
         return;
       }
 
@@ -111,10 +117,10 @@ const ContentStream = defineComponent({
           connectionId: info.connectionId,
           db: info.db,
           key: info.key,
-          id: addId.value || '*',
+          id: addId.value || "*",
           fields,
         });
-        ElMessage.success('添加成功');
+        ElMessage.success("添加成功");
         addVisible.value = false;
         loadData();
       } catch (e) {
@@ -124,13 +130,15 @@ const ContentStream = defineComponent({
 
     async function handleDelete(row: StreamEntry) {
       const info = getKeyInfo();
-      if (!info) return;
+      if (!info) {
+        return;
+      }
 
       try {
         await ElMessageBox.confirm(
           `确定要删除条目 "${row.id}" 吗？`,
-          '删除确认',
-          { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' },
+          "删除确认",
+          { confirmButtonText: "删除", cancelButtonText: "取消", type: "warning" },
         );
         await redisDataStreamDelete({
           connectionId: info.connectionId,
@@ -138,7 +146,7 @@ const ContentStream = defineComponent({
           key: info.key,
           field: row.id,
         });
-        ElMessage.success('删除成功');
+        ElMessage.success("删除成功");
         loadData();
       } catch {
         // 用户取消
@@ -152,7 +160,9 @@ const ContentStream = defineComponent({
 
     async function loadGroups() {
       const info = getKeyInfo();
-      if (!info) return;
+      if (!info) {
+        return;
+      }
 
       groupsLoading.value = true;
       groupsVisible.value = true;
@@ -177,7 +187,7 @@ const ContentStream = defineComponent({
     watch(
       () => [store.activeTabId, store.keyDetail?.key],
       () => {
-        if (store.keyDetail?.keyType === 'stream') {
+        if (store.keyDetail?.keyType === "stream") {
           currentPage.value = 1;
           loadData();
         }
@@ -187,13 +197,20 @@ const ContentStream = defineComponent({
 
     return () => {
       const info = getKeyInfo();
-      if (!info) return null;
+      if (!info) {
+        return null;
+      }
 
       return (
         <div class={ns.b()}>
-          <div class={ns.e('toolbar')}>
-            <span class={ns.e('total')}>共 {total.value} 个条目</span>
-            <div class={ns.e('actions')}>
+          <div class={ns.e("toolbar")}>
+            <span class={ns.e("total")}>
+              共
+              {total.value}
+              {" "}
+              个条目
+            </span>
+            <div class={ns.e("actions")}>
               <el-button size="small" type="primary" icon={Plus} onClick={showAddDialog}>添加条目</el-button>
               <el-button size="small" icon={InfoFilled} onClick={loadGroups}>消费者组</el-button>
               <el-button size="small" loading={loading.value} onClick={loadData}>刷新</el-button>
@@ -206,11 +223,13 @@ const ContentStream = defineComponent({
               {({ row }: { row: StreamEntry }) => {
                 const fields = row.fields || {};
                 const keys = Object.keys(fields);
-                if (keys.length === 0) return <span style={{ color: '#999' }}>空</span>;
-                const preview = keys.slice(0, 3).map((k) => `${k}: ${fields[k]}`).join(', ');
+                if (keys.length === 0) {
+                  return <span style={{ color: "#999" }}>空</span>;
+                }
+                const preview = keys.slice(0, 3).map(k => `${k}: ${fields[k]}`).join(", ");
                 return (
                   <span
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: "pointer" }}
                     title="点击查看详情"
                     onClick={() => showDetail(row)}
                   >
@@ -228,7 +247,7 @@ const ContentStream = defineComponent({
           </el-table>
 
           {total.value > pageSize.value && (
-            <div class={ns.e('pagination')}>
+            <div class={ns.e("pagination")}>
               <el-pagination
                 currentPage={currentPage.value}
                 pageSize={pageSize.value}
@@ -246,9 +265,9 @@ const ContentStream = defineComponent({
                 <el-input v-model={addId.value} placeholder="* 表示自动生成" />
               </el-form-item>
               <el-form-item label="字段">
-                <div style={{ width: '100%' }}>
+                <div style={{ width: "100%" }}>
                   {addFields.value.map((field, index) => (
-                    <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                    <div key={index} style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
                       <el-input
                         v-model={field.key}
                         placeholder="字段名"
@@ -276,7 +295,12 @@ const ContentStream = defineComponent({
             {{
               footer: () => (
                 <div>
-                  <el-button onClick={() => { addVisible.value = false; }}>取消</el-button>
+                  <el-button onClick={() => {
+                    addVisible.value = false;
+                  }}
+                  >
+                    取消
+                  </el-button>
                   <el-button type="primary" onClick={confirmAdd}>确定</el-button>
                 </div>
               ),
@@ -287,7 +311,11 @@ const ContentStream = defineComponent({
           <el-dialog v-model={detailVisible.value} title="条目详情" width="600px" append-to-body>
             {detailEntry.value && (
               <div>
-                <p><strong>ID:</strong> {detailEntry.value.id}</p>
+                <p>
+                  <strong>ID:</strong>
+                  {" "}
+                  {detailEntry.value.id}
+                </p>
                 <el-table
                   data={Object.entries(detailEntry.value.fields || {}).map(([k, v]) => ({ key: k, value: v }))}
                   stripe

@@ -7,14 +7,14 @@
  * @block ran-connection-form
  */
 
-import type { PropType } from 'vue';
-import { defineComponent, reactive, ref, watch } from 'vue';
-import type { ConnectionConfig } from '../types';
-import { useCsNamespace } from '../../../hooks/use-namespace';
+import type { PropType } from "vue";
+import type { ConnectionConfig } from "../types";
+import { defineComponent, reactive, ref, watch } from "vue";
+import { useCsNamespace } from "../../../hooks/use-namespace";
 // UUID 生成使用浏览器原生 crypto.randomUUID()
 
 const ConnectionForm = defineComponent({
-  name: 'ConnectionForm',
+  name: "ConnectionForm",
   props: {
     visible: { type: Boolean, required: true },
     connectionId: { type: String as PropType<string | null>, default: null },
@@ -23,27 +23,27 @@ const ConnectionForm = defineComponent({
     onClose: { type: Function as PropType<() => void>, required: true },
   },
   setup(props, { emit }) {
-    const ns = useCsNamespace('connection-form');
+    const ns = useCsNamespace("connection-form");
     const formRef = ref();
     const loading = ref(false);
 
     // 表单数据
     const form = reactive<ConnectionConfig>({
-      id: '',
-      name: '',
-      host: '127.0.0.1',
+      id: "",
+      name: "",
+      host: "127.0.0.1",
       port: 6379,
-      password: '',
+      password: "",
       db: 0,
-      separator: ':',
-      color: '',
+      separator: ":",
+      color: "",
     });
 
     // 表单验证规则
     const rules = {
-      name: [{ required: true, message: '请输入连接名称', trigger: 'blur' }],
-      host: [{ required: true, message: '请输入主机地址', trigger: 'blur' }],
-      port: [{ required: true, message: '请输入端口号', trigger: 'blur' }],
+      name: [{ required: true, message: "请输入连接名称", trigger: "blur" }],
+      host: [{ required: true, message: "请输入主机地址", trigger: "blur" }],
+      port: [{ required: true, message: "请输入端口号", trigger: "blur" }],
     };
 
     // 监听 connectionId 变化，填充表单
@@ -60,13 +60,13 @@ const ConnectionForm = defineComponent({
             // 新建模式：重置表单
             Object.assign(form, {
               id: crypto.randomUUID(),
-              name: '',
-              host: '127.0.0.1',
+              name: "",
+              host: "127.0.0.1",
               port: 6379,
-              password: '',
+              password: "",
               db: 0,
-              separator: ':',
-              color: '',
+              separator: ":",
+              color: "",
             });
           }
         }
@@ -98,7 +98,7 @@ const ConnectionForm = defineComponent({
     return () => (
       <el-dialog
         modelValue={props.visible}
-        title={props.connectionId ? '编辑连接' : '新建连接'}
+        title={props.connectionId ? "编辑连接" : "新建连接"}
         width={520}
         onClose={handleCancel}
         destroyOnClose
@@ -107,7 +107,7 @@ const ConnectionForm = defineComponent({
             <div>
               <el-button onClick={handleCancel}>取消</el-button>
               <el-button type="primary" loading={loading.value} onClick={handleSubmit}>
-                {props.connectionId ? '保存' : '创建'}
+                {props.connectionId ? "保存" : "创建"}
               </el-button>
             </div>
           ),
@@ -135,7 +135,7 @@ const ConnectionForm = defineComponent({
               min={1}
               max={65535}
               controls={false}
-              style={{ width: '100%' }}
+              style={{ width: "100%" }}
             />
           </el-form-item>
 
@@ -154,7 +154,7 @@ const ConnectionForm = defineComponent({
               min={0}
               max={15}
               controls={false}
-              style={{ width: '100%' }}
+              style={{ width: "100%" }}
             />
           </el-form-item>
 

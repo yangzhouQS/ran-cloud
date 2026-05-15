@@ -9,18 +9,18 @@
  * @block ran-content-hash
  */
 
-import { Delete, Edit, Plus, Search } from '@element-plus/icons-vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { defineComponent, ref, watch } from 'vue';
-import { useCsNamespace } from '../../../../hooks/use-namespace';
-import { useRedisStore } from '../../stores/redis-store';
-import type { HashField, HashPageParams } from '../../types';
-import { redisDataHashPage, redisDataHashAdd, redisDataHashUpdate, redisDataHashDelete } from '../../services/redis-commands';
+import type { HashField, HashPageParams } from "../../types";
+import { Delete, Edit, Plus, Search } from "@element-plus/icons-vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { defineComponent, ref, watch } from "vue";
+import { useCsNamespace } from "../../../../hooks/use-namespace";
+import { redisDataHashAdd, redisDataHashDelete, redisDataHashPage, redisDataHashUpdate } from "../../services/redis-commands";
+import { useRedisStore } from "../../stores/redis-store";
 
 const ContentHash = defineComponent({
-  name: 'ContentHash',
+  name: "ContentHash",
   setup() {
-    const ns = useCsNamespace('content-hash');
+    const ns = useCsNamespace("content-hash");
     const store = useRedisStore();
 
     const loading = ref(false);
@@ -28,25 +28,29 @@ const ContentHash = defineComponent({
     const total = ref(0);
     const currentPage = ref(1);
     const pageSize = ref(50);
-    const searchPattern = ref('');
+    const searchPattern = ref("");
 
     // 添加/编辑对话框
     const dialogVisible = ref(false);
-    const dialogMode = ref<'add' | 'edit'>('add');
-    const dialogField = ref('');
-    const dialogValue = ref('');
-    const dialogOldField = ref('');
+    const dialogMode = ref<"add" | "edit">("add");
+    const dialogField = ref("");
+    const dialogValue = ref("");
+    const dialogOldField = ref("");
 
     function getKeyInfo() {
       const tab = store.activeTab;
-      if (!tab || tab.type !== 'key-detail') return null;
+      if (!tab || tab.type !== "key-detail") {
+        return null;
+      }
       return { connectionId: tab.connectionId, db: tab.db, key: tab.key! };
     }
 
     /** 加载 Hash 数据 */
     async function loadData() {
       const info = getKeyInfo();
-      if (!info) return;
+      if (!info) {
+        return;
+      }
 
       loading.value = true;
       try {
@@ -70,16 +74,16 @@ const ContentHash = defineComponent({
 
     /** 打开添加对话框 */
     function showAddDialog() {
-      dialogMode.value = 'add';
-      dialogField.value = '';
-      dialogValue.value = '';
-      dialogOldField.value = '';
+      dialogMode.value = "add";
+      dialogField.value = "";
+      dialogValue.value = "";
+      dialogOldField.value = "";
       dialogVisible.value = true;
     }
 
     /** 打开编辑对话框 */
     function showEditDialog(row: HashField) {
-      dialogMode.value = 'edit';
+      dialogMode.value = "edit";
       dialogField.value = row.field;
       dialogValue.value = row.value;
       dialogOldField.value = row.field;
@@ -89,10 +93,12 @@ const ContentHash = defineComponent({
     /** 确认添加/编辑 */
     async function confirmDialog() {
       const info = getKeyInfo();
-      if (!info || !dialogField.value.trim()) return;
+      if (!info || !dialogField.value.trim()) {
+        return;
+      }
 
       try {
-        if (dialogMode.value === 'add') {
+        if (dialogMode.value === "add") {
           await redisDataHashAdd({
             connectionId: info.connectionId,
             db: info.db,
@@ -100,7 +106,7 @@ const ContentHash = defineComponent({
             field: dialogField.value.trim(),
             value: dialogValue.value,
           });
-          ElMessage.success('字段添加成功');
+          ElMessage.success("字段添加成功");
         } else {
           await redisDataHashUpdate({
             connectionId: info.connectionId,
@@ -110,7 +116,7 @@ const ContentHash = defineComponent({
             oldField: dialogOldField.value,
             value: dialogValue.value,
           });
-          ElMessage.success('字段更新成功');
+          ElMessage.success("字段更新成功");
         }
         dialogVisible.value = false;
         loadData();
@@ -122,13 +128,15 @@ const ContentHash = defineComponent({
     /** 删除字段 */
     async function handleDelete(row: HashField) {
       const info = getKeyInfo();
-      if (!info) return;
+      if (!info) {
+        return;
+      }
 
       try {
         await ElMessageBox.confirm(
           `确定要删除字段 "${row.field}" 吗？`,
-          '删除确认',
-          { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' },
+          "删除确认",
+          { confirmButtonText: "删除", cancelButtonText: "取消", type: "warning" },
         );
         await redisDataHashDelete({
           connectionId: info.connectionId,
@@ -136,7 +144,7 @@ const ContentHash = defineComponent({
           key: info.key,
           fields: [row.field],
         });
-        ElMessage.success('删除成功');
+        ElMessage.success("删除成功");
         loadData();
       } catch {
         // 用户取消
@@ -153,7 +161,7 @@ const ContentHash = defineComponent({
     watch(
       () => [store.activeTabId, store.keyDetail?.key],
       () => {
-        if (store.keyDetail?.keyType === 'hash') {
+        if (store.keyDetail?.keyType === "hash") {
           currentPage.value = 1;
           loadData();
         }
@@ -163,25 +171,35 @@ const ContentHash = defineComponent({
 
     return () => {
       const info = getKeyInfo();
-      if (!info) return null;
+      if (!info) {
+        return null;
+      }
 
       return (
         <div class={ns.b()}>
           {/* 工具栏 */}
-          <div class={ns.e('toolbar')}>
-            <div class={ns.e('search')}>
+          <div class={ns.e("toolbar")}>
+            <div class={ns.e("search")}>
               <el-input
                 v-model={searchPattern.value}
                 placeholder="搜索字段..."
                 prefixIcon={Search}
                 size="small"
                 clearable
-                style={{ width: '200px' }}
-                onClear={() => { currentPage.value = 1; loadData(); }}
-                onKeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') { currentPage.value = 1; loadData(); } }}
+                style={{ width: "200px" }}
+                onClear={() => {
+                  currentPage.value = 1;
+                  loadData();
+                }}
+                onKeydown={(e: KeyboardEvent) => {
+                  if (e.key === "Enter") {
+                    currentPage.value = 1;
+                    loadData();
+                  }
+                }}
               />
             </div>
-            <div class={ns.e('actions')}>
+            <div class={ns.e("actions")}>
               <el-button size="small" type="primary" icon={Plus} onClick={showAddDialog}>
                 添加字段
               </el-button>
@@ -198,7 +216,7 @@ const ContentHash = defineComponent({
             stripe
             border
             max-height={500}
-            style={{ width: '100%' }}
+            style={{ width: "100%" }}
           >
             <el-table-column prop="field" label="字段" min-width={200} show-overflow-tooltip />
             <el-table-column prop="value" label="值" min-width={300} show-overflow-tooltip />
@@ -214,7 +232,7 @@ const ContentHash = defineComponent({
 
           {/* 分页 */}
           {total.value > pageSize.value && (
-            <div class={ns.e('pagination')}>
+            <div class={ns.e("pagination")}>
               <el-pagination
                 currentPage={currentPage.value}
                 pageSize={pageSize.value}
@@ -228,7 +246,7 @@ const ContentHash = defineComponent({
           {/* 添加/编辑对话框 */}
           <el-dialog
             v-model={dialogVisible.value}
-            title={dialogMode.value === 'add' ? '添加字段' : '编辑字段'}
+            title={dialogMode.value === "add" ? "添加字段" : "编辑字段"}
             width="500px"
             append-to-body
           >
@@ -237,7 +255,7 @@ const ContentHash = defineComponent({
                 <el-input
                   v-model={dialogField.value}
                   placeholder="请输入字段名"
-                  disabled={dialogMode.value === 'edit'}
+                  disabled={dialogMode.value === "edit"}
                 />
               </el-form-item>
               <el-form-item label="值">
@@ -252,7 +270,12 @@ const ContentHash = defineComponent({
             {{
               footer: () => (
                 <div>
-                  <el-button onClick={() => { dialogVisible.value = false; }}>取消</el-button>
+                  <el-button onClick={() => {
+                    dialogVisible.value = false;
+                  }}
+                  >
+                    取消
+                  </el-button>
                   <el-button type="primary" onClick={confirmDialog}>确定</el-button>
                 </div>
               ),

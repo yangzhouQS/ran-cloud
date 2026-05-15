@@ -56,10 +56,10 @@ export interface ConnectionInfo {
 
 /** 连接状态 */
 export enum ConnectionStatus {
-  Disconnected = 'disconnected',
-  Connecting = 'connecting',
-  Connected = 'connected',
-  Error = 'error',
+  Disconnected = "disconnected",
+  Connecting = "connecting",
+  Connected = "connected",
+  Error = "error",
 }
 
 /** 创建连接请求参数 */
