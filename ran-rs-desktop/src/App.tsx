@@ -5,6 +5,15 @@ import Layout from './components/Layout';
 import { getCategoriesByNav, getCategoryTitle } from './components/CategoryPanel';
 import TelepresencePanel from './components/TelepresencePanel';
 
+/** 检测是否运行在 Tauri 环境中 */
+const isTauri = () => '__TAURI_INTERNALS__' in window;
+
+/** 构建新窗口的 URL（基于当前页面地址，替换 hash 部分） */
+const buildWindowUrl = (hash: string) => {
+  const base = window.location.href.split('#')[0];
+  return base + '#' + hash;
+};
+
 const App = defineComponent({
   name: 'App',
   setup() {
@@ -31,52 +40,59 @@ const App = defineComponent({
 
     /** 底部工具栏点击：创建独立 OS 级窗口 */
     const handleToolClick = async (key: string) => {
-      const windowLabel = key; // 'settings' 或 'about'
-
-      // 检查窗口是否已存在
-      const existingWin = WebviewWindow.getByLabel(windowLabel);
-      if (existingWin) {
-        // 窗口已存在，聚焦它
-        try {
-          await existingWin.setFocus();
-        } catch {
-          // 聚焦失败，忽略
-        }
+	    console.log(`key = ${key}`);
+      // 非 Tauri 环境（纯浏览器开发模式）降级为新标签页打开
+      if (!isTauri()) {
+        const hash = key === 'settings' ? '/settings' : '/about';
+        window.open(buildWindowUrl(hash), '_blank');
         return;
       }
 
+      const windowLabel = key; // 'settings' 或 'about'
+
       try {
-        if (key === 'settings') {
-          const webview = new WebviewWindow(windowLabel, {
-            url: '/#/settings',
-            title: '设置 - Ran RS Desktop',
-            width: 600,
-            height: 500,
-            center: true,
-            resizable: true,
-            minimizable: true,
-            closable: true,
-          });
-          webview.once('tauri://error', () => {
-            ElMessage.error('无法打开设置窗口');
-          });
-        } else if (key === 'about') {
-          const webview = new WebviewWindow(windowLabel, {
-            url: '/#/about',
-            title: '关于 - Ran RS Desktop',
-            width: 420,
-            height: 480,
-            center: true,
-            resizable: false,
-            minimizable: true,
-            closable: true,
-          });
-          webview.once('tauri://error', () => {
-            ElMessage.error('无法打开关于窗口');
-          });
+        // 检查窗口是否已存在
+        const existingWin = await WebviewWindow.getByLabel(windowLabel);
+        if (existingWin) {
+          try {
+            await existingWin.setFocus();
+          } catch (err2){
+            // 聚焦失败，忽略
+	          console.log(err2);
+          }
+          return;
         }
-      } catch {
-        ElMessage.error('创建窗口失败');
+
+        const windowConfig = key === 'settings'
+          ? {
+              url: buildWindowUrl('/settings'),
+              title: '设置 - Ran RS Desktop',
+              width: 600,
+              height: 500,
+              resizable: true,
+            }
+          : {
+              url: buildWindowUrl('/about'),
+              title: '关于 - Ran RS Desktop',
+              width: 420,
+              height: 480,
+              resizable: false,
+            };
+
+        const webview = new WebviewWindow(windowLabel, {
+          ...windowConfig,
+          center: true,
+          minimizable: true,
+          closable: true,
+        });
+
+        webview.once('tauri://error', (e) => {
+          console.error('[Tauri] 窗口创建错误:', e);
+          ElMessage.error(`无法打开${key === 'settings' ? '设置' : '关于'}窗口`);
+        });
+      } catch (err) {
+        console.error('[Tauri] 创建窗口异常:', err);
+        ElMessage.error('创建窗口失败，请检查 Tauri 权限配置');
       }
     };
 
