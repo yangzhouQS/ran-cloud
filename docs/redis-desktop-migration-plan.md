@@ -1,6 +1,14 @@
-# Redis Desktop Manager — 完整迁移计划
+# Redis Desktop Manager — 完整迁移计划（v2.0）
 
 > **项目目标**：将 AnotherRedisDesktopManager (Electron 12 + Vue 2) 的全部功能迁移至 Tauri 2 + Vue 3 + Rust 技术栈，消除历史包袱，大胆采用新技术，实现更小体积、更高性能、更好体验的 Redis 桌面客户端。
+>
+> **文档版本**：v2.0 — 基于 [`redis-desktop-migration-plan-review.md`](redis-desktop-migration-plan-review.md) 评审建议全面修订
+>
+> **配套文档**：
+> - 架构设计：[`redis-desktop-module-architecture.md`](redis-desktop-module-architecture.md)
+> - 可行性分析：[`another-redis-desktop-manager-migration-analysis.md`](another-redis-desktop-manager-migration-analysis.md)
+> - 架构评审：[`redis-desktop-backend-architecture-review.md`](redis-desktop-backend-architecture-review.md)
+> - 迁移评审：[`redis-desktop-migration-plan-review.md`](redis-desktop-migration-plan-review.md)
 
 ---
 
@@ -32,17 +40,7 @@
 | **@qii404/vue-easy-tree** | Key 树形视图 | `ListTable` 树形模式 (`tree: true`) | ✅ 完全可行 |
 | **el-table (Status 页)** | 服务器状态/DB 统计 | 保持 Element Plus `el-table`（数据量小） | ✅ 无需替换 |
 
-### 0.3 VTable 替换带来的优势
-
-| 维度 | 原方案（多组件） | VTable 统一方案 |
-|---|---|---|
-| **依赖数量** | vxe-table + vue-virtual-scroller + vue-easy-tree = 3 个 | @visactor/vtable + @visactor/vue-vtable = 2 个 |
-| **性能上限** | vxe-table: 万级；vue-virtual-scroller: 十万级 | 百万级数据流畅渲染 |
-| **树形组件** | 需要自研或使用第三方虚拟树 | 内置树形模式，开箱即用 |
-| **一致性** | 3 套不同 API 风格 | 统一 API，统一主题 |
-| **维护成本** | 多个库版本升级风险 | 单一库，字节跳动团队维护 |
-
-### 0.4 VTable 注意事项与风险
+### 0.3 VTable 注意事项与风险
 
 | 风险项 | 影响 | 应对策略 |
 |---|---|---|
@@ -51,17 +49,6 @@
 | 自定义渲染学习曲线 | 需要学习 VTable 渲染 API | 文档完善，社区活跃；投入 1-2 天学习即可 |
 | 包体积可能较大 | @visactor/vtable 完整版约 2-3MB | 使用 `ListTable-Simple`（仅文本类型）减小体积；按需加载 |
 | 暗黑模式需要适配 | VTable 有自己的主题系统 | 通过 VTable 主题 API 统一配置，与 Element Plus 暗黑模式并行 |
-
-### 0.5 VTable 技术选型结论
-
-**✅ 推荐使用 VTable 替换全部表格和树形组件**
-
-理由：
-1. **统一技术栈**：一个库解决所有表格/树/虚拟列表需求
-2. **极致性能**：Canvas 渲染 + 虚拟滚动，百万级数据无压力
-3. **内置树形**：Key 树形视图无需自研虚拟树组件，节省 2-3 周开发时间
-4. **Vue 3 原生支持**：`@visactor/vue-vtable` 官方封装
-5. **活跃维护**：字节跳动 VisActor 团队持续维护，GitHub 4k+ stars
 
 ---
 
@@ -76,10 +63,10 @@
 | **Element UI 2.x** | **Element Plus 2.x** | Vue 3 兼容的 UI 库 |
 | **Webpack 4** | **Rsbuild** | 基于 Rspack 的极速构建 |
 | **vue-i18n 8.x** | **vue-i18n 9.x** | Vue 3 兼容的国际化 |
-| **localStorage** | **Tauri Store Plugin** | 原生存储，支持 JSON 持久化 |
-| **Electron IPC (ipcRenderer)** | **Tauri invoke** | Rust ↔ 前端通信 |
+| **localStorage** | **Tauri Store Plugin + 加密存储** | 原生存储，敏感信息加密 |
+| **Electron IPC (ipcRenderer)** | **Tauri invoke / Tauri Plugin** | Rust ↔ 前端通信，Plugin 化模块注册 |
 | **Electron clipboard** | **Tauri clipboard plugin** | 系统剪贴板 |
-| **Electron shell** | **Tauri shell plugin** | 打开外部链接 |
+| **Electron shell** | **Tauri shell plugin** | 打开外部链接、执行外部命令 |
 | **Electron dialog** | **Tauri dialog plugin** | 原生文件选择对话框 |
 | **Electron webFrame** | **Tauri window API** | 页面缩放控制 |
 
@@ -93,20 +80,17 @@
 | **vxe-table 3.x** | **@visactor/vtable (ListTable)** | 高性能 Canvas 数据表格 | ⭐⭐ |
 | **vue-virtual-scroller** | **@visactor/vtable (ListTable)** | 高性能虚拟滚动列表 | ⭐⭐ |
 | **@qii404/vue-easy-tree** | **@visactor/vtable (ListTable tree mode)** | 高性能虚拟滚动 Key 树 | ⭐⭐ |
-| **protobufjs** | **prost** (Rust) + 前端保留 protobufjs | Protobuf 编解码 | ⭐⭐⭐ |
-| **rawproto** | **prost** (Rust) | Protobuf 原始解析 | ⭐⭐⭐ |
-| **php-serialize** | **Rust 自实现** 或 **php-serde** | PHP 反序列化 | ⭐⭐⭐ |
-| **java-object-serialization** | **Rust 自实现** | Java 对象反序列化 | ⭐⭐⭐⭐ |
-| **pickleparser** | **Rust 自实现** 或 **serde-pickle** | Python Pickle 解析 | ⭐⭐⭐ |
-| **algo-msgpack-with-bigint** | **rmp-serde** (Rust) | MessagePack 编解码 | ⭐⭐ |
+| **protobufjs** | **protobuf crate (Rust 动态解析)** | Protobuf 运行时编解码 | ⭐⭐⭐ |
+| **php-serialize** | **Rust 自实现** | PHP 反序列化（协议简单） | ⭐⭐⭐ |
+| **java-object-serialization** | **Rust 自实现（只读）** | Java 对象反序列化（有限类型） | ⭐⭐⭐⭐ |
+| **pickleparser** | **serde-pickle (Rust)** | Python Pickle 解析 | ⭐⭐⭐ |
+| **algo-msgpack-with-bigint** | **rmp-serde (Rust)** | MessagePack 编解码 | ⭐⭐ |
 | **@qii404/redis-splitargs** | **Rust 自实现** | Redis 命令参数分割 | ⭐⭐ |
-| **@qii404/json-bigint** | **serde_json** (Rust, 原生支持大数) | JSON BigInt 处理 | ⭐ |
-| **sortablejs** | **vuedraggable@next** 或 **@vueuse/integrations** | 拖拽排序 | ⭐⭐ |
+| **@qii404/json-bigint** | **serde_json (Rust, 原生支持大数)** | JSON BigInt 处理 | ⭐ |
+| **sortablejs** | **vuedraggable@next** | 拖拽排序 | ⭐⭐ |
 | **keymaster** | **@vueuse/core (useMagicKeys)** | 快捷键绑定 | ⭐ |
 | **font-awesome 4.x** | **@element-plus/icons-vue** | 图标库 | ⭐ |
-| **getopts** | **clap** (Rust) | CLI 参数解析 | ⭐⭐ |
-| **node-version-compare** | **Rust semver crate** | 版本号比较 | ⭐ |
-| **zlib (Node 内置)** | **flate2** (Rust) | gzip/deflate/brotli 解压 | ⭐⭐ |
+| **zlib (Node 内置)** | **flate2 + brotli (Rust)** | gzip/deflate/brotli 解压 | ⭐⭐ |
 
 ### 1.3 数据流架构变更
 
@@ -115,242 +99,286 @@
   Renderer (Vue 2) → ipcRenderer → Electron Main → ioredis (Node.js) → Redis
   Renderer (Vue 2) → ipcRenderer → Electron Main → tunnel-ssh (Node.js) → SSH Server → Redis
 
-新架构 (Tauri 2):
-  Renderer (Vue 3) → Tauri invoke → Rust Backend → redis-rs (tokio) → Redis
-  Renderer (Vue 3) → Tauri invoke → Rust Backend → ssh2 (tokio) → SSH Server → Redis
-  Renderer (Vue 3) → Tauri Events → Rust Backend → Stream 数据 → 前端
+新架构 (Tauri 2 + Plugin):
+  Renderer (Vue 3) → Tauri invoke → redis-desktop Plugin → redis-rs (tokio) → Redis
+  Renderer (Vue 3) → Tauri invoke → redis-desktop Plugin → ssh2 (tokio) → SSH Server → Redis
+  Renderer (Vue 3) ← Tauri Events ← redis-desktop Plugin → Stream 数据 → 前端
+  Renderer (Vue 3) → Tauri invoke → telepresence Plugin → telepresence CLI → K8s
 ```
 
 ---
 
 ## 二、完整功能清单与迁移映射
 
+> **状态标记**：`[ ]` 未开始 | `[-]` 进行中 | `[x]` 已完成 | `[~]` 已跳过
+
 ### 2.1 连接管理
 
-| # | 功能 | 原文件 | 新实现位置 | 优先级 |
-|---|---|---|---|---|
-| C-01 | 新建连接（Host/Port/Auth/Username） | `NewConnectionDialog.vue` | 前端 `connection-dialog.tsx` + Rust `redis_service.rs` | P0 |
-| C-02 | 编辑连接 | `NewConnectionDialog.vue` | 同上 | P0 |
-| C-03 | 删除连接 | `ConnectionMenu.vue` | 前端 + Rust `storage_service.rs` | P0 |
-| C-04 | 连接列表（拖拽排序） | `Connections.vue` + `sortablejs` | 前端 `connection-list.tsx` + `vuedraggable` | P0 |
-| C-05 | Standalone 连接 | `redisClient.js::createConnection` | Rust `redis_service.rs::connect_standalone` | P0 |
-| C-06 | Cluster 连接（NAT 映射） | `redisClient.js::createConnection(cluster)` | Rust `redis_service.rs::connect_cluster` | P1 |
-| C-07 | Sentinel 连接 | `redisClient.js::createConnection(sentinel)` | Rust `redis_service.rs::connect_sentinel` | P1 |
-| C-08 | SSH 隧道连接 | `redisClient.js::createSSHConnection` | Rust `ssh_service.rs::create_ssh_tunnel` | P1 |
-| C-09 | SSH + Cluster 组合 | `redisClient.js::createSSHConnection(cluster)` | Rust `ssh_service.rs` + `redis_service.rs` 协作 | P2 |
-| C-10 | SSH + Sentinel 组合 | `redisClient.js::createSSHConnection(sentinel)` | Rust `ssh_service.rs` + `redis_service.rs` 协作 | P2 |
-| C-11 | SSL/TLS 连接 | `redisClient.js::getTLSOptions` | Rust `redis_service.rs::connect_tls` (native-tls) | P1 |
-| C-12 | ACL 用户名认证 | `redisClient.js::getRedisOptions(username)` | Rust `redis-rs` 原生支持 | P0 |
-| C-13 | 只读模式 | `redisClient.js::connectionReadOnly` | Rust 命令拦截层 | P2 |
-| C-14 | 数据库选择 | `KeyList.vue::setDb` | Rust `redis_service.rs::select_db` | P0 |
-| C-15 | 连接重试策略 | `redisClient.js::retryStragety` | Rust `redis-rs` reconnect | P1 |
-| C-16 | 连接导出/导入 | `Setting.vue` | Rust `storage_service.rs` + Tauri dialog | P1 |
-| C-17 | CLI 参数启动连接 | `addon.js::bindCliArgs` | Rust `clap` CLI 解析 | P2 |
+| # | 功能 | 原文件 | 新实现位置 | 优先级 | 状态 |
+|---|---|---|---|---|---|
+| C-01 | 新建连接（Host/Port/Auth/Username） | `NewConnectionDialog.vue` | 前端 `connection-dialog.tsx` + Rust `connection/service.rs` | P0 | [ ] |
+| C-02 | 编辑连接 | `NewConnectionDialog.vue` | 同 C-01 | P0 | [ ] |
+| C-03 | 删除连接 | `ConnectionMenu.vue` | 前端 + Rust `storage/service.rs` | P0 | [ ] |
+| C-04 | 连接列表（拖拽排序） | `Connections.vue` + `sortablejs` | 前端 `connection-list.tsx` + `vuedraggable` | P0 | [ ] |
+| C-05 | Standalone 连接 | `redisClient.js::createConnection` | Rust `connection/service.rs::connect_standalone` | P0 | [ ] |
+| C-06 | Cluster 连接（NAT 映射） | `redisClient.js::createConnection(cluster)` | Rust `connection/service.rs::connect_cluster` | P1 | [ ] |
+| C-07 | Sentinel 连接 | `redisClient.js::createConnection(sentinel)` | Rust `connection/service.rs::connect_sentinel` | P1 | [ ] |
+| C-08 | SSH 隧道连接 | `redisClient.js::createSSHConnection` | Rust `tunnel/service.rs::create_ssh_tunnel` | P1 | [ ] |
+| C-09 | SSH + Cluster 组合 | `redisClient.js` | Rust `tunnel/service.rs` + `connection/service.rs` | P2 | [ ] |
+| C-10 | SSH + Sentinel 组合 | `redisClient.js` | Rust `tunnel/service.rs` + `connection/service.rs` | P2 | [ ] |
+| C-11 | SSL/TLS 连接 | `redisClient.js::getTLSOptions` | Rust `connection/service.rs::connect_tls` (native-tls) | P1 | [ ] |
+| C-12 | ACL 用户名认证 | `redisClient.js::getRedisOptions(username)` | Rust `redis-rs` 原生支持 | P0 | [ ] |
+| C-13 | 只读模式（命令拦截中间件） | `redisClient.js::sendCommand` 猴子补丁 | Rust `shared/redis_client.rs` 命令拦截层 | P2 | [ ] |
+| C-14 | 数据库选择 | `KeyList.vue::setDb` | Rust `connection/commands.rs::select_db` | P0 | [ ] |
+| C-15 | 连接重试策略 | `redisClient.js::retryStragety` | Rust `redis-rs` reconnect 配置 | P1 | [ ] |
+| C-16 | 连接导出/导入 | `Setting.vue` | Rust `storage/service.rs` + Tauri dialog | P1 | [ ] |
+| C-17 | CLI 参数启动连接 | `addon.js::bindCliArgs` | Rust `clap` CLI 解析 | P2 | [ ] |
+| C-18 | 连接颜色标记（7 种颜色） | `ConnectionMenu.vue::markColor` | 前端 `connection-list.tsx` + Tauri Store | P1 | [ ] |
+| C-19 | 连接复制 | `ConnectionMenu.vue::duplicateConnection` | 前端 + Rust `storage/service.rs` | P1 | [ ] |
+| C-20 | 密码加密存储 | `storage.js`（明文） | Rust `storage/service.rs` + `keyring` crate 或 AES 加密 | P1 | [ ] |
 
 ### 2.2 Key 管理
 
-| # | 功能 | 原文件 | 新实现位置 | 优先级 |
-|---|---|---|---|---|
-| K-01 | Key 列表（SCAN 流式加载） | `KeyList.vue` | Rust `redis_service.rs::scan_keys` + Tauri Events | P0 |
-| K-02 | Key 树形视图（分隔符分组） | `KeyListVirtualTree.vue` + `util.js::keysToTree` | 前端虚拟树组件 | P0 |
-| K-03 | Key 平铺列表视图 | `KeyListNormal.vue` | 前端列表组件 | P1 |
-| K-04 | Key 搜索（模糊/精确） | `OperateItem.vue` | 前端搜索组件 | P0 |
-| K-05 | Key 加载更多/加载全部 | `KeyList.vue` | Rust SCAN 分页 | P0 |
-| K-06 | Key 详情查看 | `KeyDetail.vue` | 前端 `key-detail.tsx` | P0 |
-| K-07 | Key 重命名 | `KeyHeader.vue::renameKey` | Rust `RENAME` 命令 | P0 |
-| K-08 | Key 删除 | `KeyHeader.vue::deleteKey` | Rust `DEL` 命令 | P0 |
-| K-09 | Key TTL 查看/修改 | `KeyHeader.vue::ttlKey` | Rust `TTL`/`EXPIRE` 命令 | P0 |
-| K-10 | Key Persist（移除过期） | `KeyHeader.vue::persistKey` | Rust `PERSIST` 命令 | P0 |
-| K-11 | Key 自动刷新 | `KeyHeader.vue::autoRefresh` | 前端定时器 | P1 |
-| K-12 | Key DUMP 命令导出 | `KeyHeader.vue::dumpCommand` | Rust `DUMP` 命令 | P2 |
-| K-13 | 批量删除 Key | `DeleteBatch.vue` | Rust 批量 `DEL` | P1 |
-| K-14 | 批量导出 Key | `KeyList.vue::exportBatch` | Rust `DUMP`+`PTTL` 批量 + CSV 导出 | P2 |
+| # | 功能 | 原文件 | 新实现位置 | 优先级 | 状态 |
+|---|---|---|---|---|---|
+| K-01 | Key 列表（SCAN 流式加载 + 暂停/恢复） | `KeyList.vue` | Rust `key/service.rs::scan_keys` + Tauri Events | P0 | [ ] |
+| K-02 | Key 树形视图（分隔符分组 + 200K 溢出保护） | `KeyListVirtualTree.vue` + `util.js::keysToTree` | 前端 `key-tree.tsx`（VTable ListTable tree mode） | P0 | [ ] |
+| K-03 | Key 平铺列表视图 | `KeyListNormal.vue` | 前端 `key-list.tsx`（VTable ListTable） | P1 | [ ] |
+| K-04 | Key 搜索（模糊/精确） | `OperateItem.vue` | 前端 `key-search.tsx` | P0 | [ ] |
+| K-05 | Key 加载更多/加载全部 | `KeyList.vue` | Rust SCAN 分页 | P0 | [ ] |
+| K-06 | Key 详情查看 | `KeyDetail.vue` | 前端 `key-detail.tsx` | P0 | [ ] |
+| K-07 | Key 重命名 | `KeyHeader.vue::renameKey` | Rust `key/service.rs::rename_key` | P0 | [ ] |
+| K-08 | Key 删除 | `KeyHeader.vue::deleteKey` | Rust `key/service.rs::delete_keys` | P0 | [ ] |
+| K-09 | Key TTL 查看/修改 | `KeyHeader.vue::ttlKey` | Rust `key/service.rs::ttl/expire` | P0 | [ ] |
+| K-10 | Key Persist（移除过期） | `KeyHeader.vue::persistKey` | Rust `key/service.rs::persist` | P0 | [ ] |
+| K-11 | Key 自动刷新 | `KeyHeader.vue::autoRefresh` | 前端定时器 | P1 | [ ] |
+| K-12 | Key DUMP 命令导出 | `KeyHeader.vue::dumpCommand` | Rust `key/service.rs::dump` | P2 | [ ] |
+| K-13 | 批量删除 Key | `DeleteBatch.vue` | Rust 批量 `DEL` | P1 | [ ] |
+| K-14 | 批量导出 Key | `KeyList.vue::exportBatch` | Rust `DUMP`+`PTTL` 批量 + CSV 导出 | P2 | [ ] |
+| K-15 | Cluster 并行 SCAN（所有 master 节点） | `KeyList.vue` cluster 模式 | Rust `key/service.rs::scan_cluster` | P1 | [ ] |
+| K-16 | Key 导入（RESTORE 命令） | `ConnectionMenu.vue::importKeys` | Rust `key/service.rs::restore` + Tauri dialog | P1 | [ ] |
+| K-17 | 自定义 DB 名称 | `storage.js` + `OperateItem.vue` | 前端 + Tauri Store | P2 | [ ] |
 
 ### 2.3 数据类型编辑器
 
-| # | 功能 | 原文件 | 新实现位置 | 优先级 |
-|---|---|---|---|---|
-| D-01 | String 查看/编辑 | `KeyContentString.vue` | 前端 `content-string.tsx` | P0 |
-| D-02 | Hash 查看/编辑/新增/删除 | `KeyContentHash.vue` | 前端 `content-hash.tsx` + Rust `HSET`/`HDEL`/`HSCAN` | P0 |
-| D-03 | List 查看/编辑 | `KeyContentList.vue` | 前端 `content-list.tsx` + Rust `LRANGE`/`LSET` | P0 |
-| D-04 | Set 查看/编辑 | `KeyContentSet.vue` | 前端 `content-set.tsx` + Rust `SSCAN`/`SREM` | P0 |
-| D-05 | ZSet 查看/编辑（排序切换） | `KeyContentZset.vue` | 前端 `content-zset.tsx` + Rust `ZRANGE`/`ZSCAN` | P0 |
-| D-06 | Stream 查看/编辑/新增 | `KeyContentStream.vue` | 前端 `content-stream.tsx` + Rust `XRANGE`/`XADD`/`XDEL` | P1 |
-| D-07 | ReJSON 查看/编辑 | `KeyContentReJson.vue` | 前端 `content-rejson.tsx` + Rust `JSON.GET`/`JSON.SET` | P2 |
-| D-08 | Hash TTL 支持（Redis 7.4+） | `KeyContentHash.vue::initTTL` | Rust `HTTL`/`HEXPIRE` | P2 |
+| # | 功能 | 原文件 | 新实现位置 | 优先级 | 状态 |
+|---|---|---|---|---|---|
+| D-01 | String 查看/编辑 | `KeyContentString.vue` | 前端 `content-string.tsx` | P0 | [ ] |
+| D-02 | Hash 查看/编辑/新增/删除 | `KeyContentHash.vue` | 前端 `content-hash.tsx` + Rust `data/hash_service.rs` | P0 | [ ] |
+| D-03 | List 查看/编辑 | `KeyContentList.vue` | 前端 `content-list.tsx` + Rust `data/list_service.rs` | P0 | [ ] |
+| D-04 | Set 查看/编辑 | `KeyContentSet.vue` | 前端 `content-set.tsx` + Rust `data/set_service.rs` | P0 | [ ] |
+| D-05 | ZSet 查看/编辑（排序切换） | `KeyContentZset.vue` | 前端 `content-zset.tsx` + Rust `data/zset_service.rs` | P0 | [ ] |
+| D-06 | Stream 查看/编辑/新增 | `KeyContentStream.vue` | 前端 `content-stream.tsx` + Rust `data/stream_service.rs` | P0 | [ ] |
+| D-07 | ReJSON 查看/编辑 | `KeyContentReJson.vue` | 前端 `content-rejson.tsx` + Rust `data/string_service.rs` | P2 | [ ] |
+| D-08 | Hash TTL 支持（Redis 7.4+） | `KeyContentHash.vue::initTTL` | Rust `data/hash_service.rs::httl` | P2 | [ ] |
 
 ### 2.4 数据查看器
 
-| # | 功能 | 原文件 | 新实现位置 | 优先级 |
-|---|---|---|---|---|
-| V-01 | Text 文本查看器 | `ViewerText.vue` | 前端 `viewer-text.tsx` | P0 |
-| V-02 | Hex 十六进制查看器 | `ViewerHex.vue` | 前端 `viewer-hex.tsx` | P0 |
-| V-03 | JSON 查看器（格式化/折叠） | `ViewerJson.vue` + `JsonEditor.vue` | 前端 `monaco-editor-vue3` | P0 |
-| V-04 | Binary 二进制查看器 | `ViewerBinary.vue` | 前端 `viewer-binary.tsx` | P1 |
-| V-05 | Msgpack 查看器 | `ViewerMsgpack.vue` | Rust `rmp-serde` 解码 → 前端展示 | P2 |
-| V-06 | PHPSerialize 查看器 | `ViewerPHPSerialize.vue` | Rust `php-serde` 解码 → 前端展示 | P2 |
-| V-07 | JavaSerialize 查看器 | `ViewerJavaSerialize.vue` | Rust 自实现解析 → 前端展示 | P2 |
-| V-08 | Pickle 查看器 | `ViewerPickle.vue` | Rust `serde-pickle` 解码 → 前端展示 | P2 |
-| V-09 | Gzip 解压查看器 | `ViewerGzip.vue` | Rust `flate2::GzDecoder` | P2 |
-| V-10 | Brotli 解压查看器 | `ViewerBrotli.vue` | Rust `brotli` crate | P2 |
-| V-11 | Deflate 解压查看器 | `ViewerDeflate.vue` | Rust `flate2::Decompress` | P2 |
-| V-12 | DeflateRaw 解压查看器 | `ViewerDeflateRaw.vue` | Rust `flate2::Decompress` | P2 |
-| V-13 | Protobuf 查看器（.proto 文件加载） | `ViewerProtobuf.vue` | Rust `prost` + 前端 proto 文件选择 | P2 |
-| V-14 | OverSize 大文件查看器 | `ViewerOverSize.vue` | 前端分片加载展示 | P2 |
-| V-15 | 自定义格式化器 | `ViewerCustom.vue` + `CustomFormatter.vue` | 前端 JS 执行引擎 | P3 |
-| V-16 | 自动格式检测 | `FormatViewer.vue::autoFormat` | Rust 后端检测 → 返回格式类型 | P1 |
+| # | 功能 | 原文件 | 新实现位置 | 优先级 | 状态 |
+|---|---|---|---|---|---|
+| V-01 | Text 文本查看器 | `ViewerText.vue` | 前端 `viewer-text.tsx` | P0 | [ ] |
+| V-02 | Hex 十六进制查看器 | `ViewerHex.vue` | 前端 `viewer-hex.tsx` | P0 | [ ] |
+| V-03 | JSON 查看器（格式化/折叠） | `ViewerJson.vue` + `JsonEditor.vue` | 前端 `viewer-json.tsx`（monaco-editor-vue3） | P0 | [ ] |
+| V-04 | Binary 二进制查看器 | `ViewerBinary.vue` | 前端 `viewer-binary.tsx` | P1 | [ ] |
+| V-05 | Msgpack 查看器 | `ViewerMsgpack.vue` | Rust `viewer/deserialize.rs` (rmp-serde) → 前端展示 | P2 | [ ] |
+| V-06 | PHPSerialize 查看器 | `ViewerPHPSerialize.vue` | Rust `viewer/deserialize.rs` (自实现) → 前端展示 | P2 | [ ] |
+| V-07 | JavaSerialize 查看器（只读） | `ViewerJavaSerialize.vue` | Rust `viewer/deserialize.rs` (自实现) → 前端展示 | P2 | [ ] |
+| V-08 | Pickle 查看器 | `ViewerPickle.vue` | Rust `viewer/deserialize.rs` (serde-pickle) → 前端展示 | P2 | [ ] |
+| V-09 | Gzip 解压查看器 | `ViewerGzip.vue` | Rust `viewer/decompress.rs` (flate2::GzDecoder) | P2 | [ ] |
+| V-10 | Brotli 解压查看器 | `ViewerBrotli.vue` | Rust `viewer/decompress.rs` (brotli crate) | P2 | [ ] |
+| V-11 | Deflate 解压查看器 | `ViewerDeflate.vue` | Rust `viewer/decompress.rs` (flate2) | P2 | [ ] |
+| V-12 | DeflateRaw 解压查看器 | `ViewerDeflateRaw.vue` | Rust `viewer/decompress.rs` (flate2) | P2 | [ ] |
+| V-13 | Protobuf 查看器（.proto 动态加载） | `ViewerProtobuf.vue` | Rust `viewer/protobuf.rs` (protobuf crate 动态解析) | P2 | [ ] |
+| V-14 | OverSize 大文件查看器（>20MB 截断） | `ViewerOverSize.vue` | 前端 `viewer-oversize.tsx`（分片加载） | P2 | [ ] |
+| V-15 | 自定义格式化器（模板变量 + Shell 执行） | `ViewerCustom.vue` + `CustomFormatter.vue` | 前端模板引擎 + Tauri Shell Plugin 执行 | P3 | [ ] |
+| V-16 | 自动格式检测 | `FormatViewer.vue::autoFormat` | Rust `viewer/format_detector.rs` → 返回格式类型 | P1 | [ ] |
 
 ### 2.5 工具功能
 
-| # | 功能 | 原文件 | 新实现位置 | 优先级 |
-|---|---|---|---|---|
-| T-01 | CLI 命令行（自动补全） | `CliTab.vue` + `CliContent.vue` | 前端 `cli-tab.tsx` + Rust 命令执行 | P0 |
-| T-02 | 命令历史记录 | `CliTab.vue::initHistoryTips` | Tauri Store 持久化 | P0 |
-| T-03 | MULTI/EXEC 事务支持 | `CliTab.vue::multiQueue` | Rust `redis-rs` pipeline | P1 |
-| T-04 | SUBSCRIBE/PSUBSCRIBE | `CliTab.vue::subscribeMode` | Rust `redis-rs` Pub/Sub + Tauri Events | P1 |
-| T-05 | MONITOR 实时监控 | `CliTab.vue::monitorMode` | Rust `redis-rs` monitor + Tauri Events | P1 |
-| T-06 | 命令日志 | `CommandLog.vue` | Rust 命令拦截 + Tauri Events → 前端展示 | P1 |
-| T-07 | 服务器状态（INFO 解析） | `Status.vue` | Rust `INFO` 命令 → 前端展示 | P0 |
-| T-08 | 自动刷新状态 | `Status.vue::autoRefresh` | 前端定时器 + Rust 查询 | P1 |
-| T-09 | DB Key 统计 | `Status.vue::initDbKeys` | Rust `INFO KEYSPACE` 解析 | P0 |
-| T-10 | Cluster 节点统计 | `Status.vue::initClusterKeys` | Rust 遍历 master 节点 | P1 |
-| T-11 | 慢查询日志 | `SlowLog.vue` | Rust `SLOWLOG GET` → 前端虚拟列表 | P1 |
-| T-12 | 内存分析 | `MemoryAnalysis.vue` | Rust `SCAN` + `MEMORY USAGE` → 前端虚拟列表 | P2 |
-| T-13 | 右键菜单 | `RightClickMenu.vue` | 前端自定义右键菜单 | P1 |
-| T-14 | 快捷键系统 | `shortcut.js` + `HotKeys.vue` | `@vueuse/core::useMagicKeys` | P1 |
-| T-15 | 多标签页管理 | `Tabs.vue` | 前端 `tabs-manager.tsx` | P0 |
-| T-16 | 更新检查 | `UpdateCheck.vue` | Tauri updater plugin | P2 |
-| T-17 | 回到顶部 | `ScrollToTop.vue` | 前端组件 | P2 |
+| # | 功能 | 原文件 | 新实现位置 | 优先级 | 状态 |
+|---|---|---|---|---|---|
+| T-01 | CLI 命令行（自动补全） | `CliTab.vue` + `CliContent.vue` | 前端 `cli-tab.tsx` + Rust `cli/service.rs` | P0 | [ ] |
+| T-02 | 命令历史记录 | `CliTab.vue::initHistoryTips` | Tauri Store 持久化 | P0 | [ ] |
+| T-03 | MULTI/EXEC 事务支持 | `CliTab.vue::multiQueue` | Rust `cli/service.rs` (redis-rs pipeline) | P1 | [ ] |
+| T-04 | SUBSCRIBE/PSUBSCRIBE | `CliTab.vue::subscribeMode` | Rust `cli/service.rs` Pub/Sub + Tauri Events | P1 | [ ] |
+| T-05 | MONITOR 实时监控 | `CliTab.vue::monitorMode` | Rust `tool/monitor_service.rs` + Tauri Events | P1 | [ ] |
+| T-06 | 命令日志（横切中间件） | `CommandLog.vue` + bus 事件 | Rust `shared/redis_client.rs` 拦截 + Tauri Events | P0 | [ ] |
+| T-07 | 服务器状态（INFO 解析） | `Status.vue` | Rust `tool/info_service.rs` → 前端展示 | P0 | [ ] |
+| T-08 | 自动刷新状态 | `Status.vue::autoRefresh` | 前端定时器 + Rust 查询 | P1 | [ ] |
+| T-09 | DB Key 统计 | `Status.vue::initDbKeys` | Rust `tool/info_service.rs` INFO KEYSPACE 解析 | P0 | [ ] |
+| T-10 | Cluster 节点统计 | `Status.vue::initClusterKeys` | Rust `tool/info_service.rs` 遍历 master 节点 | P1 | [ ] |
+| T-11 | 慢查询日志 | `SlowLog.vue` | Rust `tool/slowlog_service.rs` → 前端 VTable | P1 | [ ] |
+| T-12 | 内存分析 | `MemoryAnalysis.vue` | Rust `tool/memory_service.rs` SCAN + MEMORY USAGE | P2 | [ ] |
+| T-13 | 右键菜单 | `RightClickMenu.vue` | 前端自定义右键菜单组件 | P1 | [ ] |
+| T-14 | 快捷键系统 | `shortcut.js` + `HotKeys.vue` | `@vueuse/core::useMagicKeys` | P1 | [ ] |
+| T-15 | 多标签页管理（替换/追加/Ctrl+Click/右键菜单） | `Tabs.vue` | 前端 `components/tabs/` 全局组件 | P0 | [ ] |
+| T-16 | 更新检查 | `UpdateCheck.vue` | Tauri updater plugin | P2 | [ ] |
+| T-17 | 回到顶部 | `ScrollToTop.vue` | 前端组件 | P2 | [ ] |
+| T-18 | FLUSHDB 清空数据库（二次确认） | `ConnectionMenu.vue::flushDB` | Rust `tool/commands.rs::flush_db` | P1 | [ ] |
+| T-19 | 命令文件导入执行 | `ConnectionMenu.vue::importCommands` | Rust `cli/service.rs` + Tauri dialog | P2 | [ ] |
 
 ### 2.6 设置与个性化
 
-| # | 功能 | 原文件 | 新实现位置 | 优先级 |
-|---|---|---|---|---|
-| S-01 | 主题切换（Light/Dark/System） | `Setting.vue` + CSS 变量 | Element Plus 暗黑模式 + CSS 变量 | P0 |
-| S-02 | 语言切换（13 种语言） | `LanguageSelector.vue` + `i18n/` | vue-i18n 9.x | P0 |
-| S-03 | 页面缩放 | `Setting.vue::changeZoom` | Tauri window API | P1 |
-| S-04 | 字体选择 | `Setting.vue::getAllFonts` | Tauri 系统字体 API | P2 |
-| S-05 | 每页加载数量 | `Setting.vue::keysPageSize` | Tauri Store | P1 |
-| S-06 | 侧边栏宽度拖拽 | `App.vue::bindSideBarDrag` | 前端拖拽实现 | P1 |
-| S-07 | 清除缓存 | `Setting.vue::clearCache` | Tauri Store 清理 | P2 |
-| S-08 | 分隔符自定义 | `NewConnectionDialog.vue` | 连接配置存储 | P1 |
+| # | 功能 | 原文件 | 新实现位置 | 优先级 | 状态 |
+|---|---|---|---|---|---|
+| S-01 | 主题切换（Light/Dark/System） | `Setting.vue` + CSS 变量 | Element Plus 暗黑模式 + CSS 变量 + VTable 主题 | P0 | [ ] |
+| S-02 | 语言切换（13 种语言） | `LanguageSelector.vue` + `i18n/` | vue-i18n 9.x | P0 | [ ] |
+| S-03 | 页面缩放 | `Setting.vue::changeZoom` | Tauri window API | P1 | [ ] |
+| S-04 | 字体选择 | `Setting.vue::getAllFonts` | Rust 系统字体 API | P2 | [ ] |
+| S-05 | 每页加载数量 | `Setting.vue::keysPageSize` | Tauri Store | P1 | [ ] |
+| S-06 | 侧边栏宽度拖拽 | `App.vue::bindSideBarDrag` | 前端拖拽实现 | P1 | [ ] |
+| S-07 | 清除缓存 | `Setting.vue::clearCache` | Tauri Store 清理 | P2 | [ ] |
+| S-08 | 分隔符自定义 | `NewConnectionDialog.vue` | 连接配置存储 | P1 | [ ] |
+| S-09 | 连接状态持久化（侧边栏宽度/最后 DB） | `storage.js` | Tauri Store | P2 | [ ] |
 
 ---
 
 ## 三、分阶段迁移计划
 
-### Phase 0：基础架构搭建（2 周）
-
-**目标**：建立 Rust 后端服务框架 + 前端项目结构调整
-
-| 任务 | 预计工时 | 负责人 | 依赖 | 状态 |
-|---|---|---|---|---|
-| 0-1 Rust 项目结构设计（模块划分） | 4h | 后端 | 无 | [ ] |
-| 0-2 定义 Tauri Command 接口（前后端协议） | 8h | 全栈 | 0-1 | [ ] |
-| 0-3 Rust 错误处理框架（thiserror + anyhow） | 4h | 后端 | 0-1 | [ ] |
-| 0-4 Tauri Store 存储服务（连接配置管理） | 8h | 后端 | 0-2 | [ ] |
-| 0-5 前端路由系统（Vue Router + 多页面） | 8h | 前端 | 无 | [ ] |
-| 0-6 前端布局框架（三栏布局 + 侧边栏） | 8h | 前端 | 0-5 | [ ] |
-| 0-7 Element Plus 暗黑主题集成 | 4h | 前端 | 0-6 | [ ] |
-| 0-8 vue-i18n 9.x 国际化框架搭建 | 8h | 前端 | 0-5 | [ ] |
-
-**里程碑**：✅ 空壳应用可运行，三栏布局正常，暗黑模式切换正常
+> **进度跟踪说明**：
+> - 每个任务有唯一编号（如 `0-1`），对应 Phase + 序号
+> - 状态列：`[ ]` 未开始 | `[-]` 进行中 | `[x]` 已完成 | `[~]` 已跳过
+> - 完成日期：任务完成后填写实际完成日期
+> - 验收标准：每个 Phase 有明确的里程碑验收标准
 
 ---
 
-### Phase 1：核心连接 + Key 浏览（3 周）
+### Phase 0：基础架构搭建（2.5 周）
 
-**目标**：实现 Standalone Redis 连接 + Key 列表/树 + Key 详情
+**目标**：建立 Tauri Plugin 化后端框架 + 前端模块化结构 + 基础 UI 框架
 
-| 任务 | 预计工时 | 负责人 | 依赖 | 状态 |
-|---|---|---|---|---|
-| 1-1 Rust redis-rs 连接池管理 | 16h | 后端 | Phase 0 | [ ] |
-| 1-2 Rust SCAN 命令流式输出（Tauri Events） | 12h | 后端 | 1-1 | [ ] |
-| 1-3 Rust Key 操作命令（TYPE/TTL/DEL/RENAME） | 8h | 后端 | 1-1 | [ ] |
-| 1-4 前端连接管理（新建/编辑/删除/列表） | 16h | 前端 | 0-4 | [ ] |
-| 1-5 前端连接表单（Host/Port/Auth/Username） | 12h | 前端 | 1-4 | [ ] |
-| 1-6 前端 Key 列表组件（SCAN 分页加载） | 16h | 前端 | 1-2 | [ ] |
-| 1-7 前端 Key 树形视图（VTable ListTable tree mode） | 12h | 前端 | 1-6 | [ ] |
-| 1-8 前端 Key 搜索（模糊/精确匹配） | 8h | 前端 | 1-6 | [ ] |
-| 1-9 前端 Key 详情页（Header + TTL + 操作） | 12h | 前端 | 1-3 | [ ] |
-| 1-10 前端 DB 选择器 | 4h | 前端 | 1-1 | [ ] |
-| 1-11 集成测试：Standalone 连接全流程 | 8h | 全栈 | 1-5~1-10 | [ ] |
+| 编号 | 任务 | 预计工时 | 负责人 | 依赖 | 状态 | 完成日期 |
+|---|---|---|---|---|---|---|
+| 0-1 | Rust 域驱动模块结构搭建（`modules/redis-desktop/` + `modules/telepresence/` + `modules/storage/` + `shared/`） | 4h | 后端 | 无 | [ ] | |
+| 0-2 | Tauri Plugin 注册机制搭建（`modules/redis-desktop/mod.rs::plugin()` + `lib.rs` 注册） | 4h | 后端 | 0-1 | [ ] | |
+| 0-3 | `ConnectionManager<C>` trait 定义（`shared/connection.rs`） | 4h | 后端 | 0-1 | [ ] | |
+| 0-4 | 全局错误处理框架（`shared/error.rs` + `shared/result.rs`，thiserror + anyhow） | 4h | 后端 | 0-1 | [ ] | |
+| 0-5 | 事件命名空间工具（`shared/event.rs` + `redis_event!` 宏） | 2h | 后端 | 0-1 | [ ] | |
+| 0-6 | Tauri Store 存储服务（`modules/storage/` Plugin） | 8h | 后端 | 0-2, 0-4 | [ ] | |
+| 0-7 | 定义 Tauri Command 接口（前后端 IPC 协议骨架） | 8h | 全栈 | 0-2, 0-5 | [ ] | |
+| 0-8 | 前端模块自包含结构搭建（`modules/redis-desktop-manager/` + services/types/composables 骨架） | 4h | 前端 | 无 | [ ] | |
+| 0-9 | 前端跨模块通信总线（`modules/_shared/use-module-bus.ts`） | 4h | 前端 | 0-8 | [ ] | |
+| 0-10 | 前端路由系统（Vue Router + 多页面：主窗口 / Redis 独立窗口 / 设置 / 关于） | 8h | 前端 | 0-8 | [ ] | |
+| 0-11 | 前端布局框架（三栏布局 + 侧边栏 + 分类面板） | 8h | 前端 | 0-10 | [ ] | |
+| 0-12 | Element Plus 暗黑主题集成 | 4h | 前端 | 0-11 | [ ] | |
+| 0-13 | vue-i18n 9.x 国际化框架搭建（中英文） | 8h | 前端 | 0-10 | [ ] | |
 
-**里程碑**：✅ 可连接 Standalone Redis，浏览 Key 列表/树，查看 Key 详情
+**里程碑 M0**：✅ 空壳应用可运行，三栏布局正常，暗黑模式切换正常，Plugin 注册机制就绪
+
+**总工时**：70h
+
+---
+
+### Phase 1：核心连接 + Key 浏览 + 多标签页（3.5 周）
+
+**目标**：实现 Standalone Redis 连接 + Key 列表/树 + Key 详情 + 多标签页管理 + 命令日志基础
+
+| 编号 | 任务 | 预计工时 | 负责人 | 依赖 | 状态 | 完成日期 |
+|---|---|---|---|---|---|---|
+| 1-1 | Rust `RedisConnectionManager` 实现（`ConnectionManager<ConnectionConfig>` trait） | 16h | 后端 | Phase 0 | [ ] | |
+| 1-2 | Rust SCAN 命令流式输出（`key/service.rs` + Tauri Events `redis:key:scan:progress`） | 12h | 后端 | 1-1 | [ ] | |
+| 1-3 | Rust Key 操作命令（TYPE/TTL/DEL/RENAME/PERSIST） | 8h | 后端 | 1-1 | [ ] | |
+| 1-4 | Rust 命令日志中间件（`shared/redis_client.rs` 拦截 + Tauri Events `redis:tool:command-log`） | 8h | 后端 | 1-1 | [ ] | |
+| 1-5 | 前端连接管理 UI（新建/编辑/删除/列表/拖拽排序） | 16h | 前端 | 0-6, 0-7 | [ ] | |
+| 1-6 | 前端连接表单（Host/Port/Auth/Username/DB） | 12h | 前端 | 1-5 | [ ] | |
+| 1-7 | 前端 Key 列表组件（VTable ListTable + SCAN 分页加载 + 暂停/恢复） | 16h | 前端 | 1-2 | [ ] | |
+| 1-8 | 前端 Key 树形视图（VTable ListTable tree mode + 200K 溢出保护） | 12h | 前端 | 1-7 | [ ] | |
+| 1-9 | 前端 Key 搜索（模糊/精确匹配） | 8h | 前端 | 1-7 | [ ] | |
+| 1-10 | 前端 Key 详情页（Header + TTL + 操作栏） | 12h | 前端 | 1-3 | [ ] | |
+| 1-11 | 前端 DB 选择器 | 4h | 前端 | 1-1 | [ ] | |
+| 1-12 | 前端多标签页管理（替换/追加策略 + Ctrl+Click + 右键菜单） | 16h | 前端 | 0-11 | [ ] | |
+| 1-13 | 前端命令日志面板（监听 `redis:tool:command-log` 事件） | 8h | 前端 | 1-4 | [ ] | |
+| 1-14 | 集成测试：Standalone 连接全流程 | 8h | 全栈 | 1-5~1-13 | [ ] | |
+
+**里程碑 M1**：✅ 可连接 Standalone Redis，浏览 Key 列表/树，查看 Key 详情，多标签页管理可用，命令日志记录正常
+
+**总工时**：148h
 
 ---
 
 ### Phase 2：数据类型编辑器（3 周）
 
-**目标**：实现 7 种 Redis 数据类型的查看和编辑
+**目标**：实现 7 种 Redis 数据类型的查看和编辑 + 基础数据查看器
 
-| 任务 | 预计工时 | 负责人 | 依赖 | 状态 |
-|---|---|---|---|---|
-| 2-1 Rust Hash 操作命令（HSET/HDEL/HSCAN/HLEN） | 8h | 后端 | 1-1 | [ ] |
-| 2-2 Rust List 操作命令（LRANGE/LSET/LPUSH/RPUSH） | 8h | 后端 | 1-1 | [ ] |
-| 2-3 Rust Set 操作命令（SSCAN/SREM/SADD） | 8h | 后端 | 1-1 | [ ] |
-| 2-4 Rust ZSet 操作命令（ZRANGE/ZSCAN/ZADD/ZREM） | 8h | 后端 | 1-1 | [ ] |
-| 2-5 Rust Stream 操作命令（XRANGE/XADD/XDEL/XLEN） | 8h | 后端 | 1-1 | [ ] |
-| 2-6 Rust String 操作命令（GET/SET） | 4h | 后端 | 1-1 | [ ] |
-| 2-7 前端 String 编辑器 | 8h | 前端 | 2-6 | [ ] |
-| 2-8 前端 Hash 编辑器（VTable ListTable + customRender） | 12h | 前端 | 2-1 | [ ] |
-| 2-9 前端 List 编辑器（VTable ListTable + customRender） | 8h | 前端 | 2-2 | [ ] |
-| 2-10 前端 Set 编辑器（VTable ListTable + customRender） | 8h | 前端 | 2-3 | [ ] |
-| 2-11 前端 ZSet 编辑器（VTable ListTable + 排序切换） | 8h | 前端 | 2-4 | [ ] |
-| 2-12 前端 Stream 编辑器（VTable ListTable + customRender） | 12h | 前端 | 2-5 | [ ] |
-| 2-13 前端 FormatViewer（自动格式检测） | 12h | 前端 | 2-7~2-12 | [ ] |
-| 2-14 前端 Text/Hex/JSON 查看器 | 12h | 前端 | 2-13 | [ ] |
-| 2-15 集成测试：所有数据类型 CRUD | 8h | 全栈 | 2-7~2-14 | [ ] |
+| 编号 | 任务 | 预计工时 | 负责人 | 依赖 | 状态 | 完成日期 |
+|---|---|---|---|---|---|---|
+| 2-1 | Rust Hash 操作命令（HSET/HDEL/HSCAN/HLEN） | 8h | 后端 | 1-1 | [ ] | |
+| 2-2 | Rust List 操作命令（LRANGE/LSET/LPUSH/RPUSH） | 8h | 后端 | 1-1 | [ ] | |
+| 2-3 | Rust Set 操作命令（SSCAN/SREM/SADD） | 8h | 后端 | 1-1 | [ ] | |
+| 2-4 | Rust ZSet 操作命令（ZRANGE/ZSCAN/ZADD/ZREM） | 8h | 后端 | 1-1 | [ ] | |
+| 2-5 | Rust Stream 操作命令（XRANGE/XADD/XDEL/XLEN） | 8h | 后端 | 1-1 | [ ] | |
+| 2-6 | Rust String 操作命令（GET/SET） | 4h | 后端 | 1-1 | [ ] | |
+| 2-7 | 前端 FormatViewer（自动格式检测 + V-16 格式检测 Rust API） | 12h | 前端 | 2-6 | [ ] | |
+| 2-8 | 前端 Text/Hex/JSON 查看器 | 12h | 前端 | 2-7 | [ ] | |
+| 2-9 | 前端 String 编辑器 | 8h | 前端 | 2-6, 2-7 | [ ] | |
+| 2-10 | 前端 Hash 编辑器（VTable ListTable + customRender + 行内编辑） | 12h | 前端 | 2-1, 2-7 | [ ] | |
+| 2-11 | 前端 List 编辑器（VTable ListTable + customRender） | 8h | 前端 | 2-2, 2-7 | [ ] | |
+| 2-12 | 前端 Set 编辑器（VTable ListTable + customRender） | 8h | 前端 | 2-3, 2-7 | [ ] | |
+| 2-13 | 前端 ZSet 编辑器（VTable ListTable + 排序切换） | 8h | 前端 | 2-4, 2-7 | [ ] | |
+| 2-14 | 前端 Stream 编辑器（VTable ListTable + 消费者组信息） | 12h | 前端 | 2-5, 2-7 | [ ] | |
+| 2-15 | 集成测试：所有数据类型 CRUD | 8h | 全栈 | 2-9~2-14 | [ ] | |
 
-**里程碑**：✅ 可查看和编辑 String/Hash/List/Set/ZSet/Stream 类型数据
+**里程碑 M2**：✅ 可查看和编辑 String/Hash/List/Set/ZSet/Stream 类型数据，基础查看器（Text/Hex/JSON）可用
+
+**总工时**：124h
 
 ---
 
-### Phase 3：高级连接模式（2 周）
+### Phase 3：高级连接模式（3 周）
 
 **目标**：实现 Cluster、Sentinel、SSH 隧道、SSL/TLS 连接
 
-| 任务 | 预计工时 | 负责人 | 依赖 | 状态 |
-|---|---|---|---|---|
-| 3-1 Rust Cluster 连接（redis-rs cluster 模式） | 16h | 后端 | 1-1 | [ ] |
-| 3-2 Rust Cluster NAT 映射处理 | 8h | 后端 | 3-1 | [ ] |
-| 3-3 Rust Sentinel 连接 | 12h | 后端 | 1-1 | [ ] |
-| 3-4 Rust SSH 隧道（ssh2 crate） | 16h | 后端 | 0-1 | [ ] |
-| 3-5 Rust SSH + Standalone 组合 | 8h | 后端 | 3-4 | [ ] |
-| 3-6 Rust SSH + Cluster 组合（多隧道） | 12h | 后端 | 3-1, 3-4 | [ ] |
-| 3-7 Rust SSH + Sentinel 组合 | 8h | 后端 | 3-3, 3-4 | [ ] |
-| 3-8 Rust SSL/TLS 连接（native-tls） | 8h | 后端 | 1-1 | [ ] |
-| 3-9 前端连接表单扩展（SSH/SSL/Sentinel/Cluster） | 16h | 前端 | 1-5 | [ ] |
-| 3-10 前端文件选择器（SSH Key/SSL 证书） | 8h | 前端 | 3-9 | [ ] |
-| 3-11 集成测试：所有连接模式 | 16h | 全栈 | 3-1~3-10 | [ ] |
+> ⚠️ **POC 前置要求**：Phase 3 开始前需完成 redis-rs Cluster/Sentinel 和 ssh2 隧道的 POC 验证
 
-**里程碑**：✅ 支持 Standalone/Cluster/Sentinel/SSH/SSL 全部连接模式
+| 编号 | 任务 | 预计工时 | 负责人 | 依赖 | 状态 | 完成日期 |
+|---|---|---|---|---|---|---|
+| 3-0 | POC：redis-rs Cluster 连接验证 + NAT 映射可行性 | 8h | 后端 | 1-1 | [ ] | |
+| 3-1 | Rust Cluster 连接（redis-rs cluster 模式） | 16h | 后端 | 3-0 | [ ] | |
+| 3-2 | Rust Cluster NAT 映射处理 | 8h | 后端 | 3-1 | [ ] | |
+| 3-3 | Rust Sentinel 连接 | 12h | 后端 | 1-1 | [ ] | |
+| 3-4 | POC：ssh2 crate SSH 隧道验证 | 4h | 后端 | 0-3 | [ ] | |
+| 3-5 | Rust SSH 隧道（`tunnel/service.rs`，ssh2 crate + tokio） | 16h | 后端 | 3-4 | [ ] | |
+| 3-6 | Rust SSH + Standalone 组合 | 8h | 后端 | 3-5 | [ ] | |
+| 3-7 | Rust SSH + Cluster 组合（多隧道并发管理） | 12h | 后端 | 3-1, 3-5 | [ ] | |
+| 3-8 | Rust SSH + Sentinel 组合 | 8h | 后端 | 3-3, 3-5 | [ ] | |
+| 3-9 | Rust SSL/TLS 连接（native-tls 或 rustls） | 8h | 后端 | 1-1 | [ ] | |
+| 3-10 | 前端连接表单扩展（SSH/SSL/Sentinel/Cluster 配置） | 16h | 前端 | 1-6 | [ ] | |
+| 3-11 | 前端文件选择器（SSH Key/SSL 证书，Tauri dialog plugin） | 8h | 前端 | 3-10 | [ ] | |
+| 3-12 | 集成测试：所有连接模式 | 16h | 全栈 | 3-1~3-11 | [ ] | |
+
+**里程碑 M3**：✅ 支持 Standalone/Cluster/Sentinel/SSH/SSL 全部连接模式
+
+**总工时**：120h
 
 ---
 
 ### Phase 4：工具与高级功能（2 周）
 
-**目标**：实现 CLI、命令日志、状态监控、慢日志等工具
+**目标**：实现 CLI、状态监控、慢日志、批量操作等工具功能
 
-| 任务 | 预计工时 | 负责人 | 依赖 | 状态 |
-|---|---|---|---|---|
-| 4-1 Rust 命令执行引擎（任意 Redis 命令） | 12h | 后端 | 1-1 | [ ] |
-| 4-2 Rust 命令日志拦截（Tauri Events） | 8h | 后端 | 4-1 | [ ] |
-| 4-3 Rust Pub/Sub 支持（Tauri Events 流式推送） | 8h | 后端 | 1-1 | [ ] |
-| 4-4 Rust MONITOR 支持（Tauri Events 流式推送） | 8h | 后端 | 1-1 | [ ] |
-| 4-5 Rust INFO 命令解析 | 4h | 后端 | 1-1 | [ ] |
-| 4-6 Rust SLOWLOG 命令 | 4h | 后端 | 1-1 | [ ] |
-| 4-7 Rust MEMORY USAGE 批量分析 | 8h | 后端 | 1-1 | [ ] |
-| 4-8 前端 CLI 组件（命令输入 + 自动补全） | 16h | 前端 | 4-1 | [ ] |
-| 4-9 前端命令日志面板 | 8h | 前端 | 4-2 | [ ] |
-| 4-10 前端状态监控面板 | 12h | 前端 | 4-5 | [ ] |
-| 4-11 前端慢日志面板（VTable ListTable） | 6h | 前端 | 4-6 | [ ] |
-| 4-12 前端内存分析面板（VTable ListTable） | 8h | 前端 | 4-7 | [ ] |
-| 4-13 前端多标签页管理 | 16h | 前端 | Phase 2 | [ ] |
-| 4-14 前端快捷键系统 | 8h | 前端 | 4-13 | [ ] |
-| 4-15 前端批量删除 | 8h | 前端 | 4-1 | [ ] |
+| 编号 | 任务 | 预计工时 | 负责人 | 依赖 | 状态 | 完成日期 |
+|---|---|---|---|---|---|---|
+| 4-1 | Rust 命令执行引擎（`cli/service.rs`，任意 Redis 命令解析 + 执行） | 12h | 后端 | 1-1 | [ ] | |
+| 4-2 | Rust 命令参数解析器（`cli/parser.rs`） | 4h | 后端 | 4-1 | [ ] | |
+| 4-3 | Rust 命令自动补全（`cli/autocomplete.rs`） | 4h | 后端 | 4-1 | [ ] | |
+| 4-4 | Rust Pub/Sub 支持（`cli/service.rs` + Tauri Events `redis:cli:subscribe`） | 8h | 后端 | 1-1 | [ ] | |
+| 4-5 | Rust MONITOR 支持（`tool/monitor_service.rs` + Tauri Events `redis:cli:monitor`） | 8h | 后端 | 1-1 | [ ] | |
+| 4-6 | Rust INFO 命令解析（`tool/info_service.rs`） | 4h | 后端 | 1-1 | [ ] | |
+| 4-7 | Rust SLOWLOG 命令（`tool/slowlog_service.rs`） | 4h | 后端 | 1-1 | [ ] | |
+| 4-8 | Rust MEMORY USAGE 批量分析（`tool/memory_service.rs` + Tauri Events 进度推送） | 8h | 后端 | 1-1 | [ ] | |
+| 4-9 | Rust FLUSHDB 命令（`tool/commands.rs::flush_db`，二次确认由前端处理） | 2h | 后端 | 1-1 | [ ] | |
+| 4-10 | 前端 CLI 组件（命令输入 + 自动补全 + Monaco Editor 输出） | 16h | 前端 | 4-1, 4-2, 4-3 | [ ] | |
+| 4-11 | 前端状态监控面板（INFO 解析展示 + DB 统计 + 自动刷新） | 12h | 前端 | 4-6 | [ ] | |
+| 4-12 | 前端慢日志面板（VTable ListTable） | 6h | 前端 | 4-7 | [ ] | |
+| 4-13 | 前端内存分析面板（VTable ListTable + 进度条） | 8h | 前端 | 4-8 | [ ] | |
+| 4-14 | 前端批量删除面板（VTable ListTable） | 8h | 前端 | 1-3 | [ ] | |
+| 4-15 | 前端快捷键系统（useMagicKeys + scope 管理） | 8h | 前端 | 1-12 | [ ] | |
+| 4-16 | 前端右键菜单组件 | 4h | 前端 | 0-11 | [ ] | |
+| 4-17 | 前端 Key 导入（RESTORE + Tauri dialog 文件选择） | 8h | 前端 | 4-1 | [ ] | |
 
-**里程碑**：✅ CLI 可用，命令日志/状态/慢日志/内存分析全部可用
+**里程碑 M4**：✅ CLI 可用，命令日志/状态/慢日志/内存分析/批量删除全部可用
+
+**总工时**：124h
 
 ---
 
@@ -358,24 +386,28 @@
 
 **目标**：实现全部数据查看器、主题/语言/设置
 
-| 任务 | 预计工时 | 负责人 | 依赖 | 状态 |
-|---|---|---|---|---|
-| 5-1 Rust 解压引擎（gzip/deflate/brotli） | 8h | 后端 | 0-1 | [ ] |
-| 5-2 Rust 序列化解析（MsgPack/Pickle/PHPSerialize） | 16h | 后端 | 0-1 | [ ] |
-| 5-3 Rust Protobuf 解析（prost） | 8h | 后端 | 0-1 | [ ] |
-| 5-4 Rust Java 序列化解析 | 12h | 后端 | 0-1 | [ ] |
-| 5-5 前端解压查看器（Gzip/Brotli/Deflate） | 8h | 前端 | 5-1 | [ ] |
-| 5-6 前端序列化查看器（MsgPack/Pickle/PHP/Java） | 12h | 前端 | 5-2~5-4 | [ ] |
-| 5-7 前端 Protobuf 查看器（.proto 文件加载） | 12h | 前端 | 5-3 | [ ] |
-| 5-8 前端 Binary 查看器 | 4h | 前端 | 无 | [ ] |
-| 5-9 前端 OverSize 查看器 | 4h | 前端 | 无 | [ ] |
-| 5-10 前端自定义格式化器 | 8h | 前端 | 无 | [ ] |
-| 5-11 前端设置页面（主题/语言/缩放/字体） | 12h | 前端 | Phase 0 | [ ] |
-| 5-12 前端连接导入/导出 | 8h | 前端 | 5-11 | [ ] |
-| 5-13 前端 ReJSON 编辑器 | 8h | 前端 | 2-7 | [ ] |
-| 5-14 前端侧边栏拖拽调整宽度 | 4h | 前端 | 0-6 | [ ] |
+| 编号 | 任务 | 预计工时 | 负责人 | 依赖 | 状态 | 完成日期 |
+|---|---|---|---|---|---|---|
+| 5-1 | Rust 解压引擎（`viewer/decompress.rs`，gzip/deflate/brotli/deflate-raw） | 8h | 后端 | 0-4 | [ ] | |
+| 5-2 | Rust 序列化解析（`viewer/deserialize.rs`，MsgPack/Pickle/PHPSerialize） | 16h | 后端 | 0-4 | [ ] | |
+| 5-3 | Rust Java 序列化解析（`viewer/deserialize.rs`，只读基础类型） | 12h | 后端 | 0-4 | [ ] | |
+| 5-4 | Rust Protobuf 动态解析（`viewer/protobuf.rs`，protobuf crate 运行时加载 .proto） | 8h | 后端 | 0-4 | [ ] | |
+| 5-5 | 前端解压查看器（Gzip/Brotli/Deflate/DeflateRaw） | 8h | 前端 | 5-1 | [ ] | |
+| 5-6 | 前端序列化查看器（MsgPack/Pickle/PHP/Java） | 12h | 前端 | 5-2, 5-3 | [ ] | |
+| 5-7 | 前端 Protobuf 查看器（.proto 文件选择 + 动态解析） | 12h | 前端 | 5-4 | [ ] | |
+| 5-8 | 前端 Binary 查看器 | 4h | 前端 | 无 | [ ] | |
+| 5-9 | 前端 OverSize 查看器（>20MB 截断 + 分片加载） | 4h | 前端 | 无 | [ ] | |
+| 5-10 | 前端自定义格式化器（模板变量 + Tauri Shell Plugin 执行） | 8h | 前端 | 无 | [ ] | |
+| 5-11 | 前端设置页面（主题/语言/缩放/字体/每页数量/分隔符） | 12h | 前端 | Phase 0 | [ ] | |
+| 5-12 | 前端连接导入/导出 + 密码加密 | 8h | 前端 | 5-11 | [ ] | |
+| 5-13 | 前端 ReJSON 编辑器（monaco-editor-vue3） | 8h | 前端 | 2-9 | [ ] | |
+| 5-14 | 前端侧边栏拖拽调整宽度 | 4h | 前端 | 0-11 | [ ] | |
+| 5-15 | 前端连接颜色标记 | 4h | 前端 | 1-5 | [ ] | |
+| 5-16 | 前端连接复制功能 | 2h | 前端 | 1-5 | [ ] | |
 
-**里程碑**：✅ 全部 15 种数据查看器可用，设置功能完整
+**里程碑 M5**：✅ 全部 15 种数据查看器可用，设置功能完整，连接管理功能完善
+
+**总工时**：130h
 
 ---
 
@@ -383,156 +415,98 @@
 
 **目标**：性能优化、测试覆盖、打包发布
 
-| 任务 | 预计工时 | 负责人 | 依赖 | 状态 |
-|---|---|---|---|---|
-| 6-1 Rust 连接池优化 | 8h | 后端 | Phase 3 | [ ] |
-| 6-2 Rust 大 Key 流式读取优化 | 8h | 后端 | Phase 2 | [ ] |
-| 6-3 前端 VTable 大数据量渲染优化 | 4h | 前端 | Phase 2 | [ ] |
-| 6-4 前端 VTable 主题与 Element Plus 暗黑模式统一 | 4h | 前端 | Phase 4 | [ ] |
-| 6-5 全功能回归测试 | 16h | 全栈 | Phase 5 | [ ] |
-| 6-6 Windows/macOS/Linux 打包配置 | 8h | 全栈 | 6-5 | [ ] |
-| 6-7 自动更新（Tauri updater） | 8h | 全栈 | 6-6 | [ ] |
-| 6-8 CLI 参数启动支持 | 4h | 后端 | 6-6 | [ ] |
-| 6-9 文档编写 | 8h | 全栈 | 6-5 | [ ] |
+| 编号 | 任务 | 预计工时 | 负责人 | 依赖 | 状态 | 完成日期 |
+|---|---|---|---|---|---|---|
+| 6-1 | Rust 连接池优化（连接复用 + 超时控制） | 8h | 后端 | Phase 3 | [ ] | |
+| 6-2 | Rust 大 Key 流式读取优化（分片传输） | 8h | 后端 | Phase 2 | [ ] | |
+| 6-3 | 前端 VTable 大数据量渲染优化 | 4h | 前端 | Phase 2 | [ ] | |
+| 6-4 | 前端 VTable 主题与 Element Plus 暗黑模式统一 | 4h | 前端 | Phase 4 | [ ] | |
+| 6-5 | 前端只读模式 UI 集成（命令拦截提示） | 4h | 前端 | C-13 | [ ] | |
+| 6-6 | 全功能回归测试 | 16h | 全栈 | Phase 5 | [ ] | |
+| 6-7 | Windows/macOS/Linux 打包配置 | 8h | 全栈 | 6-6 | [ ] | |
+| 6-8 | 自动更新（Tauri updater plugin） | 8h | 全栈 | 6-7 | [ ] | |
+| 6-9 | CLI 参数启动支持 | 4h | 后端 | 6-7 | [ ] | |
+| 6-10 | 文档编写（用户手册 + 开发文档） | 8h | 全栈 | 6-6 | [ ] | |
 
-**里程碑**：✅ 产品可发布
+**里程碑 M6**：✅ 产品可发布
+
+**总工时**：72h
 
 ---
 
-## 四、Rust 后端模块设计
+## 四、后端模块架构
+
+> 详细架构设计见 [`redis-desktop-module-architecture.md`](redis-desktop-module-architecture.md)，此处仅列出目录结构概览。
 
 ```
 src-tauri/src/
-├── main.rs                    # 入口
-├── lib.rs                     # Tauri 命令注册
-├── commands/
-│   ├── mod.rs
-│   ├── connection.rs          # 连接管理命令
-│   ├── key.rs                 # Key 操作命令
-│   ├── data.rs                # 数据类型操作命令
-│   ├── cli.rs                 # CLI 命令执行
-│   ├── tool.rs                # 工具命令（INFO/SLOWLOG/MEMORY）
-│   └── viewer.rs              # 数据查看器命令（解压/反序列化）
-├── services/
-│   ├── mod.rs
-│   ├── redis_service.rs       # Redis 连接/命令封装
-│   ├── ssh_service.rs         # SSH 隧道管理
-│   ├── storage_service.rs     # 连接配置持久化
-│   └── viewer_service.rs      # 数据格式解析
-├── models/
-│   ├── mod.rs
-│   ├── connection.rs          # 连接配置模型
-│   ├── redis_key.rs           # Key 数据模型
-│   └── command.rs             # 命令日志模型
-└── errors.rs                  # 统一错误处理
+├── main.rs                          # 应用入口
+├── lib.rs                           # Tauri Plugin 注册中心
+│
+├── modules/                         # ====== 业务模块（Tauri Plugin 化）======
+│   ├── redis-desktop/               # 🔴 Redis Desktop Manager 模块域
+│   │   ├── mod.rs                   # Plugin 注册入口
+│   │   ├── connection/              # 连接管理（commands + service + manager + models）
+│   │   ├── key/                     # Key 操作
+│   │   ├── data/                    # 数据类型操作（hash/list/set/zset/stream/string）
+│   │   ├── cli/                     # CLI 命令执行（parser + autocomplete）
+│   │   ├── tool/                    # 工具服务（info/slowlog/memory/monitor）
+│   │   ├── viewer/                  # 数据查看器（format_detector + decompress + deserialize + protobuf）
+│   │   ├── tunnel/                  # SSH 隧道
+│   │   └── shared/                  # Redis 模块域私有（redis_client + error + event）
+│   ├── telepresence/                # 🔵 Telepresence 模块域
+│   ├── storage/                     # 🟢 全局存储模块
+│   └── ...（未来模块）
+│
+├── shared/                          # ====== 全局共享基础设施 ======
+│   ├── connection.rs                # ConnectionManager<C> trait
+│   ├── error.rs                     # 全局错误处理
+│   ├── result.rs                    # 全局 Result 类型
+│   ├── event.rs                     # 事件命名空间工具
+│   └── constants.rs                 # 全局常量
+│
+└── test/                            # ====== 集成测试 ======
+    ├── redis-desktop/
+    └── telepresence/
 ```
 
 ---
 
-## 五、前端组件架构
+## 五、前端模块架构
 
-> **模块化架构**：Redis Desktop Manager 的所有组件位于 `src/modules/redis-desktop-manager/` 下，`modules/` 目录可放置多个独立工具模块。
+> 详细架构设计见 [`redis-desktop-module-architecture.md`](redis-desktop-module-architecture.md) 第二章。
 
 ```
 src/
-├── main.ts                    # 入口（多页面路由）
-├── app.tsx                    # 主应用
-├── assets/styles/
-│   └── index.css              # 全局样式
+├── main.ts                          # 应用入口
+├── app.tsx                          # 主应用壳
 │
-├── modules/                   # ====== 功能模块目录 ======
-│   └── redis-desktop-manager/ # Redis Desktop Manager 模块
-│       ├── index.ts           # 模块入口
-│       ├── types/             # 模块类型定义
-│       │   ├── connection.ts
-│       │   ├── redis-key.ts
-│       │   ├── redis-data.ts
-│       │   └── ipc.ts
-│       ├── services/          # 模块 IPC 服务层
-│       │   ├── connection-service.ts
-│       │   ├── key-service.ts
-│       │   ├── data-service.ts
-│       │   ├── cli-service.ts
-│       │   ├── tool-service.ts
-│       │   ├── viewer-service.ts
-│       │   └── event-service.ts
-│       ├── composables/       # 模块组合式函数
-│       │   ├── use-connection.ts
-│       │   ├── use-key-scanner.ts
-│       │   ├── use-data-editor.ts
-│       │   ├── use-vtable.ts
-│       │   └── index.ts
-│       └── components/        # 模块 UI 组件
-│           ├── connection/
-│           │   ├── connection-list.tsx
-│           │   ├── connection-dialog.tsx
-│           │   └── connection-form/
-│           │       ├── basic-form.tsx
-│           │       ├── ssh-form.tsx
-│           │       ├── ssl-form.tsx
-│           │       └── sentinel-form.tsx
-│           ├── key/
-│           │   ├── key-panel.tsx
-│           │   ├── key-list.tsx      # VTable ListTable
-│           │   ├── key-tree.tsx      # VTable ListTable tree mode
-│           │   ├── key-detail.tsx
-│           │   ├── key-header.tsx
-│           │   └── key-search.tsx
-│           ├── content/
-│           │   ├── content-router.tsx
-│           │   ├── content-string.tsx
-│           │   ├── content-hash.tsx   # VTable ListTable + customRender
-│           │   ├── content-list.tsx   # VTable ListTable + customRender
-│           │   ├── content-set.tsx    # VTable ListTable + customRender
-│           │   ├── content-zset.tsx   # VTable ListTable + 排序切换
-│           │   ├── content-stream.tsx # VTable ListTable + customRender
-│           │   └── content-rejson.tsx
-│           ├── viewer/
-│           │   ├── format-viewer.tsx
-│           │   ├── viewer-text.tsx
-│           │   ├── viewer-hex.tsx
-│           │   ├── viewer-json.tsx    # monaco-editor-vue3
-│           │   └── ...                # 其他查看器
-│           ├── tool/
-│           │   ├── cli-tab.tsx
-│           │   ├── command-log.tsx
-│           │   ├── status-panel.tsx
-│           │   ├── slow-log.tsx       # VTable ListTable
-│           │   ├── memory-analysis.tsx # VTable ListTable
-│           │   └── delete-batch.tsx
-│           └── common/
-│               ├── vtable-wrapper.tsx  # VTable 通用封装
-│               └── redis-context.tsx   # Redis 连接上下文
+├── modules/                         # ====== 功能模块目录 ======
+│   ├── redis-desktop-manager/       # 🔴 Redis Desktop Manager（完全自包含）
+│   │   ├── index.tsx                # 模块入口
+│   │   ├── index.less               # 模块样式
+│   │   ├── types/                   # 模块私有类型
+│   │   ├── services/                # 模块私有 IPC 服务
+│   │   ├── composables/             # 模块私有组合式函数
+│   │   └── components/              # 模块私有组件
+│   │       ├── connection/
+│   │       ├── key/
+│   │       ├── content/
+│   │       ├── viewer/
+│   │       ├── tool/
+│   │       └── common/
+│   ├── telepresence-manager/        # 🔵 Telepresence Manager（完全自包含）
+│   └── _shared/                     # ⚠️ 模块间共享（谨慎使用）
 │
-├── components/                # ====== 全局公共组件 ======
-│   ├── layout/
-│   │   ├── app-layout.tsx     # 三栏布局
-│   │   └── sidebar.tsx        # 侧边栏
-│   ├── tabs/
-│   │   ├── tab-bar.tsx
-│   │   └── tab-item.tsx
-│   └── common/
-│       ├── context-menu.tsx
-│       └── file-input.tsx
+├── components/                      # ====== 全局公共组件 ======
+│   ├── layout/                      # 布局组件
+│   ├── tabs/                        # 标签页组件
+│   └── common/                      # 通用组件
 │
-├── pages/
-│   ├── settings-page.tsx      # 设置页（独立窗口）
-│   └── about-page.tsx         # 关于页（独立窗口）
-│
-├── services/
-│   ├── tauri.ts               # Tauri 环境检测
-│   └── storage.ts             # 全局存储服务
-│
-├── composables/
-│   ├── use-shortcut.ts         # 快捷键 Hook
-│   └── use-theme.ts            # 主题切换 Hook
-│
-└── i18n/
-    ├── index.ts               # i18n 配置
-    └── langs/
-        ├── cn.ts
-        ├── en.ts
-        └── ...
+├── pages/                           # ====== 独立页面 ======
+├── services/                        # ====== 全局服务 ======
+├── composables/                     # ====== 全局组合式函数 ======
+└── i18n/                            # ====== 国际化 ======
 ```
 
 ---
@@ -543,62 +517,52 @@ src/
 
 | 风险 | 影响程度 | 概率 | 应对策略 |
 |---|---|---|---|
-| **redis-rs Cluster NAT 映射不完善** | 🔴 高 | 中 | 提前在 Phase 3 进行 POC 验证；备选方案：自行实现 NAT 映射层 |
-| **SSH 隧道多连接管理** | 🔴 高 | 中 | ssh2 crate 成熟度高；需要仔细管理连接生命周期；使用 tokio 异步 |
+| **redis-rs Cluster NAT 映射不完善** | 🔴 高 | 中 | Phase 3 前进行 POC（任务 3-0）；备选：自行实现 NAT 映射层 |
+| **SSH 隧道多连接管理** | 🔴 高 | 中 | Phase 3 前进行 POC（任务 3-4）；ssh2 crate 成熟度高；使用 tokio 异步 |
 | **VTable Canvas 渲染限制** | 🟡 中 | 低 | 单元格内无法直接嵌入 Element Plus 组件；使用 customRender + 事件回调替代 |
-| **Java 序列化解析** | 🟡 中 | 低 | 使用频率低；可简化为只读展示；备选：调用 Java 工具 |
-| **Protobuf 动态解析** | 🟡 中 | 中 | prost 需要编译时类型；使用 protobuf crate 的动态解析能力 |
-| **Tauri 2 稳定性** | 🟢 低 | 低 | Tauri 2 已正式发布；社区活跃；问题可快速修复 |
+| **Java 序列化解析** | 🟡 中 | 低 | 使用频率低；简化为只读基础类型展示 |
+| **Protobuf 动态解析** | 🟡 中 | 中 | 使用 `protobuf` crate（非 `prost`）的动态解析能力 |
+| **密码加密存储** | 🟡 中 | 低 | 使用 `keyring` crate 或 AES 加密；优先级 P1 |
 
-### 6.2 技术风险应对
-
-| 风险类别 | 具体描述 | 应对方案 |
-|---|---|---|
-| **redis-rs 功能限制** | redis-rs 对 Cluster/Sentinel 支持可能不如 ioredis 完善 | Phase 3 开始前进行 POC；必要时直接使用底层 connection 实现 |
-| **SSH 隧道稳定性** | 长时间连接可能断开 | 实现心跳保活 + 自动重连机制 |
-| **大数据量渲染** | 百万级 Key 的树/列表渲染 | VTable Canvas 渲染 + 内置虚拟滚动 + 分片加载 |
-| **二进制数据处理** | Buffer 在前端不如 Node.js 方便 | 二进制操作全部放在 Rust 后端；前端只处理字符串/JSON |
-| **跨平台兼容** | Windows/macOS/Linux 差异 | Tauri 原生跨平台；注意文件路径处理差异 |
-| **SSL 证书加载** | 不同平台证书格式差异 | 使用 native-tls 统一处理 |
-
-### 6.3 进度风险应对
+### 6.2 进度风险应对
 
 | 风险 | 应对策略 |
 |---|---|
-| Redis Cluster 支持超预期 | Phase 3 预留 buffer；可先发布 Standalone 版本 |
-| VTable 学习曲线 | 提前投入 1-2 天学习 VTable API；参考官方示例和文档 |
+| Redis Cluster 支持超预期 | Phase 3 已预留 POC 任务；可先发布 Standalone 版本 |
+| VTable 学习曲线 | 提前投入 1-2 天学习 VTable API；参考官方示例 |
 | 数据查看器种类多 | 按优先级分批实现；P3 功能可延后 |
 | 国际化工作量 | 先支持中英文；其他语言后续补充 |
 
 ---
 
-## 七、进度监控机制
+## 七、进度监控
 
-### 7.1 进度跟踪表
+### 7.1 总体进度统计
 
-> 以下表格在迁移过程中持续更新，每个任务完成后标记 `[x]` 并记录完成日期
+> 以下数据在迁移过程中持续更新
 
-**总体进度统计**：
-- Phase 0: [ ] 0/8 (0%)
-- Phase 1: [ ] 0/11 (0%)
-- Phase 2: [ ] 0/15 (0%)
-- Phase 3: [ ] 0/11 (0%)
-- Phase 4: [ ] 0/15 (0%)
-- Phase 5: [ ] 0/14 (0%)
-- Phase 6: [ ] 0/9 (0%)
-- **总计**: [ ] 0/83 (0%)
+| Phase | 任务数 | 已完成 | 进行中 | 未开始 | 完成率 | 预计工期 |
+|---|---|---|---|---|---|---|
+| Phase 0 | 13 | 0 | 0 | 13 | 0% | 2.5 周 |
+| Phase 1 | 14 | 0 | 0 | 14 | 0% | 3.5 周 |
+| Phase 2 | 15 | 0 | 0 | 15 | 0% | 3 周 |
+| Phase 3 | 12 | 0 | 0 | 12 | 0% | 3 周 |
+| Phase 4 | 17 | 0 | 0 | 17 | 0% | 2 周 |
+| Phase 5 | 16 | 0 | 0 | 16 | 0% | 2 周 |
+| Phase 6 | 10 | 0 | 0 | 10 | 0% | 2 周 |
+| **总计** | **97** | **0** | **0** | **97** | **0%** | **18 周** |
 
 ### 7.2 里程碑检查点
 
 | 里程碑 | 验收标准 | 目标日期 | 实际日期 | 状态 |
 |---|---|---|---|---|
-| M0: 基础框架 | 三栏布局可运行，暗黑模式切换 | Week 2 | - | [ ] |
-| M1: 核心连接 | 可连接 Standalone Redis，浏览 Key | Week 5 | - | [ ] |
-| M2: 数据编辑 | 6 种数据类型可查看/编辑 | Week 8 | - | [ ] |
-| M3: 高级连接 | Cluster/Sentinel/SSH/SSL 全部可用 | Week 10 | - | [ ] |
-| M4: 工具功能 | CLI/日志/状态/慢日志/内存分析 | Week 12 | - | [ ] |
-| M5: 查看器 | 全部 15 种数据查看器可用 | Week 14 | - | [ ] |
-| M6: 发布 | 打包/测试/发布 | Week 16 | - | [ ] |
+| M0: 基础框架 | 三栏布局可运行，暗黑模式切换，Plugin 注册就绪 | Week 2.5 | - | [ ] |
+| M1: 核心连接 | 可连接 Standalone Redis，浏览 Key，多标签页可用 | Week 6 | - | [ ] |
+| M2: 数据编辑 | 6 种数据类型可查看/编辑，基础查看器可用 | Week 9 | - | [ ] |
+| M3: 高级连接 | Cluster/Sentinel/SSH/SSL 全部可用 | Week 12 | - | [ ] |
+| M4: 工具功能 | CLI/日志/状态/慢日志/内存分析/批量操作 | Week 14 | - | [ ] |
+| M5: 查看器 | 全部 15 种数据查看器可用，设置功能完整 | Week 16 | - | [ ] |
+| M6: 发布 | 打包/测试/发布 | Week 18 | - | [ ] |
 
 ### 7.3 质量检查点
 
@@ -619,11 +583,16 @@ src/
 |---|---|---|---|
 | Redis 客户端 | redis-rs (tokio) | Rust 生态最成熟的 Redis 客户端，支持 Cluster | - |
 | SSH 库 | ssh2 (Rust) | 成熟的 SSH2 协议实现，支持隧道 | - |
-| 表格/树/虚拟列表 | @visactor/vtable (ListTable) | Canvas 渲染百万级数据；内置树形模式；统一 API 替代 vxe-table + vue-virtual-scroller + vue-easy-tree | - |
-| JSON 编辑器 | monaco-editor-vue3 | VSCode 同款编辑器的 Vue 3 原生封装，无需引入 React 生态 | - |
+| 表格/树/虚拟列表 | @visactor/vtable (ListTable) | Canvas 渲染百万级数据；内置树形模式；统一 API | - |
+| JSON 编辑器 | monaco-editor-vue3 | VSCode 同款编辑器的 Vue 3 原生封装 | - |
 | 序列化解析 | Rust 后端统一处理 | 避免前端处理二进制数据的复杂性 | - |
-| 前端状态管理 | Vue 3 reactive + provide/inject | 项目规模适中，不需要 Pinia | - |
+| 前端状态管理 | Pinia（全局） + provide/inject（模块内） | 40+ 组件 + 多模块场景需要全局状态管理 | v2.0 新增 |
 | 构建工具 | Rsbuild | 基于 Rspack，构建速度极快 | - |
+| 后端架构 | Tauri Plugin 域驱动模块 | 每个工具域注册为独立 Plugin，即插即用 | v2.0 新增 |
+| 事件命名 | 模块前缀命名空间（`redis:xxx`） | 避免多模块事件名冲突 | v2.0 新增 |
+| 密码存储 | 加密存储（keyring 或 AES） | 原方案明文存储不安全 | v2.0 新增 |
+| Protobuf 解析 | protobuf crate（动态解析） | 需要运行时加载 .proto 文件，prost 不支持 | v2.0 修正 |
+| 自定义格式化器 | Tauri Shell Plugin 执行 | Tauri 前端无法直接执行系统命令 | v2.0 修正 |
 
 ---
 
@@ -631,26 +600,30 @@ src/
 
 ### 9.1 必须保持一致的功能（P0/P1）
 
-- [x] Standalone Redis 连接
-- [x] Cluster Redis 连接（含 NAT 映射）
-- [x] Sentinel Redis 连接
-- [x] SSH 隧道连接（Standalone/Cluster/Sentinel）
-- [x] SSL/TLS 连接
-- [x] ACL 用户名认证
-- [x] Key 列表/树形浏览
-- [x] Key 搜索（模糊/精确）
-- [x] Key CRUD（查看/重命名/删除/TTL）
-- [x] 6 种数据类型编辑器（String/Hash/List/Set/ZSet/Stream）
-- [x] CLI 命令行（自动补全/历史/MULTI/SUBSCRIBE/MONITOR）
-- [x] 服务器状态监控
-- [x] DB Key 统计
-- [x] 命令日志
-- [x] 慢查询日志
-- [x] 批量删除
-- [x] 多标签页
-- [x] 主题切换（Light/Dark/System）
-- [x] 多语言支持
-- [x] 连接导入/导出
+- [ ] Standalone Redis 连接
+- [ ] Cluster Redis 连接（含 NAT 映射）
+- [ ] Sentinel Redis 连接
+- [ ] SSH 隧道连接（Standalone/Cluster/Sentinel）
+- [ ] SSL/TLS 连接
+- [ ] ACL 用户名认证
+- [ ] Key 列表/树形浏览（SCAN 流式 + 暂停/恢复）
+- [ ] Key 搜索（模糊/精确）
+- [ ] Key CRUD（查看/重命名/删除/TTL/Persist）
+- [ ] 6 种数据类型编辑器（String/Hash/List/Set/ZSet/Stream）
+- [ ] CLI 命令行（自动补全/历史/MULTI/SUBSCRIBE/MONITOR）
+- [ ] 命令日志（横切中间件）
+- [ ] 服务器状态监控
+- [ ] DB Key 统计
+- [ ] 慢查询日志
+- [ ] 批量删除
+- [ ] 多标签页（替换/追加/Ctrl+Click/右键菜单）
+- [ ] 主题切换（Light/Dark/System）
+- [ ] 多语言支持
+- [ ] 连接导入/导出
+- [ ] 连接颜色标记
+- [ ] 连接复制
+- [ ] Key 导入（RESTORE）
+- [ ] FLUSHDB（二次确认）
 
 ### 9.2 新增/增强功能（超越 ARDM）
 
@@ -658,17 +631,34 @@ src/
 |---|---|
 | 🔥 **原生性能** | Rust 后端，内存占用降低 60%+ |
 | 🔥 **极小体积** | 安装包 < 15MB（ARDM ~80MB） |
-| 🔥 **更快的启动** | Tauri 2 原生窗口，秒开 |
-| 🔥 **更好的安全性** | Rust 内存安全，无 Node.js 依赖漏洞 |
-| 🔥 **原生文件对话框** | Tauri 原生 API，体验更好 |
-| 🔥 **独立设置窗口** | OS 级独立窗口（已实现） |
+| 🔥 **更快启动** | Tauri 2 原生窗口，秒开 |
+| 🔥 **更好安全性** | Rust 内存安全 + 密码加密存储 + Tauri 权限系统 |
+| 🔥 **Plugin 化架构** | 多工具模块即插即用（Redis + Telepresence + ...） |
 | 🔥 **TSX 组件开发** | 类型安全的组件开发 |
 | 🔥 **Composition API** | 更好的逻辑复用和代码组织 |
+| 🔥 **VTable 百万级渲染** | Canvas 渲染统一替代 3 个组件库 |
+| 🔥 **事件命名空间** | 多模块事件隔离，无冲突 |
+| 🔥 **独立设置窗口** | OS 级独立窗口 |
 
 ---
 
 ## 十、总结
 
-本迁移计划将 ARDM 的 **83 项具体任务** 分为 **6 个阶段**，预计 **16 周**（约 4 个月）完成。核心风险集中在 Redis Cluster/Sentinel 支持和 SSH 隧道实现，建议在 Phase 3 开始前进行 POC 验证。
+本迁移计划（v2.0）将 ARDM 的 **97 项具体任务**（含补充的 15 项遗漏功能）分为 **6 个阶段**，预计 **18 周**（约 4.5 个月）完成。
 
-整体策略是 **先核心后外围**：先实现 Standalone 连接 + Key 管理 + 数据编辑，再扩展高级连接模式，最后补充工具和查看器。每个 Phase 结束都有明确的里程碑验收标准，确保进度可控。
+**与 v1.0 的主要变化**：
+
+| 维度 | v1.0 | v2.0 |
+|---|---|---|
+| 后端架构 | 扁平分层（commands/services/models） | 域驱动模块 + Tauri Plugin |
+| 功能数量 | 83 项 | 97 项（+15 项遗漏功能 + POC 任务） |
+| 总工期 | 16 周 | 18 周（+2 周） |
+| Phase 0 | 8 任务 / 52h | 13 任务 / 70h（+Plugin + trait + 命名空间） |
+| Phase 1 | 11 任务 / 124h | 14 任务 / 148h（+多标签页 + 命令日志） |
+| Phase 3 | 2 周 | 3 周（+POC 验证） |
+| 密码存储 | 明文 | 加密存储 |
+| Protobuf | prost（编译时） | protobuf crate（运行时动态解析） |
+| 状态管理 | 不需要 Pinia | Pinia（全局） + provide/inject（模块内） |
+| 进度跟踪 | 基础状态标记 | 每任务状态 + 完成日期 + 统计表 |
+
+核心策略仍是 **先核心后外围**：先建立 Plugin 化基础设施，再实现 Standalone 连接 + Key 管理 + 数据编辑，再扩展高级连接模式，最后补充工具和查看器。每个 Phase 结束都有明确的里程碑验收标准，确保进度可控。
