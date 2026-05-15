@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from "@tauri-apps/api/core";
 
 /**
  * 调用 Rust 后端的 greet 命令
@@ -6,5 +6,5 @@ import { invoke } from '@tauri-apps/api/core';
  * @returns 来自 Rust 后端的问候消息
  */
 export async function greet(name: string): Promise<string> {
-  return invoke<string>('greet', { name });
+  return invoke<string>("greet", { name });
 }

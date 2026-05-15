@@ -1,60 +1,58 @@
-import { defineComponent, ref, reactive, computed, type PropType } from 'vue';
-import { ElMessageBox, ElMessage } from 'element-plus';
 import {
-  Connection,
-  SwitchButton,
-  Monitor,
-  Setting,
-  Link as LinkIcon,
-  DocumentCopy,
-  FolderOpened,
   CircleCheck,
   CircleClose,
-  InfoFilled,
-  RefreshRight,
-  Refresh,
+  Connection,
   Document,
-} from '@element-plus/icons-vue';
+  DocumentCopy,
+  FolderOpened,
+  InfoFilled,
+  Monitor,
+  Refresh,
+  RefreshRight,
+  Setting,
+  SwitchButton,
+} from "@element-plus/icons-vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { computed, defineComponent, reactive, ref } from "vue";
+import { useCsNamespace } from "../hooks/use-namespace";
 import {
   connectTelepresence,
-  quitTelepresence,
   getStatus,
-  type ConnectParams,
-} from '../services/telepresence';
-import { useCsNamespace } from '../hooks/use-namespace';
-import './telepresence-panel.less';
+  quitTelepresence,
+} from "../services/telepresence";
+import "./telepresence-panel.less";
 
 /** 操作日志条目 */
 interface LogEntry {
   timestamp: string;
-  type: 'info' | 'success' | 'error' | 'command';
+  type: "info" | "success" | "error" | "command";
   message: string;
 }
 
 const TelepresencePanel = defineComponent({
-  name: 'TelepresencePanel',
+  name: "TelepresencePanel",
   props: {
     activeCategory: {
       type: String,
-      default: 'connect',
+      default: "connect",
     },
   },
   setup(props) {
     // ===== BEM 命名空间 =====
-    const ns = useCsNamespace('telepresence');
-    const nsPage = useCsNamespace('content-page');
-    const nsSection = useCsNamespace('content-section');
+    const ns = useCsNamespace("telepresence");
+    const nsPage = useCsNamespace("content-page");
+    const nsSection = useCsNamespace("content-section");
 
     // ===== 命名空间选项 =====
     const namespaceOptions = [
-      { label: 'dev-mc (默认)', value: 'dev-mc' },
-      { label: 'dev', value: 'dev' },
+      { label: "dev-mc (默认)", value: "dev-mc" },
+      { label: "dev", value: "dev" },
     ];
 
     // ===== 连接配置 =====
     const config = reactive({
-      kubeconfig: 'C:/Users/10456/.cs/kube-config',
-      namespace: 'dev-mc',
+      kubeconfig: "C:/Users/10456/.cs/kube-config",
+      namespace: "dev-mc",
       skipTlsVerify: true,
     });
 
@@ -68,18 +66,18 @@ const TelepresencePanel = defineComponent({
 
     // ===== 计算属性 =====
     const statusText = computed(() =>
-      isConnected.value ? '已连接' : '未连接',
+      isConnected.value ? "已连接" : "未连接",
     );
 
-    const statusType = computed((): 'success' | 'danger' => (
-      isConnected.value ? 'success' : 'danger'
+    const statusType = computed((): "success" | "danger" => (
+      isConnected.value ? "success" : "danger"
     ));
 
     // ===== 工具方法 =====
     const getTimestamp = (): string =>
-      new Date().toLocaleTimeString('zh-CN', { hour12: false });
+      new Date().toLocaleTimeString("zh-CN", { hour12: false });
 
-    const addLog = (type: LogEntry['type'], message: string) => {
+    const addLog = (type: LogEntry["type"], message: string) => {
       logs.value.push({ timestamp: getTimestamp(), type, message });
       if (logs.value.length > 100) {
         logs.value = logs.value.slice(-100);
@@ -88,18 +86,22 @@ const TelepresencePanel = defineComponent({
 
     const scrollToBottom = () => {
       setTimeout(() => {
-        const el = document.querySelector(`.${ns.e('terminal')}`);
-        if (el) el.scrollTop = el.scrollHeight;
+        const el = document.querySelector(`.${ns.e("terminal")}`);
+        if (el) {
+          el.scrollTop = el.scrollHeight;
+        }
       }, 50);
     };
 
     // ===== 操作方法 =====
     const handleConnect = async () => {
-      if (connectLoading.value) return;
+      if (connectLoading.value) {
+        return;
+      }
       connectLoading.value = true;
       addLog(
-        'command',
-        `$ telepresence connect --kubeconfig ${config.kubeconfig}${config.skipTlsVerify ? ' --insecure-skip-tls-verify' : ''} --namespace ${config.namespace}`,
+        "command",
+        `$ telepresence connect --kubeconfig ${config.kubeconfig}${config.skipTlsVerify ? " --insecure-skip-tls-verify" : ""} --namespace ${config.namespace}`,
       );
       try {
         const result = await connectTelepresence({
@@ -109,15 +111,15 @@ const TelepresencePanel = defineComponent({
         });
         if (result.success) {
           isConnected.value = true;
-          addLog('success', `✓ ${result.message}`);
+          addLog("success", `✓ ${result.message}`);
           ElMessage.success(`已成功连接到命名空间: ${config.namespace}`);
         } else {
-          addLog('error', `✗ 连接失败: ${result.message}`);
+          addLog("error", `✗ 连接失败: ${result.message}`);
           ElMessage.error(`连接失败: ${result.message}`);
         }
       } catch (error) {
-        addLog('error', `✗ 异常: ${String(error)}`);
-        ElMessage.error('连接过程中发生异常');
+        addLog("error", `✗ 异常: ${String(error)}`);
+        ElMessage.error("连接过程中发生异常");
       } finally {
         connectLoading.value = false;
         scrollToBottom();
@@ -125,29 +127,33 @@ const TelepresencePanel = defineComponent({
     };
 
     const handleQuit = async () => {
-      if (quitLoading.value) return;
+      if (quitLoading.value) {
+        return;
+      }
       try {
-        await ElMessageBox.confirm('确定要断开 Telepresence 连接吗？', '确认断开', {
-          confirmButtonText: '确定断开',
-          cancelButtonText: '取消',
-          type: 'warning',
+        await ElMessageBox.confirm("确定要断开 Telepresence 连接吗？", "确认断开", {
+          confirmButtonText: "确定断开",
+          cancelButtonText: "取消",
+          type: "warning",
         });
-      } catch { return; }
+      } catch {
+        return;
+      }
       quitLoading.value = true;
-      addLog('command', '$ telepresence quit');
+      addLog("command", "$ telepresence quit");
       try {
         const result = await quitTelepresence();
         if (result.success) {
           isConnected.value = false;
-          addLog('success', `✓ ${result.message}`);
-          ElMessage.success('已断开 Telepresence 连接');
+          addLog("success", `✓ ${result.message}`);
+          ElMessage.success("已断开 Telepresence 连接");
         } else {
-          addLog('error', `✗ 断开失败: ${result.message}`);
+          addLog("error", `✗ 断开失败: ${result.message}`);
           ElMessage.error(`断开失败: ${result.message}`);
         }
       } catch (error) {
-        addLog('error', `✗ 异常: ${String(error)}`);
-        ElMessage.error('断开连接过程中发生异常');
+        addLog("error", `✗ 异常: ${String(error)}`);
+        ElMessage.error("断开连接过程中发生异常");
       } finally {
         quitLoading.value = false;
         scrollToBottom();
@@ -155,24 +161,26 @@ const TelepresencePanel = defineComponent({
     };
 
     const handleStatus = async () => {
-      if (statusLoading.value) return;
+      if (statusLoading.value) {
+        return;
+      }
       statusLoading.value = true;
-      addLog('command', '$ telepresence status');
+      addLog("command", "$ telepresence status");
       try {
         const result = await getStatus();
         if (result.success) {
-          addLog('info', result.message);
+          addLog("info", result.message);
           const output = result.message.toLowerCase();
-          if (output.includes('connected') || output.includes('proxy')) {
+          if (output.includes("connected") || output.includes("proxy")) {
             isConnected.value = true;
-          } else if (output.includes('not connected') || output.includes('inactive') || output.includes('not logged in')) {
+          } else if (output.includes("not connected") || output.includes("inactive") || output.includes("not logged in")) {
             isConnected.value = false;
           }
         } else {
-          addLog('error', `✗ 获取状态失败: ${result.message}`);
+          addLog("error", `✗ 获取状态失败: ${result.message}`);
         }
       } catch (error) {
-        addLog('error', `✗ 异常: ${String(error)}`);
+        addLog("error", `✗ 异常: ${String(error)}`);
       } finally {
         statusLoading.value = false;
         scrollToBottom();
@@ -180,21 +188,26 @@ const TelepresencePanel = defineComponent({
     };
 
     const handleReconnect = async () => {
-      if (reconnectLoading.value) return;
+      if (reconnectLoading.value) {
+        return;
+      }
       reconnectLoading.value = true;
       if (isConnected.value) {
-        addLog('command', '$ telepresence quit (重连: 先断开)');
+        addLog("command", "$ telepresence quit (重连: 先断开)");
         try {
           const quitResult = await quitTelepresence();
-          if (quitResult.success) addLog('success', '✓ 已断开旧连接');
-          else addLog('error', `✗ 断开旧连接失败: ${quitResult.message}`);
+          if (quitResult.success) {
+            addLog("success", "✓ 已断开旧连接");
+          } else {
+            addLog("error", `✗ 断开旧连接失败: ${quitResult.message}`);
+          }
         } catch (error) {
-          addLog('error', `✗ 断开异常: ${String(error)}`);
+          addLog("error", `✗ 断开异常: ${String(error)}`);
         }
       }
       addLog(
-        'command',
-        `$ telepresence connect --kubeconfig ${config.kubeconfig}${config.skipTlsVerify ? ' --insecure-skip-tls-verify' : ''} --namespace ${config.namespace}`,
+        "command",
+        `$ telepresence connect --kubeconfig ${config.kubeconfig}${config.skipTlsVerify ? " --insecure-skip-tls-verify" : ""} --namespace ${config.namespace}`,
       );
       try {
         const result = await connectTelepresence({
@@ -204,16 +217,16 @@ const TelepresencePanel = defineComponent({
         });
         if (result.success) {
           isConnected.value = true;
-          addLog('success', `✓ ${result.message}`);
+          addLog("success", `✓ ${result.message}`);
           ElMessage.success(`主动连接成功，命名空间: ${config.namespace}`);
         } else {
           isConnected.value = false;
-          addLog('error', `✗ 连接失败: ${result.message}`);
+          addLog("error", `✗ 连接失败: ${result.message}`);
           ElMessage.error(`连接失败: ${result.message}`);
         }
       } catch (error) {
-        addLog('error', `✗ 异常: ${String(error)}`);
-        ElMessage.error('连接过程中发生异常');
+        addLog("error", `✗ 异常: ${String(error)}`);
+        ElMessage.error("连接过程中发生异常");
       } finally {
         reconnectLoading.value = false;
         scrollToBottom();
@@ -222,15 +235,15 @@ const TelepresencePanel = defineComponent({
 
     const handleClearLogs = () => {
       logs.value = [];
-      addLog('info', '日志已清空');
+      addLog("info", "日志已清空");
     };
 
     const handleCopyPath = async () => {
       try {
         await navigator.clipboard.writeText(config.kubeconfig);
-        ElMessage.success('已复制到剪贴板');
+        ElMessage.success("已复制到剪贴板");
       } catch {
-        ElMessage.error('复制失败');
+        ElMessage.error("复制失败");
       }
     };
 
@@ -240,25 +253,25 @@ const TelepresencePanel = defineComponent({
         const result = await getStatus();
         if (result.success) {
           const output = result.message.toLowerCase();
-          isConnected.value = output.includes('connected') || output.includes('proxy');
+          isConnected.value = output.includes("connected") || output.includes("proxy");
         }
       } catch { /* 忽略 */ }
-      addLog('info', '🚀 Telepresence 管理工具已启动');
+      addLog("info", "🚀 Telepresence 管理工具已启动");
     };
     initStatus();
 
     // ===== 渲染：连接管理 =====
     const renderConnect = () => (
       <div class={nsPage.b()}>
-        <div class={nsPage.e('header')}>
-          <h2 class={nsPage.e('title')}>
-            <el-icon style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+        <div class={nsPage.e("header")}>
+          <h2 class={nsPage.e("title")}>
+            <el-icon style={{ marginRight: "8px", verticalAlign: "middle" }}>
               <Connection />
             </el-icon>
             连接管理
           </h2>
           <el-tag type={statusType.value} effect="dark" size="small">
-            <el-icon style={{ marginRight: '4px' }}>
+            <el-icon style={{ marginRight: "4px" }}>
               {isConnected.value ? <CircleCheck /> : <CircleClose />}
             </el-icon>
             {statusText.value}
@@ -267,8 +280,8 @@ const TelepresencePanel = defineComponent({
 
         {/* 操作按钮 */}
         <div class={nsSection.b()}>
-          <h3 class={nsSection.e('title')}>快捷操作</h3>
-          <div class={ns.e('actions')}>
+          <h3 class={nsSection.e("title")}>快捷操作</h3>
+          <div class={ns.e("actions")}>
             <el-button
               type="primary"
               icon={Connection}
@@ -276,7 +289,7 @@ const TelepresencePanel = defineComponent({
               disabled={isConnected.value || quitLoading.value || reconnectLoading.value}
               onClick={handleConnect}
             >
-              {connectLoading.value ? '连接中...' : '连接集群'}
+              {connectLoading.value ? "连接中..." : "连接集群"}
             </el-button>
             <el-button
               type="warning"
@@ -285,7 +298,7 @@ const TelepresencePanel = defineComponent({
               disabled={connectLoading.value || quitLoading.value}
               onClick={handleReconnect}
             >
-              {reconnectLoading.value ? '重连中...' : '主动连接'}
+              {reconnectLoading.value ? "重连中..." : "主动连接"}
             </el-button>
             <el-button
               type="danger"
@@ -294,18 +307,22 @@ const TelepresencePanel = defineComponent({
               disabled={!isConnected.value || connectLoading.value || reconnectLoading.value}
               onClick={handleQuit}
             >
-              {quitLoading.value ? '断开中...' : '断开连接'}
+              {quitLoading.value ? "断开中..." : "断开连接"}
             </el-button>
           </div>
         </div>
 
         {/* 命令预览 */}
         <div class={nsSection.b()}>
-          <h3 class={nsSection.e('title')}>执行命令</h3>
-          <code class={ns.e('command')}>
-            telepresence connect --kubeconfig {config.kubeconfig}
-            {config.skipTlsVerify ? ' --insecure-skip-tls-verify' : ''}
-            {' '}--namespace {config.namespace}
+          <h3 class={nsSection.e("title")}>执行命令</h3>
+          <code class={ns.e("command")}>
+            telepresence connect --kubeconfig
+            {" "}
+            {config.kubeconfig}
+            {config.skipTlsVerify ? " --insecure-skip-tls-verify" : ""}
+            {" "}
+            --namespace
+            {config.namespace}
           </code>
         </div>
       </div>
@@ -314,9 +331,9 @@ const TelepresencePanel = defineComponent({
     // ===== 渲染：状态监控 =====
     const renderStatus = () => (
       <div class={nsPage.b()}>
-        <div class={nsPage.e('header')}>
-          <h2 class={nsPage.e('title')}>
-            <el-icon style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+        <div class={nsPage.e("header")}>
+          <h2 class={nsPage.e("title")}>
+            <el-icon style={{ marginRight: "8px", verticalAlign: "middle" }}>
               <Monitor />
             </el-icon>
             状态监控
@@ -333,14 +350,14 @@ const TelepresencePanel = defineComponent({
         </div>
 
         <div class={nsSection.b()}>
-          <div class={ns.e('status')}>
-            <div class={ns.e('status-indicator')}>
-              <el-icon size={48} color={isConnected.value ? '#67c23a' : '#f56c6c'}>
+          <div class={ns.e("status")}>
+            <div class={ns.e("status-indicator")}>
+              <el-icon size={48} color={isConnected.value ? "#67c23a" : "#f56c6c"}>
                 {isConnected.value ? <CircleCheck /> : <CircleClose />}
               </el-icon>
-              <div class={ns.e('status-info')}>
-                <span class={ns.e('status-label')}>连接状态</span>
-                <span class={[ns.e('status-value'), isConnected.value ? ns.is('connected') : ns.is('disconnected')]}>
+              <div class={ns.e("status-info")}>
+                <span class={ns.e("status-label")}>连接状态</span>
+                <span class={[ns.e("status-value"), isConnected.value ? ns.is("connected") : ns.is("disconnected")]}>
                   {statusText.value}
                 </span>
               </div>
@@ -353,9 +370,9 @@ const TelepresencePanel = defineComponent({
     // ===== 渲染：配置管理 =====
     const renderConfig = () => (
       <div class={nsPage.b()}>
-        <div class={nsPage.e('header')}>
-          <h2 class={nsPage.e('title')}>
-            <el-icon style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+        <div class={nsPage.e("header")}>
+          <h2 class={nsPage.e("title")}>
+            <el-icon style={{ marginRight: "8px", verticalAlign: "middle" }}>
               <Setting />
             </el-icon>
             配置管理
@@ -363,10 +380,10 @@ const TelepresencePanel = defineComponent({
         </div>
 
         <div class={nsSection.b()}>
-          <div class={ns.e('form')}>
-            <div class={ns.e('form-row')}>
-              <label class={ns.e('form-label')}>Kubeconfig 路径</label>
-              <div class={ns.e('form-input-group')}>
+          <div class={ns.e("form")}>
+            <div class={ns.e("form-row")}>
+              <label class={ns.e("form-label")}>Kubeconfig 路径</label>
+              <div class={ns.e("form-input-group")}>
                 <el-input
                   v-model={config.kubeconfig}
                   placeholder="请输入 kubeconfig 文件路径"
@@ -378,29 +395,29 @@ const TelepresencePanel = defineComponent({
               </div>
             </div>
 
-            <div class={ns.e('form-row')}>
-              <label class={ns.e('form-label')}>命名空间</label>
+            <div class={ns.e("form-row")}>
+              <label class={ns.e("form-label")}>命名空间</label>
               <el-select
                 v-model={config.namespace}
                 placeholder="选择命名空间"
                 size="default"
-                style={{ width: '100%' }}
+                style={{ width: "100%" }}
               >
-                {namespaceOptions.map((opt) => (
+                {namespaceOptions.map(opt => (
                   <el-option key={opt.value} label={opt.label} value={opt.value} />
                 ))}
               </el-select>
             </div>
 
-            <div class={ns.e('form-row')}>
-              <label class={ns.e('form-label')}>TLS 验证</label>
+            <div class={ns.e("form-row")}>
+              <label class={ns.e("form-label")}>TLS 验证</label>
               <el-switch
                 v-model={config.skipTlsVerify}
                 activeText="跳过 TLS 证书验证"
                 inactiveText="验证 TLS 证书"
               />
               <el-tooltip content="开发环境通常使用自签名证书，建议开启此选项。" placement="right">
-                <el-icon class={ns.e('info-icon')} size={14} color="#909399">
+                <el-icon class={ns.e("info-icon")} size={14} color="#909399">
                   <InfoFilled />
                 </el-icon>
               </el-tooltip>
@@ -413,9 +430,9 @@ const TelepresencePanel = defineComponent({
     // ===== 渲染：操作日志 =====
     const renderLogs = () => (
       <div class={nsPage.b()}>
-        <div class={nsPage.e('header')}>
-          <h2 class={nsPage.e('title')}>
-            <el-icon style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+        <div class={nsPage.e("header")}>
+          <h2 class={nsPage.e("title")}>
+            <el-icon style={{ marginRight: "8px", verticalAlign: "middle" }}>
               <Document />
             </el-icon>
             操作日志
@@ -426,17 +443,23 @@ const TelepresencePanel = defineComponent({
         </div>
 
         <div class={nsSection.b()} style={{ padding: 0 }}>
-          <div class={ns.e('terminal')}>
-            {logs.value.length === 0 ? (
-              <div class={ns.e('terminal-empty')}>暂无日志输出</div>
-            ) : (
-              logs.value.map((log, index) => (
-                <div key={index} class={[ns.e('log-line'), ns.em('log-line', log.type)]}>
-                  <span class={ns.e('log-time')}>[{log.timestamp}]</span>
-                  <span class={ns.e('log-message')}>{log.message}</span>
-                </div>
-              ))
-            )}
+          <div class={ns.e("terminal")}>
+            {logs.value.length === 0
+              ? (
+                  <div class={ns.e("terminal-empty")}>暂无日志输出</div>
+                )
+              : (
+                  logs.value.map((log, index) => (
+                    <div key={index} class={[ns.e("log-line"), ns.em("log-line", log.type)]}>
+                      <span class={ns.e("log-time")}>
+                        [
+                        {log.timestamp}
+                        ]
+                      </span>
+                      <span class={ns.e("log-message")}>{log.message}</span>
+                    </div>
+                  ))
+                )}
           </div>
         </div>
       </div>
@@ -445,10 +468,10 @@ const TelepresencePanel = defineComponent({
     // ===== 根据分类渲染 =====
     return () => {
       switch (props.activeCategory) {
-        case 'connect': return renderConnect();
-        case 'status': return renderStatus();
-        case 'config': return renderConfig();
-        case 'logs': return renderLogs();
+        case "connect": return renderConnect();
+        case "status": return renderStatus();
+        case "config": return renderConfig();
+        case "logs": return renderLogs();
         default: return renderConnect();
       }
     };

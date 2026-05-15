@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from "@tauri-apps/api/core";
 
 /** Telepresence 连接参数 */
 export interface ConnectParams {
@@ -20,7 +20,7 @@ export async function connectTelepresence(
   params: ConnectParams,
 ): Promise<TelepresenceResult> {
   try {
-    const result = await invoke<string>('telepresence_connect', {
+    const result = await invoke<string>("telepresence_connect", {
       kubeconfig: params.kubeconfig,
       namespace: params.namespace,
       skipTlsVerify: params.skipTlsVerify,
@@ -29,7 +29,7 @@ export async function connectTelepresence(
   } catch (error) {
     return {
       success: false,
-      message: typeof error === 'string' ? error : String(error),
+      message: typeof error === "string" ? error : String(error),
     };
   }
 }
@@ -39,12 +39,12 @@ export async function connectTelepresence(
  */
 export async function quitTelepresence(): Promise<TelepresenceResult> {
   try {
-    const result = await invoke<string>('telepresence_quit');
+    const result = await invoke<string>("telepresence_quit");
     return { success: true, message: result };
   } catch (error) {
     return {
       success: false,
-      message: typeof error === 'string' ? error : String(error),
+      message: typeof error === "string" ? error : String(error),
     };
   }
 }
@@ -54,12 +54,12 @@ export async function quitTelepresence(): Promise<TelepresenceResult> {
  */
 export async function getStatus(): Promise<TelepresenceResult> {
   try {
-    const result = await invoke<string>('telepresence_status');
+    const result = await invoke<string>("telepresence_status");
     return { success: true, message: result };
   } catch (error) {
     return {
       success: false,
-      message: typeof error === 'string' ? error : String(error),
+      message: typeof error === "string" ? error : String(error),
     };
   }
 }

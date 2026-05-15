@@ -1,23 +1,23 @@
-import { createApp } from 'vue';
-import ElementPlus from 'element-plus';
-import 'element-plus/dist/index.css';
-import zhCn from 'element-plus/es/locale/lang/zh-cn';
-import * as ElementPlusIconsVue from '@element-plus/icons-vue';
-import App from './app';
-import SettingsPage from './pages/settings-page';
-import AboutPage from './pages/about-page';
-import RedisDesktopManager from './modules/redis-desktop-manager';
-import './assets/styles/global.less';
+import * as ElementPlusIconsVue from "@element-plus/icons-vue";
+import ElementPlus from "element-plus";
+import zhCn from "element-plus/es/locale/lang/zh-cn";
+import { createApp } from "vue";
+import App from "./app";
+import RedisDesktopManager from "./modules/redis-desktop-manager";
+import AboutPage from "./pages/about-page";
+import SettingsPage from "./pages/settings-page";
+import "element-plus/dist/index.css";
+import "./assets/styles/global.less";
 
 // 根据 URL hash 判断渲染哪个页面
-const hash = window.location.hash || '#/';
+const hash = window.location.hash || "#/";
 let RootComponent;
 
-if (hash === '#/settings') {
+if (hash === "#/settings") {
   RootComponent = SettingsPage;
-} else if (hash === '#/about') {
+} else if (hash === "#/about") {
   RootComponent = AboutPage;
-} else if (hash === '#/redis') {
+} else if (hash === "#/redis") {
   RootComponent = RedisDesktopManager;
 } else {
   RootComponent = App;
@@ -33,4 +33,4 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component);
 }
 
-app.mount('#root');
+app.mount("#root");

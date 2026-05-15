@@ -2,7 +2,7 @@
    Telepresence 连接管理面板 — BEM: ran-telepresence
    ============================================================ */
 
-@import (reference) '../assets/styles/global.less';
+@import (reference) "../assets/styles/global.less";
 
 .ran-telepresence {
   // ---- 操作按钮 ----
@@ -19,7 +19,7 @@
     background: #1e1e1e;
     color: #d4d4d4;
     border-radius: 8px;
-    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
     font-size: 12px;
     line-height: 1.6;
     word-break: break-all;
@@ -100,7 +100,7 @@
     background: #1e1e1e;
     border-radius: 0 0 10px 10px;
     padding: 16px;
-    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
     font-size: 12px;
     line-height: 1.8;
     min-height: 300px;
@@ -149,8 +149,16 @@
   }
 
   // 日志类型修饰符
-  &__log-line--command .ran-telepresence__log-message { color: #569cd6; }
-  &__log-line--info .ran-telepresence__log-message { color: #d4d4d4; }
-  &__log-line--success .ran-telepresence__log-message { color: #4ec9b0; }
-  &__log-line--error .ran-telepresence__log-message { color: #f44747; }
+  &__log-line--command .ran-telepresence__log-message {
+    color: #569cd6;
+  }
+  &__log-line--info .ran-telepresence__log-message {
+    color: #d4d4d4;
+  }
+  &__log-line--success .ran-telepresence__log-message {
+    color: #4ec9b0;
+  }
+  &__log-line--error .ran-telepresence__log-message {
+    color: #f44747;
+  }
 }
