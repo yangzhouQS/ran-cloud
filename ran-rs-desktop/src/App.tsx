@@ -1,9 +1,9 @@
 import { defineComponent, ref, computed } from 'vue';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { ElMessage } from 'element-plus';
-import Layout from './components/Layout';
-import { getCategoriesByNav, getCategoryTitle } from './components/CategoryPanel';
-import TelepresencePanel from './components/TelepresencePanel';
+import Layout from './components/layout';
+import { getCategoriesByNav, getCategoryTitle } from './components/category-panel';
+import TelepresencePanel from './components/telepresence-panel';
 
 /** 检测是否运行在 Tauri 环境中 */
 const isTauri = () => '__TAURI_INTERNALS__' in window;

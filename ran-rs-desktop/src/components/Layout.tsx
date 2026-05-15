@@ -1,6 +1,6 @@
 import { defineComponent, type PropType } from 'vue';
-import Sidebar from './Sidebar';
-import CategoryPanel, { type CategoryItem } from './CategoryPanel';
+import Sidebar from './sidebar';
+import CategoryPanel, { type CategoryItem } from './category-panel';
 
 const Layout = defineComponent({
   name: 'Layout',

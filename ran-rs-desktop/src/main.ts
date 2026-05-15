@@ -3,9 +3,9 @@ import ElementPlus from 'element-plus';
 import 'element-plus/dist/index.css';
 import zhCn from 'element-plus/es/locale/lang/zh-cn';
 import * as ElementPlusIconsVue from '@element-plus/icons-vue';
-import App from './App';
-import SettingsPage from './pages/SettingsPage';
-import AboutPage from './pages/AboutPage';
+import App from './app';
+import SettingsPage from './pages/settings-page';
+import AboutPage from './pages/about-page';
 import './assets/styles/index.css';
 
 // 根据 URL hash 判断渲染哪个页面
