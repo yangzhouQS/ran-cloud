@@ -234,6 +234,20 @@ const $primaryColor = // ...
 ```
 
 
+### less样式规范
+H:\2026code\project\ran-cloud\ran-rs-desktop\src\hooks\use-namespace\index.ts
+基于 useCsNamespace 编写符合bem命名规范的样式类名
+
+使用 Vue3 + TSX + Less + BEM 规范
+1. 类名必须使用 useCsNamespace 生成
+2. 遵循 BEM：block__element--modifier
+3. 全部使用 kebab-case
+4. Less 文件必须写注释：组件名、描述、区块说明
+5. 样式嵌套使用 & 语法
+6. 禁止直接写裸类名，禁止使用 ID 选择器
+7. 类名前缀统一：ran-xxx
+8. 样式文件提供合理注释：组件名、描述、区块说明
+
 
 
 
