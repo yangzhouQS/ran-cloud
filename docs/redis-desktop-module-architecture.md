@@ -1,47 +1,65 @@
 # Redis Desktop Manager — 独立模块架构设计
 
-> **设计原则**：前后端完全解耦，通过 Tauri IPC 协议通信。每个模块具有独立可测试性，可独立开发、独立替换。
+> **设计原则**：
+> 1. **前后端完全解耦**，通过 Tauri IPC 协议通信
+> 2. **Plugin 化模块架构**，每个工具域注册为独立 Tauri Plugin，即插即用
+> 3. **模块自包含**，每个模块具有独立可测试性，可独立开发、独立替换
+> 4. **事件命名空间化**，避免多模块事件名冲突
+> 5. **连接管理抽象化**，通过 trait 统一不同类型连接的生命周期管理
 
 ---
 
 ## 一、整体架构概览
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Tauri 2 Application                       │
-│                                                              │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │              Frontend (Vue 3 + TSX)                    │  │
-│  │                                                        │  │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │  │
-│  │  │ 连接管理  │ │ Key 浏览  │ │ 数据编辑  │ │ 工具面板  │  │  │
-│  │  │  模块     │ │  模块     │ │  模块     │ │  模块     │  │  │
-│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘  │  │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐               │  │
-│  │  │ 数据查看  │ │ 设置/主题 │ │ 公共组件  │               │  │
-│  │  │  模块     │ │  模块     │ │  模块     │               │  │
-│  │  └──────────┘ └──────────┘ └──────────┘               │  │
-│  │                                                        │  │
-│  │  ┌──────────────────────────────────────────────────┐  │  │
-│  │  │           Services 层（IPC 调用封装）              │  │  │
-│  │  └──────────────────────────────────────────────────┘  │  │
-│  └────────────────────────────────────────────────────────┘  │
-│                            │                                 │
-│                     Tauri invoke / Events                     │
-│                            │                                 │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │              Backend (Rust + tokio)                     │  │
-│  │                                                        │  │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │  │
-│  │  │ 连接管理  │ │ Key 操作  │ │ 数据类型  │ │ 工具服务  │  │  │
-│  │  │  服务     │ │  服务     │ │  服务     │ │  服务     │  │  │
-│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘  │  │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐               │  │
-│  │  │ SSH 隧道  │ │ 数据查看  │ │ 存储服务  │               │  │
-│  │  │  服务     │ │  服务     │ │  服务     │               │  │
-│  │  └──────────┘ └──────────┘ └──────────┘               │  │
-│  └────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Tauri 2 Application                          │
+│                                                                      │
+│  ┌────────────────────────────────────────────────────────────────┐  │
+│  │                    Frontend (Vue 3 + TSX)                      │  │
+│  │                                                                │  │
+│  │  ┌──────────────────┐  ┌──────────────────┐  ┌─────────────┐  │  │
+│  │  │ redis-desktop-   │  │ telepresence-    │  │ future-     │  │  │
+│  │  │ manager/         │  │ manager/         │  │ module/     │  │  │
+│  │  │                  │  │                  │  │             │  │  │
+│  │  │ ├─types/         │  │ ├─types/         │  │ ├─types/    │  │  │
+│  │  │ ├─services/      │  │ ├─services/      │  │ ├─services/ │  │  │
+│  │  │ ├─composables/   │  │ ├─composables/   │  │ ├─compos./  │  │  │
+│  │  │ └─components/    │  │ └─components/    │  │ └─compos./  │  │  │
+│  │  └──────────────────┘  └──────────────────┘  └─────────────┘  │  │
+│  │                                                                │  │
+│  │  ┌──────────────────────────────────────────────────────────┐  │  │
+│  │  │              _shared/ （模块间共享，谨慎使用）              │  │  │
+│  │  └──────────────────────────────────────────────────────────┘  │  │
+│  └────────────────────────────────────────────────────────────────┘  │
+│                            │                                         │
+│                   Tauri Plugins / invoke / Events                    │
+│                            │                                         │
+│  ┌────────────────────────────────────────────────────────────────┐  │
+│  │                    Backend (Rust + tokio)                       │  │
+│  │                                                                │  │
+│  │  ┌──────────────────────────────────────────────────────────┐  │  │
+│  │  │  modules/redis-desktop/  ← Tauri Plugin "redis-desktop" │  │  │
+│  │  │  ├─connection/ ├─key/ ├─data/ ├─cli/ ├─tool/           │  │  │
+│  │  │  ├─viewer/ ├─tunnel/                                    │  │  │
+│  │  │  └─shared/ (redis_client, error, event)                 │  │  │
+│  │  └──────────────────────────────────────────────────────────┘  │  │
+│  │                                                                │  │
+│  │  ┌──────────────────────────────────────────────────────────┐  │  │
+│  │  │  modules/telepresence/  ← Tauri Plugin "telepresence"   │  │  │
+│  │  │  ├─commands/ ├─service/ ├─models/                       │  │  │
+│  │  │  └─shared/ (telepresence_client, error, event)          │  │  │
+│  │  └──────────────────────────────────────────────────────────┘  │  │
+│  │                                                                │  │
+│  │  ┌──────────────────────────────────────────────────────────┐  │  │
+│  │  │  modules/storage/  ← Tauri Plugin "storage" (全局共享)   │  │  │
+│  │  └──────────────────────────────────────────────────────────┘  │  │
+│  │                                                                │  │
+│  │  ┌──────────────────────────────────────────────────────────┐  │  │
+│  │  │  shared/  ← 全局基础设施（error, result, constants）      │  │  │
+│  │  └──────────────────────────────────────────────────────────┘  │  │
+│  └────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -50,7 +68,7 @@
 
 ### 2.1 目录结构
 
-> **模块化架构**：`src/modules/` 下可放置多个独立工具模块，`redis-desktop-manager` 是其中之一。
+> **模块化架构**：`src/modules/` 下放置多个独立工具模块，每个模块完全自包含（types/services/composables/components）。模块间通过 `_shared/` 谨慎共享。
 
 ```
 src/
@@ -66,7 +84,7 @@ src/
 │   │
 │   ├── redis-desktop-manager/       # 🔴 Redis Desktop Manager 模块
 │   │   │
-│   │   ├── types/                   # 模块类型定义
+│   │   ├── types/                   # 模块私有类型定义
 │   │   │   ├── connection.ts        # 连接配置类型
 │   │   │   ├── redis-key.ts         # Key 数据类型
 │   │   │   ├── redis-data.ts        # 数据类型操作类型
@@ -75,16 +93,16 @@ src/
 │   │   │   ├── viewer.ts            # 数据查看器类型
 │   │   │   └── ipc.ts               # IPC 请求/响应类型
 │   │   │
-│   │   ├── services/                # 模块 IPC 服务层
+│   │   ├── services/                # 模块私有 IPC 服务层
 │   │   │   ├── connection-service.ts  # 连接管理 IPC 调用
 │   │   │   ├── key-service.ts         # Key 操作 IPC 调用
 │   │   │   ├── data-service.ts        # 数据类型操作 IPC 调用
 │   │   │   ├── cli-service.ts         # CLI 命令执行 IPC 调用
 │   │   │   ├── tool-service.ts        # 工具 IPC 调用
 │   │   │   ├── viewer-service.ts      # 数据查看器 IPC 调用
-│   │   │   └── event-service.ts       # Tauri Events 监听封装
+│   │   │   └── event-service.ts       # Tauri Events 监听封装（命名空间化）
 │   │   │
-│   │   ├── composables/             # 模块组合式函数
+│   │   ├── composables/             # 模块私有组合式函数
 │   │   │   ├── use-connection.ts      # 连接状态管理
 │   │   │   ├── use-key-scanner.ts     # Key 扫描（流式加载）
 │   │   │   ├── use-data-editor.ts     # 数据编辑通用逻辑
@@ -94,7 +112,7 @@ src/
 │   │   │   ├── use-vtable.ts          # VTable 实例管理 Hook
 │   │   │   └── index.ts               # 统一导出
 │   │   │
-│   │   ├── components/              # 模块 UI 组件
+│   │   ├── components/              # 模块私有 UI 组件
 │   │   │   │
 │   │   │   ├── connection/          # 连接管理子模块
 │   │   │   │   ├── connection-list.tsx    # 连接列表（拖拽排序）
@@ -151,9 +169,29 @@ src/
 │   │   │       ├── redis-context.tsx      # Redis 连接上下文 Provider
 │   │   │       └── index.ts               # 统一导出
 │   │   │
-│   │   └── index.ts                 # 模块入口（导出主组件）
+│   │   ├── index.less               # 模块私有样式
+│   │   └── index.tsx                # 模块入口（导出主组件）
 │   │
-│   └── ...（其他工具模块，如 telepresence-manager 等）
+│   ├── telepresence-manager/        # 🔵 Telepresence Manager 模块
+│   │   ├── types/
+│   │   │   └── telepresence.ts      # Telepresence 配置类型
+│   │   ├── services/
+│   │   │   └── telepresence-service.ts  # Telepresence IPC 调用
+│   │   ├── composables/
+│   │   │   └── use-telepresence.ts  # Telepresence 状态管理
+│   │   ├── components/
+│   │   │   ├── connect-form.tsx     # 连接表单
+│   │   │   ├── status-panel.tsx     # 状态面板
+│   │   │   └── log-viewer.tsx       # 日志查看器
+│   │   ├── index.less
+│   │   └── index.tsx
+│   │
+│   └── _shared/                     # ⚠️ 模块间共享（谨慎使用）
+│       ├── types/
+│       │   ├── connection.ts        # 通用连接状态类型
+│       │   └── module-event.ts      # 跨模块事件类型
+│       └── composables/
+│           └── use-module-bus.ts    # 跨模块事件总线
 │
 ├── components/                      # ====== 全局公共组件 ======
 │   ├── layout/
@@ -201,40 +239,35 @@ src/
               ┌────────────┼────────────┐
               │            │            │
       ┌───────▼──────┐ ┌──▼──────┐ ┌──▼──────────┐
-      │  layout/     │ │ tabs/   │ │ connection/ │
-      │  模块        │ │ 模块    │ │ 模块        │
+      │  layout/     │ │ tabs/   │ │  modules/   │
+      │  全局组件    │ │ 全局组件│ │  各工具模块  │
       └──────────────┘ └─────────┘ └──────┬───────┘
-                                          │
+                                         │
                     ┌─────────────────────┼─────────────────────┐
                     │                     │                     │
             ┌───────▼──────┐    ┌────────▼───────┐    ┌───────▼──────┐
-            │  key/        │    │  tool/         │    │  content/    │
-            │  模块        │    │  模块          │    │  模块        │
-            └───────┬──────┘    └────────┬───────┘    └───────┬──────┘
-                    │                    │                     │
-                    └────────┬───────────┘                     │
-                             │                                 │
-                    ┌────────▼────────┐              ┌────────▼────────┐
-                    │  viewer/        │              │  common/        │
-                    │  模块           │              │  模块           │
-                    └─────────────────┘              └─────────────────┘
+            │ redis-desktop│    │ telepresence-  │    │ _shared/     │
+            │ -manager/    │    │ manager/       │    │ 模块间共享    │
+            └───────┬──────┘    └────────┬───────┘    └──────────────┘
+                    │                    │
+                    │  各模块完全自包含：  │
+                    │  ├─types/          │
+                    │  ├─services/       │
+                    │  ├─composables/    │
+                    │  └─components/     │
+                    │                    │
+                    └────────┬───────────┘
                              │
                     ┌────────▼────────┐
-                    │  services/      │  ← IPC 调用封装层
-                    └────────┬────────┘
-                             │
-                    ┌────────▼────────┐
-                    │  composables/   │  ← 组合式函数层
-                    └────────┬────────┘
-                             │
-                    ┌────────▼────────┐
-                    │  types/         │  ← 类型定义层
+                    │  Tauri IPC      │  ← 各模块通过自己的 services/ 调用
                     └─────────────────┘
 ```
 
 ### 2.3 前端各模块职责
 
-#### 连接管理模块 `connection/`
+#### Redis Desktop Manager 模块 `redis-desktop-manager/`
+
+##### 连接管理子模块 `components/connection/`
 
 | 组件 | 职责 | 对外接口 |
 |---|---|---|
@@ -246,7 +279,7 @@ src/
 | `sentinel-form.tsx` | Sentinel 配置表单 | `v-model={sentinelConfig}` |
 | `connection-menu.tsx` | 连接右键菜单 | `onAction(action, connection)` |
 
-#### Key 浏览模块 `key/`
+##### Key 浏览子模块 `components/key/`
 
 | 组件 | 职责 | 对外接口 |
 |---|---|---|
@@ -257,7 +290,7 @@ src/
 | `key-header.tsx` | Key 名称/TTL/操作栏 | `onRename()`, `onDelete()`, `onTTL()`, `onPersist()` |
 | `key-search.tsx` | Key 搜索（模糊/精确） | `onSearch(pattern, mode)` |
 
-#### 数据类型编辑模块 `content/`
+##### 数据类型编辑子模块 `components/content/`
 
 | 组件 | 职责 | 对外接口 |
 |---|---|---|
@@ -270,7 +303,7 @@ src/
 | `content-stream.tsx` | Stream 类型查看/编辑（VTable ListTable） | `keyName: string` |
 | `content-rejson.tsx` | ReJSON 类型查看/编辑（monaco-editor-vue3） | `keyName: string` |
 
-#### 工具模块 `tool/`
+##### 工具子模块 `components/tool/`
 
 | 组件 | 职责 | 对外接口 |
 |---|---|---|
@@ -283,6 +316,49 @@ src/
 | `memory-analysis.tsx` | 内存分析面板（VTable ListTable） | `connectionId: string` |
 | `delete-batch.tsx` | 批量删除面板 | `connectionId: string`, `keys: string[]` |
 
+#### Telepresence Manager 模块 `telepresence-manager/`
+
+| 组件 | 职责 | 对外接口 |
+|---|---|---|
+| `connect-form.tsx` | Telepresence 连接配置表单 | `onConnect(config)` |
+| `status-panel.tsx` | 连接状态展示 | `connectionId: string` |
+| `log-viewer.tsx` | Telepresence 日志实时查看 | `connectionId: string` |
+
+### 2.4 跨模块通信协议
+
+模块间通过 `_shared/composables/use-module-bus.ts` 进行通信：
+
+```typescript
+// modules/_shared/composables/use-module-bus.ts
+
+interface ModuleEvent {
+  source: string;        // 模块名：'redis-desktop' | 'telepresence' | ...
+  type: string;          // 事件类型
+  payload: unknown;      // 事件数据
+}
+
+/** 模块事件总线（单例） */
+class ModuleEventBus {
+  private bus = new Map<string, Set<(payload: unknown) => void>>();
+
+  /** 发布事件 */
+  emit(source: string, type: string, payload: unknown): void;
+
+  /** 监听指定模块的事件 */
+  on(source: string, type: string, handler: (payload: unknown) => void): void;
+
+  /** 取消监听 */
+  off(source: string, type: string, handler: (payload: unknown) => void): void;
+}
+
+export const moduleBus = new ModuleEventBus();
+export function useModuleBus(): ModuleEventBus;
+```
+
+**使用场景示例**：
+- Telepresence 模块连接成功后通知 Redis 模块：`moduleBus.emit('telepresence', 'connection:changed', { namespace, connected: true })`
+- Redis 模块监听 Telepresence 连接状态变化，自动发现集群内的 Redis 节点
+
 ---
 
 ## 三、后端模块架构
@@ -292,123 +368,269 @@ src/
 ```
 src-tauri/src/
 ├── main.rs                          # 应用入口
-├── lib.rs                           # Tauri 插件注册 + 命令注册
+├── lib.rs                           # Tauri Plugin 注册中心（仅注册各模块 Plugin）
 │
-├── modules/                         # ====== 业务模块 ======
+├── modules/                         # ====== 业务模块（按工具域组织）======
 │   │
-│   ├── connection/                  # 连接管理模块（独立）
-│   │   ├── mod.rs                   # 模块入口
-│   │   ├── commands.rs              # Tauri Commands（前端调用入口）
-│   │   ├── service.rs               # 连接管理业务逻辑
-│   │   ├── manager.rs               # 连接池管理器
-│   │   └── models.rs                # 连接配置数据模型
+│   ├── redis-desktop/               # 🔴 Redis Desktop Manager 模块域
+│   │   ├── mod.rs                   # 模块域入口 + Tauri Plugin 注册
+│   │   │
+│   │   ├── connection/              # 连接管理子模块
+│   │   │   ├── mod.rs               # 子模块入口
+│   │   │   ├── commands.rs          # Tauri Commands（前端调用入口）
+│   │   │   ├── service.rs           # 连接管理业务逻辑
+│   │   │   ├── manager.rs           # Redis 连接池管理器（实现 ConnectionManager trait）
+│   │   │   └── models.rs            # 连接配置数据模型
+│   │   │
+│   │   ├── key/                     # Key 操作子模块
+│   │   │   ├── mod.rs
+│   │   │   ├── commands.rs          # Tauri Commands
+│   │   │   ├── service.rs           # Key 操作业务逻辑
+│   │   │   └── models.rs            # Key 数据模型
+│   │   │
+│   │   ├── data/                    # 数据类型操作子模块
+│   │   │   ├── mod.rs
+│   │   │   ├── commands.rs          # Tauri Commands
+│   │   │   ├── service.rs           # 数据类型路由（按 type 分发）
+│   │   │   ├── hash_service.rs      # Hash 专用操作
+│   │   │   ├── list_service.rs      # List 专用操作
+│   │   │   ├── set_service.rs       # Set 专用操作
+│   │   │   ├── zset_service.rs      # ZSet 专用操作
+│   │   │   ├── stream_service.rs    # Stream 专用操作
+│   │   │   ├── string_service.rs    # String 专用操作
+│   │   │   └── models.rs            # 数据类型模型
+│   │   │
+│   │   ├── cli/                     # CLI 命令执行子模块
+│   │   │   ├── mod.rs
+│   │   │   ├── commands.rs          # Tauri Commands
+│   │   │   ├── service.rs           # 命令执行引擎
+│   │   │   ├── parser.rs            # Redis 命令参数解析
+│   │   │   ├── autocomplete.rs      # 命令自动补全
+│   │   │   └── models.rs            # CLI 输出模型
+│   │   │
+│   │   ├── tool/                    # 工具子模块
+│   │   │   ├── mod.rs
+│   │   │   ├── commands.rs          # Tauri Commands
+│   │   │   ├── info_service.rs      # INFO 命令解析
+│   │   │   ├── slowlog_service.rs   # SLOWLOG 服务
+│   │   │   ├── memory_service.rs    # MEMORY USAGE 分析（流式推送）
+│   │   │   ├── monitor_service.rs   # MONITOR 实时监控（长连接推送）
+│   │   │   └── models.rs            # 工具数据模型
+│   │   │
+│   │   ├── viewer/                  # 数据查看器子模块
+│   │   │   ├── mod.rs
+│   │   │   ├── commands.rs          # Tauri Commands
+│   │   │   ├── format_detector.rs   # 自动格式检测
+│   │   │   ├── decompress.rs        # 解压引擎（gzip/brotli/deflate）
+│   │   │   ├── deserialize.rs       # 反序列化（MsgPack/Pickle/PHP/Java）
+│   │   │   ├── protobuf.rs          # Protobuf 解析
+│   │   │   └── models.rs            # 查看器数据模型
+│   │   │
+│   │   ├── tunnel/                  # SSH 隧道子模块
+│   │   │   ├── mod.rs
+│   │   │   ├── commands.rs          # Tauri Commands
+│   │   │   ├── service.rs           # SSH 隧道管理
+│   │   │   └── models.rs            # SSH 配置模型
+│   │   │
+│   │   └── shared/                  # Redis 模块域共享（仅 Redis 模块可见）
+│   │       ├── redis_client.rs      # Redis 客户端封装（redis-rs）
+│   │       ├── error.rs             # Redis 模块错误类型
+│   │       ├── result.rs            # Redis 模块 Result 类型
+│   │       ├── event.rs             # Redis 模块事件定义（命名空间化）
+│   │       └── constants.rs         # Redis 模块常量
 │   │
-│   ├── key/                         # Key 操作模块（独立）
-│   │   ├── mod.rs                   # 模块入口
+│   ├── telepresence/                # 🔵 Telepresence 模块域
+│   │   ├── mod.rs                   # 模块域入口 + Tauri Plugin 注册
 │   │   ├── commands.rs              # Tauri Commands
-│   │   ├── service.rs               # Key 操作业务逻辑
-│   │   └── models.rs                # Key 数据模型
+│   │   ├── service.rs               # Telepresence 连接管理
+│   │   ├── manager.rs               # Telepresence 进程管理器（实现 ConnectionManager trait）
+│   │   ├── models.rs                # Telepresence 数据模型
+│   │   └── shared/
+│   │       ├── error.rs             # Telepresence 模块错误类型
+│   │       └── event.rs             # Telepresence 模块事件定义（命名空间化）
 │   │
-│   ├── data/                        # 数据类型操作模块（独立）
-│   │   ├── mod.rs                   # 模块入口
+│   ├── storage/                     # 🟢 全局存储模块（跨模块共享）
+│   │   ├── mod.rs                   # 模块入口 + Tauri Plugin 注册
 │   │   ├── commands.rs              # Tauri Commands
-│   │   ├── service.rs               # 数据类型操作业务逻辑
-│   │   ├── hash_service.rs          # Hash 专用操作
-│   │   ├── list_service.rs          # List 专用操作
-│   │   ├── set_service.rs           # Set 专用操作
-│   │   ├── zset_service.rs          # ZSet 专用操作
-│   │   ├── stream_service.rs        # Stream 专用操作
-│   │   ├── string_service.rs        # String 专用操作
-│   │   └── models.rs                # 数据类型模型
+│   │   ├── service.rs               # Tauri Store Plugin 封装
+│   │   └── models.rs                # 存储数据模型
 │   │
-│   ├── cli/                         # CLI 命令执行模块（独立）
-│   │   ├── mod.rs                   # 模块入口
-│   │   ├── commands.rs              # Tauri Commands
-│   │   ├── service.rs               # 命令执行引擎
-│   │   ├── parser.rs                # Redis 命令参数解析
-│   │   ├── autocomplete.rs          # 命令自动补全
-│   │   └── models.rs                # CLI 输出模型
-│   │
-│   ├── tool/                        # 工具模块（独立）
-│   │   ├── mod.rs                   # 模块入口
-│   │   ├── commands.rs              # Tauri Commands
-│   │   ├── info_service.rs          # INFO 命令解析
-│   │   ├── slowlog_service.rs       # SLOWLOG 服务
-│   │   ├── memory_service.rs        # MEMORY USAGE 分析
-│   │   ├── monitor_service.rs       # MONITOR 实时监控
-│   │   └── models.rs                # 工具数据模型
-│   │
-│   ├── viewer/                      # 数据查看器模块（独立）
-│   │   ├── mod.rs                   # 模块入口
-│   │   ├── commands.rs              # Tauri Commands
-│   │   ├── format_detector.rs       # 自动格式检测
-│   │   ├── decompress.rs            # 解压引擎（gzip/brotli/deflate）
-│   │   ├── deserialize.rs           # 反序列化（MsgPack/Pickle/PHP/Java）
-│   │   ├── protobuf.rs              # Protobuf 解析
-│   │   └── models.rs                # 查看器数据模型
-│   │
-│   ├── tunnel/                      # SSH 隧道模块（独立）
-│   │   ├── mod.rs                   # 模块入口
-│   │   ├── commands.rs              # Tauri Commands
-│   │   ├── service.rs               # SSH 隧道管理
-│   │   └── models.rs                # SSH 配置模型
-│   │
-│   └── storage/                     # 存储模块（独立）
-│       ├── mod.rs                   # 模块入口
-│       ├── commands.rs              # Tauri Commands
-│       ├── service.rs               # Tauri Store 封装
-│       └── models.rs                # 存储数据模型
+│   └── ...（未来模块，如 k8s-manager/、mysql-manager/ 等）
 │
-├── shared/                          # ====== 共享基础设施 ======
-│   ├── error.rs                     # 统一错误处理（thiserror + anyhow）
-│   ├── result.rs                    # 统一 Result 类型
-│   ├── redis_client.rs              # Redis 客户端封装（redis-rs）
-│   ├── event.rs                     # Tauri Events 定义
+├── shared/                          # ====== 全局共享基础设施 ======
+│   ├── error.rs                     # 全局错误处理（thiserror + anyhow）
+│   ├── result.rs                    # 全局 Result 类型
+│   ├── connection.rs                # 通用连接管理 trait（ConnectionManager<C>）
+│   ├── event.rs                     # 事件命名空间工具（event_name 生成器）
 │   └── constants.rs                 # 全局常量
 │
 └── test/                            # ====== 集成测试 ======
-    ├── connection_test.rs
-    ├── key_test.rs
-    ├── data_test.rs
-    └── cli_test.rs
+    ├── redis-desktop/
+    │   ├── connection_test.rs
+    │   ├── key_test.rs
+    │   ├── data_test.rs
+    │   └── cli_test.rs
+    └── telepresence/
+        └── telepresence_test.rs
 ```
 
 ### 3.2 后端模块依赖关系
 
 ```
                     ┌─────────────────┐
-                    │     lib.rs      │  ← Tauri 命令注册
+                    │     lib.rs      │  ← Tauri Plugin 注册中心
                     └────────┬────────┘
                              │
-        ┌────────┬───────────┼───────────┬────────┐
-        │        │           │           │        │
-   ┌────▼───┐ ┌──▼────┐ ┌───▼───┐ ┌────▼───┐ ┌──▼──────┐
-   │connection│ │  key  │ │ data  │ │  cli   │ │  tool   │
-   │  模块    │ │ 模块  │ │ 模块  │ │ 模块   │ │ 模块    │
-   └────┬────┘ └───┬───┘ └───┬───┘ └────┬───┘ └────┬────┘
-        │          │         │          │          │
-        │     ┌────▼─────────▼──────────▼──────────▼────┐
-        │     │              shared/                     │
-        ├─────►  redis_client.rs  ← Redis 连接池封装     │
-        ├─────►  error.rs         ← 统一错误处理         │
-        ├─────►  event.rs         ← Tauri Events 定义    │
-        │     └──────────────────────────────────────────┘
-        │
-   ┌────▼────┐
-   │ tunnel  │  ← SSH 隧道（独立，被 connection 依赖）
-   │  模块   │
-   └─────────┘
-   ┌─────────┐
-   │ storage │  ← 存储模块（独立，被 connection 依赖）
-   │  模块   │
-   └─────────┘
-   ┌─────────┐
-   │ viewer  │  ← 查看器模块（独立，被 data 依赖）
-   │  模块   │
-   └─────────┘
+        ┌────────────┬───────┴───────┬────────────┐
+        │            │               │            │
+   ┌────▼─────┐ ┌───▼──────┐  ┌────▼─────┐ ┌───▼──────┐
+   │  redis-  │ │telepres- │  │ storage  │ │ future   │
+   │ desktop  │ │  ence    │  │  模块    │ │ module   │
+   │  Plugin  │ │  Plugin  │  │  Plugin  │ │ Plugin   │
+   └────┬─────┘ └────┬─────┘  └────┬─────┘ └────┬─────┘
+        │             │             │             │
+   ┌────▼─────────────▼─────────────▼─────────────▼────┐
+   │                  shared/                           │
+   │  ├─ connection.rs  ← ConnectionManager<C> trait    │
+   │  ├─ error.rs       ← 全局错误类型                   │
+   │  ├─ result.rs      ← 全局 Result 类型               │
+   │  ├─ event.rs       ← 事件命名空间工具                │
+   │  └─ constants.rs   ← 全局常量                       │
+   └────────────────────────────────────────────────────┘
 ```
 
-### 3.3 后端各模块职责
+### 3.3 Tauri Plugin 注册机制
+
+#### `lib.rs` — Plugin 注册中心
+
+```rust
+// src-tauri/src/lib.rs
+
+mod modules;
+mod shared;
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    tauri::Builder::default()
+        // ====== 注册全局插件 ======
+        .plugin(tauri_plugin_shell::init())
+        
+        // ====== 注册业务模块插件 ======
+        .plugin(modules::redis_desktop::plugin())      // Redis Desktop Manager
+        .plugin(modules::telepresence::plugin())        // Telepresence Manager
+        .plugin(modules::storage::plugin())             // 全局存储
+        
+        // ====== 未来模块 ======
+        // .plugin(modules::k8s_manager::plugin())
+        // .plugin(modules::mysql_manager::plugin())
+        
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}
+```
+
+#### 模块 Plugin 注册示例 — `modules/redis-desktop/mod.rs`
+
+```rust
+// src-tauri/src/modules/redis-desktop/mod.rs
+
+pub mod connection;
+pub mod key;
+pub mod data;
+pub mod cli;
+pub mod tool;
+pub mod viewer;
+pub mod tunnel;
+pub mod shared;
+
+use tauri::plugin::{Builder, TauriPlugin};
+use tauri::Runtime;
+
+/// 注册 Redis Desktop Manager 为 Tauri Plugin
+pub fn plugin<R: Runtime>() -> TauriPlugin<R> {
+    Builder::new("redis-desktop")
+        .invoke_handler(tauri::generate_handler![
+            // 连接管理
+            connection::commands::connect,
+            connection::commands::disconnect,
+            connection::commands::get_connection_status,
+            connection::commands::select_db,
+            connection::commands::list_connections,
+            connection::commands::save_connection,
+            connection::commands::delete_connection,
+            // Key 操作
+            key::commands::scan_keys,
+            key::commands::get_key_type,
+            key::commands::get_key_ttl,
+            key::commands::set_key_ttl,
+            key::commands::persist_key,
+            key::commands::rename_key,
+            key::commands::delete_keys,
+            // 数据类型操作
+            data::commands::get_string,
+            data::commands::set_string,
+            data::commands::get_hash_all,
+            data::commands::hset,
+            data::commands::hdel,
+            data::commands::lrange,
+            data::commands::lset,
+            data::commands::sscan,
+            data::commands::srem,
+            data::commands::zrange,
+            data::commands::zadd,
+            data::commands::xrange,
+            data::commands::xadd,
+            // CLI
+            cli::commands::execute_command,
+            cli::commands::get_command_history,
+            cli::commands::subscribe,
+            cli::commands::unsubscribe,
+            cli::commands::start_monitor,
+            cli::commands::stop_monitor,
+            // 工具
+            tool::commands::get_server_info,
+            tool::commands::get_slowlog,
+            tool::commands::analyze_memory,
+            // 数据查看器
+            viewer::commands::detect_format,
+            viewer::commands::decompress,
+            viewer::commands::deserialize,
+            // SSH 隧道
+            tunnel::commands::create_tunnel,
+            tunnel::commands::close_tunnel,
+            tunnel::commands::get_tunnel_status,
+        ])
+        .build()
+}
+```
+
+#### 模块 Plugin 注册示例 — `modules/telepresence/mod.rs`
+
+```rust
+// src-tauri/src/modules/telepresence/mod.rs
+
+pub mod commands;
+pub mod service;
+pub mod manager;
+pub mod models;
+pub mod shared;
+
+use tauri::plugin::{Builder, TauriPlugin};
+use tauri::Runtime;
+
+/// 注册 Telepresence Manager 为 Tauri Plugin
+pub fn plugin<R: Runtime>() -> TauriPlugin<R> {
+    Builder::new("telepresence")
+        .invoke_handler(tauri::generate_handler![
+            commands::telepresence_connect,
+            commands::telepresence_quit,
+            commands::telepresence_status,
+        ])
+        .build()
+}
+```
+
+### 3.4 后端各模块职责
 
 #### 连接管理模块 `connection/`
 
@@ -416,7 +638,7 @@ src-tauri/src/
 |---|---|---|
 | `commands.rs` | 前端调用入口 | `connect`, `disconnect`, `get_status`, `list_connections` |
 | `service.rs` | 连接生命周期管理 | `create_connection()`, `close_connection()`, `get_connection()` |
-| `manager.rs` | 连接池管理 | `ConnectionManager` 单例，管理所有活跃连接 |
+| `manager.rs` | Redis 连接池管理 | `RedisConnectionManager`（实现 `ConnectionManager<ConnectionConfig>` trait） |
 | `models.rs` | 数据模型 | `ConnectionConfig`, `ConnectionStatus`, `SshConfig`, `SslConfig` |
 
 #### Key 操作模块 `key/`
@@ -458,8 +680,8 @@ src-tauri/src/
 | `commands.rs` | 前端调用入口 | `get_server_info`, `get_slowlog`, `get_memory_usage`, `start_monitor`, `stop_monitor` |
 | `info_service.rs` | INFO 解析 | 解析 INFO ALL/INFO KEYSPACE/INFO CLUSTER |
 | `slowlog_service.rs` | 慢日志 | SLOWLOG GET |
-| `memory_service.rs` | 内存分析 | SCAN + MEMORY USAGE 批量分析 |
-| `monitor_service.rs` | MONITOR | 实时监控 → Tauri Events 推送 |
+| `memory_service.rs` | 内存分析 | SCAN + MEMORY USAGE 批量分析（流式推送） |
+| `monitor_service.rs` | MONITOR | 实时监控 → Tauri Events 推送（长连接） |
 | `models.rs` | 数据模型 | `ServerInfo`, `SlowLogEntry`, `MemoryEntry`, `MonitorEvent` |
 
 #### SSH 隧道模块 `tunnel/`
@@ -481,6 +703,15 @@ src-tauri/src/
 | `protobuf.rs` | Protobuf 解析 | 加载 .proto 文件 → 动态解析 |
 | `models.rs` | 数据模型 | `FormatType`, `DecompressResult`, `DeserializeResult` |
 
+#### Telepresence 模块 `telepresence/`
+
+| 文件 | 职责 | 公开 API |
+|---|---|---|
+| `commands.rs` | 前端调用入口 | `telepresence_connect`, `telepresence_quit`, `telepresence_status` |
+| `service.rs` | Telepresence 连接管理 | 创建/断开/查询 Telepresence 连接 |
+| `manager.rs` | 进程管理器 | `TelepresenceManager`（实现 `ConnectionManager<TelepresenceConfig>` trait） |
+| `models.rs` | 数据模型 | `TelepresenceConfig`, `TelepresenceStatus` |
+
 #### 存储模块 `storage/`
 
 | 文件 | 职责 | 公开 API |
@@ -491,9 +722,144 @@ src-tauri/src/
 
 ---
 
-## 四、IPC 接口协议
+## 四、全局共享基础设施
 
-### 4.1 Tauri Commands（前端 → 后端）
+### 4.1 通用连接管理 Trait — `shared/connection.rs`
+
+```rust
+// src-tauri/src/shared/connection.rs
+
+use async_trait::async_trait;
+use crate::shared::error::AppError;
+use crate::shared::result::AppResult;
+
+/// 连接状态
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ConnectionStatus {
+    Disconnected,
+    Connecting,
+    Connected,
+    Error(String),
+}
+
+/// 通用连接管理 trait
+/// 不同类型的连接（Redis、Telepresence、K8s 等）各自实现此 trait
+#[async_trait]
+pub trait ConnectionManager<C>: Send + Sync {
+    /// 创建连接，返回连接 ID
+    async fn create(&self, config: C) -> AppResult<String>;
+    
+    /// 获取连接（按 ID）
+    async fn get(&self, id: &str) -> AppResult<std::sync::Arc<dyn Send + Sync>>;
+    
+    /// 关闭连接
+    async fn close(&self, id: &str) -> AppResult<()>;
+    
+    /// 关闭所有连接
+    async fn close_all(&self) -> AppResult<()>;
+    
+    /// 获取连接状态
+    async fn status(&self, id: &str) -> ConnectionStatus;
+    
+    /// 列出所有活跃连接 ID
+    async fn list_active(&self) -> Vec<String>;
+}
+```
+
+### 4.2 事件命名空间工具 — `shared/event.rs`
+
+```rust
+// src-tauri/src/shared/event.rs
+
+/// 为模块事件名添加前缀，避免跨模块冲突
+/// 
+/// # 示例
+/// ```
+/// // Redis 模块
+/// let event = namespaced_event("redis", "connection:status");
+/// assert_eq!(event, "redis:connection:status");
+/// 
+/// // Telepresence 模块
+/// let event = namespaced_event("telepresence", "connection:status");
+/// assert_eq!(event, "telepresence:connection:status");
+/// ```
+pub fn namespaced_event(module: &str, event: &str) -> String {
+    format!("{}:{}", module, event)
+}
+
+/// Redis 模块事件名辅助宏
+#[macro_export]
+macro_rules! redis_event {
+    ($event:expr) => {
+        $crate::shared::event::namespaced_event("redis", $event)
+    };
+}
+
+/// Telepresence 模块事件名辅助宏
+#[macro_export]
+macro_rules! telepresence_event {
+    ($event:expr) => {
+        $crate::shared::event::namespaced_event("telepresence", $event)
+    };
+}
+```
+
+### 4.3 全局错误处理 — `shared/error.rs`
+
+```rust
+// src-tauri/src/shared/error.rs
+
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum AppError {
+    #[error("连接错误: {0}")]
+    Connection(String),
+    
+    #[error("Redis 错误: {0}")]
+    Redis(#[from] redis::RedisError),
+    
+    #[error("IO 错误: {0}")]
+    Io(#[from] std::io::Error),
+    
+    #[error("序列化错误: {0}")]
+    Serialization(#[from] serde_json::Error),
+    
+    #[error("SSH 隧道错误: {0}")]
+    Tunnel(String),
+    
+    #[error("Telepresence 错误: {0}")]
+    Telepresence(String),
+    
+    #[error("存储错误: {0}")]
+    Storage(String),
+    
+    #[error("参数错误: {0}")]
+    BadRequest(String),
+    
+    #[error("未找到: {0}")]
+    NotFound(String),
+    
+    #[error("权限不足: {0}")]
+    Forbidden(String),
+}
+
+impl serde::Serialize for AppError {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+```
+
+---
+
+## 五、IPC 接口协议
+
+### 5.1 Tauri Commands（前端 → 后端）
 
 #### 连接管理
 
@@ -670,23 +1036,54 @@ async fn decompress(data: Vec<u8>, format: DecompressFormat) -> Result<Vec<u8>, 
 async fn deserialize(data: Vec<u8>, format: DeserializeFormat) -> Result<serde_json::Value, AppError>
 ```
 
-### 4.2 Tauri Events（后端 → 前端推送）
+#### Telepresence 命令
+
+```rust
+// Telepresence 连接
+#[tauri::command]
+async fn telepresence_connect(
+    kubeconfig: String,
+    namespace: String,
+    skip_tls_verify: bool,
+) -> Result<String, AppError>
+
+// Telepresence 断开
+#[tauri::command]
+async fn telepresence_quit() -> Result<String, AppError>
+
+// Telepresence 状态
+#[tauri::command]
+async fn telepresence_status() -> Result<String, AppError>
+```
+
+### 5.2 Tauri Events（后端 → 前端推送）
+
+> **命名空间规则**：所有事件名使用 `{模块前缀}:{事件名}` 格式，避免跨模块冲突。
+
+#### Redis 模块事件（前缀：`redis:`）
 
 | Event 名称 | 触发场景 | Payload 类型 | 消费模块 |
 |---|---|---|---|
-| `key:scan:progress` | SCAN 流式加载进度 | `{ cursor, keys, total }` | `key/` |
-| `cli:output` | CLI 命令执行结果 | `{ output, error }` | `tool/cli-tab.tsx` |
-| `cli:subscribe` | Pub/Sub 消息推送 | `{ channel, message }` | `tool/cli-tab.tsx` |
-| `cli:monitor` | MONITOR 实时输出 | `{ timestamp, command, args }` | `tool/cli-tab.tsx` |
-| `tool:command-log` | 命令日志拦截 | `{ timestamp, command, duration }` | `tool/command-log.tsx` |
-| `connection:status` | 连接状态变化 | `{ connection_id, status }` | `connection/` |
-| `memory:analysis:progress` | 内存分析进度 | `{ scanned, total, entries }` | `tool/memory-analysis.tsx` |
+| `redis:key:scan:progress` | SCAN 流式加载进度 | `{ cursor, keys, total }` | `key/` |
+| `redis:cli:output` | CLI 命令执行结果 | `{ output, error }` | `tool/cli-tab.tsx` |
+| `redis:cli:subscribe` | Pub/Sub 消息推送 | `{ channel, message }` | `tool/cli-tab.tsx` |
+| `redis:cli:monitor` | MONITOR 实时输出 | `{ timestamp, command, args }` | `tool/cli-tab.tsx` |
+| `redis:tool:command-log` | 命令日志拦截 | `{ timestamp, command, duration }` | `tool/command-log.tsx` |
+| `redis:connection:status` | 连接状态变化 | `{ connection_id, status }` | `connection/` |
+| `redis:memory:analysis:progress` | 内存分析进度 | `{ scanned, total, entries }` | `tool/memory-analysis.tsx` |
+
+#### Telepresence 模块事件（前缀：`telepresence:`）
+
+| Event 名称 | 触发场景 | Payload 类型 | 消费模块 |
+|---|---|---|---|
+| `telepresence:connection:status` | 连接状态变化 | `{ status, message }` | `telepresence-manager/` |
+| `telepresence:log:stream` | 日志实时输出 | `{ timestamp, level, message }` | `telepresence-manager/` |
 
 ---
 
-## 五、TypeScript 类型定义
+## 六、TypeScript 类型定义
 
-### 5.1 核心类型 `types/connection.ts`
+### 6.1 核心类型 `types/connection.ts`
 
 ```typescript
 /** 连接配置 */
@@ -745,7 +1142,7 @@ export type RetryStrategy = 'none' | 'fixed' | 'exponential'
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
 ```
 
-### 5.2 核心类型 `types/redis-key.ts`
+### 6.2 核心类型 `types/redis-key.ts`
 
 ```typescript
 export interface RedisKey {
@@ -772,7 +1169,7 @@ export interface KeyTreeNode {
 }
 ```
 
-### 5.3 核心类型 `types/redis-data.ts`
+### 6.3 核心类型 `types/redis-data.ts`
 
 ```typescript
 export interface HashField {
@@ -797,7 +1194,7 @@ export interface SetScanResult {
 }
 ```
 
-### 5.4 核心类型 `types/ipc.ts`
+### 6.4 核心类型 `types/ipc.ts`
 
 ```typescript
 /** IPC 统一响应 */
@@ -811,7 +1208,7 @@ export interface IpcError {
   detail?: string
 }
 
-/** Tauri Event Payload 类型 */
+/** Redis 模块事件 Payload 类型（前缀: redis:） */
 export interface ScanProgressEvent {
   cursor: number
   keys: string[]
@@ -839,51 +1236,89 @@ export interface CommandLogEvent {
   command: string
   duration: number
 }
+
+/** Telepresence 模块事件 Payload 类型（前缀: telepresence:） */
+export interface TelepresenceStatusEvent {
+  status: 'connected' | 'disconnected' | 'connecting' | 'error'
+  message?: string
+}
+
+export interface TelepresenceLogEvent {
+  timestamp: number
+  level: 'info' | 'warn' | 'error'
+  message: string
+}
 ```
 
 ---
 
-## 六、模块独立可测试性设计
+## 七、模块独立可测试性设计
 
-### 6.1 前端模块测试策略
-
-| 模块 | 测试方式 | 独立性保证 |
-|---|---|---|
-| `connection/` | Mock `connection-service.ts` 测试组件交互 | 组件不直接调用 Tauri invoke |
-| `key/` | Mock `key-service.ts` + VTable 渲染测试 | VTable 实例通过 `use-vtable.ts` 管理 |
-| `content/` | Mock `data-service.ts` 测试各类型编辑器 | 每个编辑器组件完全独立 |
-| `tool/` | Mock `cli-service.ts` + `tool-service.ts` | CLI 输出通过 Events 接收 |
-| `viewer/` | Mock `viewer-service.ts` 测试格式检测 | 查看器组件无状态依赖 |
-| `services/` | Mock Tauri invoke 测试 IPC 调用 | Service 层是唯一调用 Tauri 的地方 |
-
-### 6.2 后端模块测试策略
+### 7.1 前端模块测试策略
 
 | 模块 | 测试方式 | 独立性保证 |
 |---|---|---|
-| `connection/` | 单元测试 + 本地 Redis 集成测试 | `ConnectionManager` 可注入 Mock Redis 客户端 |
-| `key/` | 单元测试 + 本地 Redis 集成测试 | 依赖 `redis_client` trait，可 Mock |
-| `data/` | 各子服务独立单元测试 | 每个子服务（hash/list/set/...）完全独立 |
-| `cli/` | 命令解析单元测试 + 执行集成测试 | `parser.rs` 纯函数，完全可测试 |
-| `tool/` | INFO 解析单元测试 + 集成测试 | `info_service.rs` 解析逻辑纯函数 |
-| `viewer/` | 格式检测 + 解压/反序列化单元测试 | 使用固定测试数据，不依赖外部 |
-| `tunnel/` | SSH 隧道集成测试（需 SSH 服务器） | 可跳过或使用 Docker 测试环境 |
+| `redis-desktop-manager/` | Mock `services/` 层测试组件交互 | 组件不直接调用 Tauri invoke，所有 IPC 通过 Service 层 |
+| `telepresence-manager/` | Mock `services/` 层测试组件交互 | 完全独立的模块，不依赖 Redis 模块 |
+| `_shared/` | 独立单元测试 | 纯逻辑，无 UI 依赖 |
+| `components/` (全局) | 组件单元测试 | 无业务逻辑依赖 |
+
+### 7.2 后端模块测试策略
+
+| 模块 | 测试方式 | 独立性保证 |
+|---|---|---|
+| `redis-desktop/connection/` | 单元测试 + 本地 Redis 集成测试 | `RedisConnectionManager` 实现 `ConnectionManager` trait，可注入 Mock |
+| `redis-desktop/key/` | 单元测试 + 本地 Redis 集成测试 | 依赖 `redis_client` trait，可 Mock |
+| `redis-desktop/data/` | 各子服务独立单元测试 | 每个子服务（hash/list/set/...）完全独立 |
+| `redis-desktop/cli/` | 命令解析单元测试 + 执行集成测试 | `parser.rs` 纯函数，完全可测试 |
+| `redis-desktop/tool/` | INFO 解析单元测试 + 集成测试 | `info_service.rs` 解析逻辑纯函数 |
+| `redis-desktop/viewer/` | 格式检测 + 解压/反序列化单元测试 | 使用固定测试数据，不依赖外部 |
+| `redis-desktop/tunnel/` | SSH 隧道集成测试（需 SSH 服务器） | 可跳过或使用 Docker 测试环境 |
+| `telepresence/` | 命令构建单元测试 + 集成测试 | Mock `Command::new("telepresence")` |
 | `storage/` | Tauri Store 单元测试 | 使用临时目录 |
 
-### 6.3 关键设计模式
+### 7.3 关键设计模式
 
-1. **Service 层隔离**：前端所有 Tauri invoke 调用都封装在 `services/` 层，组件只调用 Service 函数
-2. **Trait 抽象**：后端通过 Rust trait 定义 Redis 客户端接口，支持 Mock 注入
-3. **事件驱动**：流式数据（SCAN/Pub/Sub/MONITOR）通过 Tauri Events 推送，前后端解耦
-4. **类型安全**：前后端通过 `types/ipc.ts` 和 Rust struct 共享接口定义
-5. **模块边界**：每个模块有独立的 `mod.rs`、`commands.rs`、`service.rs`、`models.rs`，职责清晰
+1. **Tauri Plugin 隔离**：每个模块域注册为独立 Tauri Plugin，模块间零耦合
+2. **Service 层隔离**：前端所有 Tauri invoke 调用都封装在模块私有的 `services/` 层
+3. **Trait 抽象**：后端通过 `ConnectionManager<C>` trait 统一连接管理，支持 Mock 注入
+4. **事件命名空间**：所有事件使用 `{模块前缀}:{事件名}` 格式，避免冲突
+5. **模块自包含**：每个前端模块拥有独立的 types/services/composables/components
+6. **跨模块通信**：通过 `_shared/use-module-bus.ts` 进行受控的模块间通信
+7. **类型安全**：前后端通过 `types/ipc.ts` 和 Rust struct 共享接口定义
 
 ---
 
-## 七、技术选型汇总
+## 八、新增模块的标准流程
+
+> 当需要新增一个工具模块时，按以下步骤操作：
+
+### 8.1 后端新增模块
+
+1. 在 `src-tauri/src/modules/` 下创建新模块目录（如 `k8s-manager/`）
+2. 创建 `mod.rs`，定义 `pub fn plugin<R: Runtime>() -> TauriPlugin<R>`
+3. 创建 `commands.rs` / `service.rs` / `models.rs`
+4. 如需连接管理，创建 `manager.rs` 并实现 `ConnectionManager<C>` trait
+5. 在 `mod.rs` 中注册所有 Tauri Commands
+6. 在 `lib.rs` 中添加 `.plugin(modules::k8s_manager::plugin())`
+7. 编写集成测试
+
+### 8.2 前端新增模块
+
+1. 在 `src/modules/` 下创建新模块目录（如 `k8s-manager/`）
+2. 创建完整的 `types/` / `services/` / `composables/` / `components/` 目录
+3. 创建 `index.tsx` 作为模块入口组件
+4. 在 `sidebar.tsx` 的 `navItems` 中添加导航项
+5. 在 `app.tsx` 的 `renderMainContent` 中添加路由分支
+6. 如需跨模块通信，通过 `_shared/use-module-bus.ts` 注册事件
+
+---
+
+## 九、技术选型汇总
 
 | 领域 | 选型 | 版本 | 说明 |
 |---|---|---|---|
-| **桌面框架** | Tauri | 2.x | Rust 后端 + WebView 前端 |
+| **桌面框架** | Tauri | 2.x | Rust 后端 + WebView 前端，Plugin 化架构 |
 | **前端框架** | Vue 3 | 3.5+ | Composition API + TSX |
 | **UI 库** | Element Plus | 2.x | 全局注册，仅用于对话框/表单/菜单等 |
 | **表格/树/虚拟列表** | @visactor/vtable | latest | Canvas 渲染，统一替代 vxe-table + vue-virtual-scroller + vue-easy-tree |
@@ -898,3 +1333,4 @@ export interface CommandLogEvent {
 | **错误处理** | thiserror + anyhow | latest | Rust 错误处理最佳实践 |
 | **序列化** | serde + serde_json | latest | Rust 序列化框架 |
 | **存储** | tauri-plugin-store | 2.x | Tauri 官方存储插件 |
+| **异步 trait** | async-trait | latest | Rust async trait 支持 |
