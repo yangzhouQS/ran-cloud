@@ -249,21 +249,21 @@
 
 | 编号 | 任务 | 预计工时 | 负责人 | 依赖 | 状态 | 完成日期 |
 |---|---|---|---|---|---|---|
-| 0-1 | Rust 域驱动模块结构搭建（`modules/redis-desktop/` + `modules/telepresence/` + `modules/storage/` + `shared/`） | 4h | 后端 | 无 | [ ] | |
-| 0-2 | Tauri Plugin 注册机制搭建（`modules/redis-desktop/mod.rs::plugin()` + `lib.rs` 注册） | 4h | 后端 | 0-1 | [ ] | |
-| 0-3 | `ConnectionManager<C>` trait 定义（`shared/connection.rs`） | 4h | 后端 | 0-1 | [ ] | |
-| 0-4 | 全局错误处理框架（`shared/error.rs` + `shared/result.rs`，thiserror + anyhow） | 4h | 后端 | 0-1 | [ ] | |
-| 0-5 | 事件命名空间工具（`shared/event.rs` + `redis_event!` 宏） | 2h | 后端 | 0-1 | [ ] | |
-| 0-6 | Tauri Store 存储服务（`modules/storage/` Plugin） | 8h | 后端 | 0-2, 0-4 | [ ] | |
-| 0-7 | 定义 Tauri Command 接口（前后端 IPC 协议骨架） | 8h | 全栈 | 0-2, 0-5 | [ ] | |
-| 0-8 | 前端模块自包含结构搭建（`modules/redis-desktop-manager/` + services/types/composables 骨架） | 4h | 前端 | 无 | [ ] | |
-| 0-9 | 前端跨模块通信总线（`modules/_shared/use-module-bus.ts`） | 4h | 前端 | 0-8 | [ ] | |
-| 0-10 | 前端路由系统（Vue Router + 多页面：主窗口 / Redis 独立窗口 / 设置 / 关于） | 8h | 前端 | 0-8 | [ ] | |
-| 0-11 | 前端布局框架（三栏布局 + 侧边栏 + 分类面板） | 8h | 前端 | 0-10 | [ ] | |
-| 0-12 | Element Plus 暗黑主题集成 | 4h | 前端 | 0-11 | [ ] | |
-| 0-13 | vue-i18n 9.x 国际化框架搭建（中英文） | 8h | 前端 | 0-10 | [ ] | |
+| 0-1 | Rust 域驱动模块结构搭建（`modules/redis_desktop/` + `modules/telepresence/` + `shared/`） | 4h | 后端 | 无 | [x] | 2026-05-15 |
+| 0-2 | Tauri Plugin 注册机制搭建（`modules/redis_desktop/mod.rs::plugin()` + `lib.rs` 注册） | 4h | 后端 | 0-1 | [x] | 2026-05-15 |
+| 0-3 | `ConnectionManager<C>` trait 定义（`shared/connection.rs`） | 4h | 后端 | 0-1 | [x] | 2026-05-15 |
+| 0-4 | 全局错误处理框架（`shared/error.rs` + `shared/result.rs`，thiserror + anyhow） | 4h | 后端 | 0-1 | [x] | 2026-05-15 |
+| 0-5 | 事件命名空间工具（`shared/event.rs` + `redis_event!` 宏） | 2h | 后端 | 0-1 | [x] | 2026-05-15 |
+| 0-6 | Tauri Store 存储服务（`modules/redis_desktop/storage/` Plugin） | 8h | 后端 | 0-2, 0-4 | [x] | 2026-05-15 |
+| 0-7 | 定义 Tauri Command 接口（前后端 IPC 协议骨架，48 个 command） | 8h | 全栈 | 0-2, 0-5 | [x] | 2026-05-15 |
+| 0-8 | 前端模块自包含结构搭建（`modules/redis-desktop-manager/` + services/types/composables 骨架） | 4h | 前端 | 无 | [x] | 2026-05-15 |
+| 0-9 | 前端跨模块通信总线（`modules/_shared/use-module-bus.ts`，mitt + typed events） | 4h | 前端 | 0-8 | [x] | 2026-05-15 |
+| 0-10 | 前端路由系统（Vue Router 5.x hash 模式 + 4 页面懒加载） | 8h | 前端 | 0-8 | [x] | 2026-05-15 |
+| 0-11 | 前端布局框架（三栏布局 + 侧边栏 + 分类面板） | 8h | 前端 | 0-10 | [x] | 2026-05-15 |
+| 0-12 | Element Plus 暗黑主题集成（useTheme composable + dark-theme.css CSS 变量） | 4h | 前端 | 0-11 | [x] | 2026-05-15 |
+| 0-13 | vue-i18n 11.x 国际化框架搭建（中英文 Composition API 模式） | 8h | 前端 | 0-10 | [x] | 2026-05-15 |
 
-**里程碑 M0**：✅ 空壳应用可运行，三栏布局正常，暗黑模式切换正常，Plugin 注册机制就绪
+**里程碑 M0**：✅ 空壳应用可运行，三栏布局正常，暗黑模式切换正常，Plugin 注册机制就绪，Rsbuild 构建零错误
 
 **总工时**：70h
 
@@ -543,20 +543,20 @@ src/
 
 | Phase | 任务数 | 已完成 | 进行中 | 未开始 | 完成率 | 预计工期 |
 |---|---|---|---|---|---|---|
-| Phase 0 | 13 | 0 | 0 | 13 | 0% | 2.5 周 |
+| Phase 0 | 13 | 13 | 0 | 0 | 100% | 2.5 周 |
 | Phase 1 | 14 | 0 | 0 | 14 | 0% | 3.5 周 |
 | Phase 2 | 15 | 0 | 0 | 15 | 0% | 3 周 |
 | Phase 3 | 12 | 0 | 0 | 12 | 0% | 3 周 |
 | Phase 4 | 17 | 0 | 0 | 17 | 0% | 2 周 |
 | Phase 5 | 16 | 0 | 0 | 16 | 0% | 2 周 |
 | Phase 6 | 10 | 0 | 0 | 10 | 0% | 2 周 |
-| **总计** | **97** | **0** | **0** | **97** | **0%** | **18 周** |
+| **总计** | **97** | **13** | **0** | **84** | **13%** | **18 周** |
 
 ### 7.2 里程碑检查点
 
 | 里程碑 | 验收标准 | 目标日期 | 实际日期 | 状态 |
 |---|---|---|---|---|
-| M0: 基础框架 | 三栏布局可运行，暗黑模式切换，Plugin 注册就绪 | Week 2.5 | - | [ ] |
+| M0: 基础框架 | 三栏布局可运行，暗黑模式切换，Plugin 注册就绪 | Week 2.5 | 2026-05-15 | [x] |
 | M1: 核心连接 | 可连接 Standalone Redis，浏览 Key，多标签页可用 | Week 6 | - | [ ] |
 | M2: 数据编辑 | 6 种数据类型可查看/编辑，基础查看器可用 | Week 9 | - | [ ] |
 | M3: 高级连接 | Cluster/Sentinel/SSH/SSL 全部可用 | Week 12 | - | [ ] |
