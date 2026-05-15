@@ -1,0 +1,35 @@
+# Dependencies
+ran-rs-desktop/node_modules/
+
+# Build output
+dist/
+dist-ssr/
+ran-rs-desktop/dist/
+
+# Rsbuild
+*.local
+
+# Tauri (Rust 编译产物，体积巨大)
+ran-rs-desktop/src-tauri/target/
+ran-rs-desktop/src-tauri/Cargo.lock
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
