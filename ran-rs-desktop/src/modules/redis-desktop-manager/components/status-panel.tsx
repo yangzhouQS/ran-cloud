@@ -80,6 +80,7 @@ const StatusPanel = defineComponent({
     const fetchAllInfo = async () => {
       try {
         const info = await redisToolServerInfo(props.connectionId);
+
         const lines: { key: string; value: string; section: string }[] = [];
         const dbs: DatabaseInfo[] = [];
 
@@ -275,7 +276,7 @@ const StatusPanel = defineComponent({
             {/* 全部 Redis INFO */}
             <div class={ns.e("section")}>
               <div class={ns.e("section-header")}>
-                <span>全部 Redis INFO</span>
+                <span>全部 Redis INFO（{filteredInfo.value.length} 条）</span>
                 <el-input
                   modelValue={allInfoFilter.value}
                   onUpdate:modelValue={(val: string) => {
@@ -285,9 +286,8 @@ const StatusPanel = defineComponent({
                   placeholder="搜索..."
                   clearable
                   class={ns.e("filter-input")}
-                >
-                  {{ suffix: () => <el-icon><Search /></el-icon> }}
-                </el-input>
+                  v-slots={{ suffix: () => <el-icon><Search /></el-icon> }}
+                />
               </div>
               <el-table
                 data={filteredInfo.value}
@@ -297,7 +297,7 @@ const StatusPanel = defineComponent({
                 max-height={400}
                 border
               >
-                <el-table-column prop="section" label="Section" width="130" sortable filters={Array.from(new Set(allInfo.value.map(i => i.section))).map(s => ({ text: s, value: s }))} filterPlacement="bottom-end" />
+                <el-table-column prop="section" label="Section" width="130" sortable />
                 <el-table-column prop="key" label="Key" width="300" sortable />
                 <el-table-column prop="value" label="Value" show-overflow-tooltip />
               </el-table>
