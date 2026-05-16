@@ -1,12 +1,17 @@
 // modules/redis_desktop/tool/commands.rs — tool Tauri Commands
-// slow log, memory analysis, status monitoring, command log
+// slow log, memory analysis, status monitoring, command log, flush db
 
+use std::sync::Arc;
 use tauri::AppHandle;
 
 use crate::shared::error::AppError;
 use crate::shared::result::AppResult;
+use crate::modules::redis_desktop::connection::RedisConnectionManager;
 use crate::modules::redis_desktop::tool::models::*;
-use crate::modules::redis_desktop::tool::service::CommandLogService;
+use crate::modules::redis_desktop::tool::service::{
+    ClientListService, CommandLogService, FlushDbService, InfoService,
+    MemoryAnalysisService, SlowLogService,
+};
 
 // ==================== command log ====================
 
@@ -46,12 +51,13 @@ pub async fn redis_tool_command_log_init(
 /// get slow log list
 #[tauri::command]
 pub async fn redis_tool_slow_log(
-    _connection_id: String,
+    manager: tauri::State<'_, Arc<RedisConnectionManager>>,
+    connection_id: String,
     _db: u32,
-    _count: u64,
+    count: u64,
 ) -> AppResult<Vec<SlowLogEntry>> {
-    // TODO: Phase 4
-    Err(AppError::Internal("redis_tool_slow_log not implemented".to_string()))
+    let client = manager.get_client(&connection_id)?;
+    SlowLogService::get_slow_log(&client, count).await
 }
 
 // ==================== memory analysis ====================
@@ -59,12 +65,13 @@ pub async fn redis_tool_slow_log(
 /// execute memory analysis (scan big keys)
 #[tauri::command]
 pub async fn redis_tool_memory_analysis(
-    _connection_id: String,
+    manager: tauri::State<'_, Arc<RedisConnectionManager>>,
+    connection_id: String,
     _db: u32,
-    _sample_count: Option<u64>,
+    sample_count: Option<u64>,
 ) -> AppResult<MemoryAnalysisResult> {
-    // TODO: Phase 4
-    Err(AppError::Internal("redis_tool_memory_analysis not implemented".to_string()))
+    let client = manager.get_client(&connection_id)?;
+    MemoryAnalysisService::analyze(&client, sample_count).await
 }
 
 // ==================== server status ====================
@@ -72,36 +79,62 @@ pub async fn redis_tool_memory_analysis(
 /// get server status overview
 #[tauri::command]
 pub async fn redis_tool_server_status(
-    _connection_id: String,
+    manager: tauri::State<'_, Arc<RedisConnectionManager>>,
+    connection_id: String,
 ) -> AppResult<ServerStatus> {
-    // TODO: Phase 4
-    Err(AppError::Internal("redis_tool_server_status not implemented".to_string()))
+    let client = manager.get_client(&connection_id)?;
+    InfoService::get_server_status(&client).await
 }
 
 /// get database list with details
 #[tauri::command]
 pub async fn redis_tool_database_list(
-    _connection_id: String,
+    manager: tauri::State<'_, Arc<RedisConnectionManager>>,
+    connection_id: String,
 ) -> AppResult<Vec<DatabaseInfo>> {
-    // TODO: Phase 4
-    Err(AppError::Internal("redis_tool_database_list not implemented".to_string()))
+    let client = manager.get_client(&connection_id)?;
+    InfoService::get_database_list(&client).await
 }
 
 /// get full server info (INFO command)
 #[tauri::command]
 pub async fn redis_tool_server_info(
-    _connection_id: String,
-    _section: Option<String>,
+    manager: tauri::State<'_, Arc<RedisConnectionManager>>,
+    connection_id: String,
+    section: Option<String>,
 ) -> AppResult<ServerInfo> {
-    // TODO: Phase 4
-    Err(AppError::Internal("redis_tool_server_info not implemented".to_string()))
+    let client = manager.get_client(&connection_id)?;
+    InfoService::get_server_info(&client, section.as_deref()).await
 }
 
 /// get client list
 #[tauri::command]
 pub async fn redis_tool_client_list(
-    _connection_id: String,
+    manager: tauri::State<'_, Arc<RedisConnectionManager>>,
+    connection_id: String,
 ) -> AppResult<Vec<std::collections::HashMap<String, String>>> {
-    // TODO: Phase 4
-    Err(AppError::Internal("redis_tool_client_list not implemented".to_string()))
+    let client = manager.get_client(&connection_id)?;
+    ClientListService::get_client_list(&client).await
+}
+
+// ==================== flush database ====================
+
+/// flush current database (FLUSHDB)
+#[tauri::command]
+pub async fn redis_tool_flush_db(
+    manager: tauri::State<'_, Arc<RedisConnectionManager>>,
+    connection_id: String,
+) -> AppResult<String> {
+    let client = manager.get_client(&connection_id)?;
+    FlushDbService::flush_db(&client).await
+}
+
+/// flush all databases (FLUSHALL)
+#[tauri::command]
+pub async fn redis_tool_flush_all(
+    manager: tauri::State<'_, Arc<RedisConnectionManager>>,
+    connection_id: String,
+) -> AppResult<String> {
+    let client = manager.get_client(&connection_id)?;
+    FlushDbService::flush_all(&client).await
 }

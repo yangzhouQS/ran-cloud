@@ -1,5 +1,6 @@
 // modules/redis_desktop/shared/redis_client.rs — Redis 客户端封装
-// 对 redis crate 的 MultiplexedConnection 进行封装，支持命令拦截、超时控制、重连
+// 支持 Standalone / Cluster / Sentinel 多种连接模式
+// 对 redis crate 的连接进行封装，支持命令拦截、超时控制、重连
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -11,15 +12,53 @@ use tokio::sync::Mutex;
 
 use crate::shared::constants::DEFAULT_COMMAND_TIMEOUT_SECS;
 
+/// 内部连接类型枚举
+/// 支持 Standalone（单机/哨兵发现的 master）和 Cluster（集群）两种模式
+enum InnerConnection {
+    /// 单机模式：使用 MultiplexedConnection
+    Standalone(MultiplexedConnection),
+    /// 集群模式：使用 ClusterConnection
+    Cluster(redis::cluster_async::ClusterConnection),
+}
+
+impl InnerConnection {
+    /// 执行 Redis 命令（带超时）
+    async fn req_packed_command(&mut self, cmd: &Cmd) -> RedisResult<Value> {
+        match self {
+            InnerConnection::Standalone(conn) => conn.req_packed_command(cmd).await,
+            InnerConnection::Cluster(conn) => conn.req_packed_command(cmd).await,
+        }
+    }
+
+    /// 执行 Pipeline
+    async fn req_packed_commands(
+        &mut self,
+        pipeline: &redis::Pipeline,
+        offset: usize,
+        count: usize,
+    ) -> RedisResult<Vec<Value>> {
+        match self {
+            InnerConnection::Standalone(conn) => {
+                pipeline.query_async(conn).await
+            }
+            InnerConnection::Cluster(conn) => {
+                pipeline.query_async(conn).await
+            }
+        }
+    }
+}
+
 /// Redis 客户端封装
-/// 内部持有异步多路复用连接，提供带超时的命令执行
+/// 内部持有异步连接，支持 Standalone / Cluster 模式
 pub struct RedisClient {
     /// 连接名称（用于日志和调试）
     name: String,
-    /// 异步多路复用连接
-    conn: Arc<Mutex<Option<MultiplexedConnection>>>,
+    /// 异步连接
+    conn: Arc<Mutex<Option<InnerConnection>>>,
     /// 命令超时
     command_timeout: Duration,
+    /// 是否为集群模式
+    is_cluster: bool,
 }
 
 impl RedisClient {
@@ -33,10 +72,11 @@ impl RedisClient {
             name,
             conn: Arc::new(Mutex::new(None)),
             command_timeout: timeout,
+            is_cluster: false,
         }
     }
 
-    /// 通过连接字符串建立连接
+    /// 通过连接字符串建立 Standalone 连接
     pub async fn connect(&self, connection_string: &str) -> RedisResult<()> {
         let client = redis::Client::open(connection_string)?;
         let conn = client
@@ -44,23 +84,92 @@ impl RedisClient {
             .await?;
 
         let mut guard = self.conn.lock().await;
-        *guard = Some(conn);
+        *guard = Some(InnerConnection::Standalone(conn));
 
-        log::info!("[RedisClient:{}] 已连接: {}", self.name, connection_string);
+        log::info!("[RedisClient:{}] 已连接 (Standalone): {}", self.name, connection_string);
         Ok(())
     }
 
-    /// 通过 redis::Client 建立（支持更多配置项）
+    /// 通过 redis::Client 建立 Standalone 连接（支持更多配置项）
     pub async fn connect_with_client(&self, client: redis::Client) -> RedisResult<()> {
         let conn = client
             .get_multiplexed_async_connection()
             .await?;
 
         let mut guard = self.conn.lock().await;
-        *guard = Some(conn);
+        *guard = Some(InnerConnection::Standalone(conn));
 
-        log::info!("[RedisClient:{}] 已连接", self.name);
+        log::info!("[RedisClient:{}] 已连接 (Standalone via Client)", self.name);
         Ok(())
+    }
+
+    /// 通过节点列表建立 Cluster 连接
+    /// nodes 格式: ["redis://host:port", "redis://host:port"]
+    pub async fn connect_cluster(&mut self, nodes: Vec<String>) -> RedisResult<()> {
+        let client = redis::cluster::ClusterClient::new(nodes)?;
+        let conn = client
+            .get_async_connection()
+            .await?;
+
+        let mut guard = self.conn.lock().await;
+        *guard = Some(InnerConnection::Cluster(conn));
+        self.is_cluster = true;
+
+        log::info!("[RedisClient:{}] 已连接 (Cluster)", self.name);
+        Ok(())
+    }
+
+    /// 通过 ClusterClientBuilder 建立带配置的 Cluster 连接
+    pub async fn connect_cluster_with_builder(
+        &mut self,
+        builder: redis::cluster::ClusterClientBuilder,
+    ) -> RedisResult<()> {
+        let client = builder.build()?;
+        let conn = client
+            .get_async_connection()
+            .await?;
+
+        let mut guard = self.conn.lock().await;
+        *guard = Some(InnerConnection::Cluster(conn));
+        self.is_cluster = true;
+
+        log::info!("[RedisClient:{}] 已连接 (Cluster with config)", self.name);
+        Ok(())
+    }
+
+    /// 通过 Sentinel 发现 master 并建立 Standalone 连接
+    /// 返回 master 地址信息
+    pub async fn connect_via_sentinel(
+        &mut self,
+        sentinel_nodes: Vec<String>,
+        master_name: &str,
+        sentinel_password: Option<&str>,
+        sentinel_username: Option<&str>,
+        node_password: Option<&str>,
+        db: u32,
+    ) -> RedisResult<(String, u16)> {
+        // 连接到 Sentinel 并发现 master
+        let master_info = discover_sentinel_master(
+            &sentinel_nodes,
+            master_name,
+            sentinel_password,
+            sentinel_username,
+        ).await?;
+
+        // 使用发现的 master 地址建立 Standalone 连接
+        let auth = match node_password {
+            Some(pwd) if !pwd.is_empty() => format!(":{}@", pwd),
+            _ => String::new(),
+        };
+        let connection_string = format!("redis://{}{}:{}/{}", auth, master_info.0, master_info.1, db);
+        self.connect(&connection_string).await?;
+
+        log::info!(
+            "[RedisClient:{}] 已通过 Sentinel 连接到 master {}:{}",
+            self.name, master_info.0, master_info.1
+        );
+
+        Ok(master_info)
     }
 
     /// 执行 Redis 命令（带超时），返回原始 Value
@@ -102,7 +211,7 @@ impl RedisClient {
 
         tokio::time::timeout(
             self.command_timeout,
-            pipeline.query_async(conn),
+            conn.req_packed_commands(pipeline, 0, 0),
         )
             .await
             .map_err(|_| redis::RedisError::from(std::io::Error::new(
@@ -136,6 +245,11 @@ impl RedisClient {
     /// 获取连接名称
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    /// 是否为集群模式
+    pub fn is_cluster_mode(&self) -> bool {
+        self.is_cluster
     }
 
     // ==================== 数据库操作 ====================
@@ -583,6 +697,141 @@ impl RedisClient {
         self.run_command(&cmd).await
     }
 
+    // ==================== 集群节点发现 ====================
+
+    /// 执行 CLUSTER NODES 命令，返回原始文本
+    pub async fn cluster_nodes(&self) -> RedisResult<String> {
+        let mut cmd = Cmd::new();
+        cmd.arg("CLUSTER").arg("NODES");
+        self.run_command_async(&cmd).await
+    }
+
+    /// 解析 CLUSTER NODES 输出，返回节点信息列表
+    /// CLUSTER NODES 输出格式:
+    /// <id> <ip:port@cport> <flags> <master> <ping-sent> <pong-recv> <config-epoch> <link-state> <slot> ...
+    pub fn parse_cluster_nodes(output: &str) -> Vec<crate::modules::redis_desktop::connection::models::ClusterNodeInfo> {
+        let mut nodes = Vec::new();
+
+        for line in output.lines() {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() < 3 {
+                continue;
+            }
+
+            let node_id = parts[0].to_string();
+
+            // 解析地址: ip:port@cport 或 [ipv6]:port@cport
+            let addr_part = parts[1];
+            // 去掉 @cport 部分
+            let addr_str = if let Some(at_pos) = addr_part.rfind('@') {
+                &addr_part[..at_pos]
+            } else {
+                addr_part
+            };
+
+            // 解析 host:port（处理 IPv6）
+            let (host, port) = if addr_str.starts_with('[') {
+                // IPv6: [::1]:6379
+                if let Some(bracket_end) = addr_str.find("]:") {
+                    let host = addr_str[..=bracket_end].to_string();
+                    let port_str = &addr_str[bracket_end + 2..];
+                    let port = port_str.parse::<u16>().unwrap_or(6379);
+                    (host, port)
+                } else {
+                    continue;
+                }
+            } else {
+                // IPv4: 127.0.0.1:6379
+                let last_colon = addr_str.rfind(':').unwrap_or(0);
+                if last_colon == 0 {
+                    continue;
+                }
+                let host = addr_str[..last_colon].to_string();
+                let port = addr_str[last_colon + 1..].parse::<u16>().unwrap_or(6379);
+                (host, port)
+            };
+
+            let flags = parts[2].to_string();
+            let is_master = flags.contains("master");
+
+            nodes.push(crate::modules::redis_desktop::connection::models::ClusterNodeInfo {
+                node_id,
+                host,
+                port,
+                flags,
+                is_master,
+            });
+        }
+
+        nodes
+    }
+
+    /// 通过节点地址列表建立 Cluster 连接（支持 NAT 映射）
+    /// nodes 格式: ["redis://host:port", ...]
+    /// nat_map: 内部地址 → 外部地址的映射（用于 Docker/NAT 环境）
+    pub async fn connect_cluster_with_nat_map(
+        &mut self,
+        initial_nodes: Vec<String>,
+        nat_map: Option<&std::collections::HashMap<String, crate::modules::redis_desktop::connection::models::NatMapEntry>>,
+    ) -> RedisResult<()> {
+        // 如果有 NAT 映射，需要将内部地址替换为外部地址
+        let resolved_nodes = if let Some(map) = nat_map {
+            if map.is_empty() {
+                initial_nodes
+            } else {
+                initial_nodes
+                    .into_iter()
+                    .map(|node| {
+                        // 从 redis://host:port 提取 host:port
+                        let addr = node
+                            .trim_start_matches("redis://")
+                            .trim_start_matches("rediss://");
+                        // 去掉认证部分
+                        let addr = if let Some(at_pos) = addr.rfind('@') {
+                            &addr[at_pos + 1..]
+                        } else {
+                            addr
+                        };
+
+                        if let Some(entry) = map.get(addr) {
+                            // 替换为映射地址
+                            let auth_part = if let Some(at_pos) = node.rfind('@') {
+                                let prefix = if node.starts_with("redis://") {
+                                    "redis://"
+                                } else {
+                                    "rediss://"
+                                };
+                                format!("{}{}", prefix, &node[prefix.len()..=at_pos])
+                            } else {
+                                "redis://".to_string()
+                            };
+                            format!("{}{}:{}", auth_part, entry.host, entry.port)
+                        } else {
+                            node
+                        }
+                    })
+                    .collect()
+            }
+        } else {
+            initial_nodes
+        };
+
+        let client = redis::cluster::ClusterClient::new(resolved_nodes)?;
+        let conn = client.get_async_connection().await?;
+
+        let mut guard = self.conn.lock().await;
+        *guard = Some(InnerConnection::Cluster(conn));
+        self.is_cluster = true;
+
+        log::info!("[RedisClient:{}] 已连接 (Cluster with NAT map)", self.name);
+        Ok(())
+    }
+
     // ==================== 工具方法 ====================
 
     /// 获取 Redis 版本（从 INFO Server 解析）
@@ -594,5 +843,75 @@ impl RedisClient {
             }
         }
         Ok("unknown".to_string())
+    }
+}
+
+// ==================== Sentinel 辅助函数 ====================
+
+/// 通过 Sentinel 发现 master 地址
+/// 返回 (host, port)
+async fn discover_sentinel_master(
+    sentinel_nodes: &[String],
+    master_name: &str,
+    password: Option<&str>,
+    username: Option<&str>,
+) -> RedisResult<(String, u16)> {
+    // 尝试连接到任意一个 Sentinel 节点
+    let mut last_error = None;
+
+    for node in sentinel_nodes {
+        // 解析节点地址
+        let node_url = if let Some(pwd) = password {
+            if let Some(user) = username {
+                format!("redis://{}:{}@{}", user, pwd, node.replace("redis://", ""))
+            } else {
+                format!("redis://:{}@{}", pwd, node.replace("redis://", ""))
+            }
+        } else {
+            if node.starts_with("redis://") {
+                node.clone()
+            } else {
+                format!("redis://{}", node)
+            }
+        };
+
+        match try_sentinel_master(&node_url, master_name).await {
+            Ok(info) => return Ok(info),
+            Err(e) => {
+                log::warn!("[Sentinel] 连接 {} 失败: {}", node, e);
+                last_error = Some(e);
+            }
+        }
+    }
+
+    Err(last_error.unwrap_or_else(|| {
+        redis::RedisError::from(std::io::Error::new(
+            std::io::ErrorKind::NotConnected,
+            "所有 Sentinel 节点均不可达",
+        ))
+    }))
+}
+
+/// 尝试从单个 Sentinel 获取 master 地址
+async fn try_sentinel_master(
+    sentinel_url: &str,
+    master_name: &str,
+) -> RedisResult<(String, u16)> {
+    let client = redis::Client::open(sentinel_url)?;
+    let mut conn = client.get_multiplexed_async_connection().await?;
+
+    // SENTINEL GET-MASTER-ADDR-BY-NAME <master_name>
+    let mut cmd = Cmd::new();
+    cmd.arg("SENTINEL").arg("GET-MASTER-ADDR-BY-NAME").arg(master_name);
+
+    let value = conn.req_packed_command(&cmd).await?;
+    let result: Option<(String, u16)> = redis::from_redis_value(&value)?;
+
+    match result {
+        Some((host, port)) => Ok((host, port)),
+        None => Err(redis::RedisError::from(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            format!("Sentinel 未找到 master: {}", master_name),
+        ))),
     }
 }

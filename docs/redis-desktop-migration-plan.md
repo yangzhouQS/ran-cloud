@@ -121,11 +121,11 @@
 | C-03 | 删除连接 | `ConnectionMenu.vue` | 前端 + Rust `storage/service.rs` | P0 | [x] |
 | C-04 | 连接列表（拖拽排序） | `Connections.vue` + `sortablejs` | 前端 `connection-list.tsx` + `vuedraggable` | P0 | [x] |
 | C-05 | Standalone 连接 | `redisClient.js::createConnection` | Rust `connection/service.rs::connect_standalone` | P0 | [x] |
-| C-06 | Cluster 连接（NAT 映射） | `redisClient.js::createConnection(cluster)` | Rust `connection/service.rs::connect_cluster` | P1 | [ ] |
-| C-07 | Sentinel 连接 | `redisClient.js::createConnection(sentinel)` | Rust `connection/service.rs::connect_sentinel` | P1 | [ ] |
-| C-08 | SSH 隧道连接 | `redisClient.js::createSSHConnection` | Rust `tunnel/service.rs::create_ssh_tunnel` | P1 | [ ] |
-| C-09 | SSH + Cluster 组合 | `redisClient.js` | Rust `tunnel/service.rs` + `connection/service.rs` | P2 | [ ] |
-| C-10 | SSH + Sentinel 组合 | `redisClient.js` | Rust `tunnel/service.rs` + `connection/service.rs` | P2 | [ ] |
+| C-06 | Cluster 连接（NAT 映射） | `redisClient.js::createConnection(cluster)` | Rust `connection/service.rs::connect_cluster` | P1 | [x] |
+| C-07 | Sentinel 连接 | `redisClient.js::createConnection(sentinel)` | Rust `connection/service.rs::connect_sentinel` | P1 | [x] |
+| C-08 | SSH 隧道连接 | `redisClient.js::createSSHConnection` | Rust `tunnel/service.rs::create_ssh_tunnel` | P1 | [x] |
+| C-09 | SSH + Cluster 组合 | `redisClient.js` | Rust `tunnel/service.rs` + `connection/service.rs` | P2 | [x] |
+| C-10 | SSH + Sentinel 组合 | `redisClient.js` | Rust `tunnel/service.rs` + `connection/service.rs` | P2 | [x] |
 | C-11 | SSL/TLS 连接 | `redisClient.js::getTLSOptions` | Rust `connection/service.rs::connect_tls` (native-tls) | P1 | [ ] |
 | C-12 | ACL 用户名认证 | `redisClient.js::getRedisOptions(username)` | Rust `redis-rs` 原生支持 | P0 | [x] |
 | C-13 | 只读模式（命令拦截中间件） | `redisClient.js::sendCommand` 猴子补丁 | Rust `shared/redis_client.rs` 命令拦截层 | P2 | [ ] |
@@ -197,24 +197,24 @@
 
 | # | 功能 | 原文件 | 新实现位置 | 优先级 | 状态 |
 |---|---|---|---|---|---|
-| T-01 | CLI 命令行（自动补全） | `CliTab.vue` + `CliContent.vue` | 前端 `cli-tab.tsx` + Rust `cli/service.rs` | P0 | [ ] |
-| T-02 | 命令历史记录 | `CliTab.vue::initHistoryTips` | Tauri Store 持久化 | P0 | [ ] |
+| T-01 | CLI 命令行（自动补全） | `CliTab.vue` + `CliContent.vue` | 前端 `cli-terminal.tsx` + Rust `cli/service.rs` | P0 | [x] |
+| T-02 | 命令历史记录 | `CliTab.vue::initHistoryTips` | Tauri Store 持久化 | P0 | [x] |
 | T-03 | MULTI/EXEC 事务支持 | `CliTab.vue::multiQueue` | Rust `cli/service.rs` (redis-rs pipeline) | P1 | [ ] |
 | T-04 | SUBSCRIBE/PSUBSCRIBE | `CliTab.vue::subscribeMode` | Rust `cli/service.rs` Pub/Sub + Tauri Events | P1 | [ ] |
 | T-05 | MONITOR 实时监控 | `CliTab.vue::monitorMode` | Rust `tool/monitor_service.rs` + Tauri Events | P1 | [ ] |
-| T-06 | 命令日志（横切中间件） | `CommandLog.vue` + bus 事件 | Rust `shared/redis_client.rs` 拦截 + Tauri Events | P0 | [ ] |
-| T-07 | 服务器状态（INFO 解析） | `Status.vue` | Rust `tool/info_service.rs` → 前端展示 | P0 | [ ] |
-| T-08 | 自动刷新状态 | `Status.vue::autoRefresh` | 前端定时器 + Rust 查询 | P1 | [ ] |
-| T-09 | DB Key 统计 | `Status.vue::initDbKeys` | Rust `tool/info_service.rs` INFO KEYSPACE 解析 | P0 | [ ] |
+| T-06 | 命令日志（横切中间件） | `CommandLog.vue` + bus 事件 | Rust `shared/redis_client.rs` 拦截 + Tauri Events | P0 | [x] |
+| T-07 | 服务器状态（INFO 解析） | `Status.vue` | Rust `tool/info_service.rs` → 前端展示 | P0 | [x] |
+| T-08 | 自动刷新状态 | `Status.vue::autoRefresh` | 前端定时器 + Rust 查询 | P1 | [x] |
+| T-09 | DB Key 统计 | `Status.vue::initDbKeys` | Rust `tool/info_service.rs` INFO KEYSPACE 解析 | P0 | [x] |
 | T-10 | Cluster 节点统计 | `Status.vue::initClusterKeys` | Rust `tool/info_service.rs` 遍历 master 节点 | P1 | [ ] |
-| T-11 | 慢查询日志 | `SlowLog.vue` | Rust `tool/slowlog_service.rs` → 前端 VTable | P1 | [ ] |
-| T-12 | 内存分析 | `MemoryAnalysis.vue` | Rust `tool/memory_service.rs` SCAN + MEMORY USAGE | P2 | [ ] |
+| T-11 | 慢查询日志 | `SlowLog.vue` | Rust `tool/slowlog_service.rs` → 前端 VTable | P1 | [x] |
+| T-12 | 内存分析 | `MemoryAnalysis.vue` | Rust `tool/memory_service.rs` SCAN + MEMORY USAGE | P2 | [x] |
 | T-13 | 右键菜单 | `RightClickMenu.vue` | 前端自定义右键菜单组件 | P1 | [ ] |
 | T-14 | 快捷键系统 | `shortcut.js` + `HotKeys.vue` | `@vueuse/core::useMagicKeys` | P1 | [ ] |
-| T-15 | 多标签页管理（替换/追加/Ctrl+Click/右键菜单） | `Tabs.vue` | 前端 `components/tabs/` 全局组件 | P0 | [ ] |
+| T-15 | 多标签页管理（替换/追加/Ctrl+Click/右键菜单） | `Tabs.vue` | 前端 `components/tab-bar.tsx` | P0 | [x] |
 | T-16 | 更新检查 | `UpdateCheck.vue` | Tauri updater plugin | P2 | [ ] |
 | T-17 | 回到顶部 | `ScrollToTop.vue` | 前端组件 | P2 | [ ] |
-| T-18 | FLUSHDB 清空数据库（二次确认） | `ConnectionMenu.vue::flushDB` | Rust `tool/commands.rs::flush_db` | P1 | [ ] |
+| T-18 | FLUSHDB 清空数据库（二次确认） | `ConnectionMenu.vue::flushDB` | Rust `tool/commands.rs::flush_db` | P1 | [x] |
 | T-19 | 命令文件导入执行 | `ConnectionMenu.vue::importCommands` | Rust `cli/service.rs` + Tauri dialog | P2 | [ ] |
 
 ### 2.6 设置与个性化
@@ -332,17 +332,17 @@
 
 | 编号 | 任务 | 预计工时 | 负责人 | 依赖 | 状态 | 完成日期 |
 |---|---|---|---|---|---|---|
-| 3-0 | POC：redis-rs Cluster 连接验证 + NAT 映射可行性 | 8h | 后端 | 1-1 | [ ] | |
-| 3-1 | Rust Cluster 连接（redis-rs cluster 模式） | 16h | 后端 | 3-0 | [ ] | |
-| 3-2 | Rust Cluster NAT 映射处理 | 8h | 后端 | 3-1 | [ ] | |
-| 3-3 | Rust Sentinel 连接 | 12h | 后端 | 1-1 | [ ] | |
-| 3-4 | POC：ssh2 crate SSH 隧道验证 | 4h | 后端 | 0-3 | [ ] | |
-| 3-5 | Rust SSH 隧道（`tunnel/service.rs`，ssh2 crate + tokio） | 16h | 后端 | 3-4 | [ ] | |
-| 3-6 | Rust SSH + Standalone 组合 | 8h | 后端 | 3-5 | [ ] | |
-| 3-7 | Rust SSH + Cluster 组合（多隧道并发管理） | 12h | 后端 | 3-1, 3-5 | [ ] | |
-| 3-8 | Rust SSH + Sentinel 组合 | 8h | 后端 | 3-3, 3-5 | [ ] | |
-| 3-9 | Rust SSL/TLS 连接（native-tls 或 rustls） | 8h | 后端 | 1-1 | [ ] | |
-| 3-10 | 前端连接表单扩展（SSH/SSL/Sentinel/Cluster 配置） | 16h | 前端 | 1-6 | [ ] | |
+| 3-0 | POC：redis-rs Cluster 连接验证 + NAT 映射可行性 | 8h | 后端 | 1-1 | [x] | 2026-05-15 |
+| 3-1 | Rust Cluster 连接（redis-rs cluster 模式） | 16h | 后端 | 3-0 | [x] | 2026-05-15 |
+| 3-2 | Rust Cluster NAT 映射处理 | 8h | 后端 | 3-1 | [x] | 2026-05-16 |
+| 3-3 | Rust Sentinel 连接 | 12h | 后端 | 1-1 | [x] | 2026-05-15 |
+| 3-4 | POC：ssh2 crate SSH 隧道验证 | 4h | 后端 | 0-3 | [x] | 2026-05-15 |
+| 3-5 | Rust SSH 隧道（`tunnel/service.rs`，ssh2 crate + tokio） | 16h | 后端 | 3-4 | [x] | 2026-05-15 |
+| 3-6 | Rust SSH + Standalone 组合 | 8h | 后端 | 3-5 | [x] | 2026-05-15 |
+| 3-7 | Rust SSH + Cluster 组合（多隧道并发管理） | 12h | 后端 | 3-1, 3-5 | [x] | 2026-05-16 |
+| 3-8 | Rust SSH + Sentinel 组合 | 8h | 后端 | 3-3, 3-5 | [x] | 2026-05-16 |
+| 3-9 | Rust SSL/TLS 连接（native-tls 或 rustls） | 8h | 后端 | 1-1 | [~] | 延后（需 tokio-rustls） |
+| 3-10 | 前端连接表单扩展（SSH/SSL/Sentinel/Cluster 配置） | 16h | 前端 | 1-6 | [x] | 2026-05-15 |
 | 3-11 | 前端文件选择器（SSH Key/SSL 证书，Tauri dialog plugin） | 8h | 前端 | 3-10 | [ ] | |
 | 3-12 | 集成测试：所有连接模式 | 16h | 全栈 | 3-1~3-11 | [ ] | |
 
@@ -358,19 +358,19 @@
 
 | 编号 | 任务 | 预计工时 | 负责人 | 依赖 | 状态 | 完成日期 |
 |---|---|---|---|---|---|---|
-| 4-1 | Rust 命令执行引擎（`cli/service.rs`，任意 Redis 命令解析 + 执行） | 12h | 后端 | 1-1 | [ ] | |
-| 4-2 | Rust 命令参数解析器（`cli/parser.rs`） | 4h | 后端 | 4-1 | [ ] | |
-| 4-3 | Rust 命令自动补全（`cli/autocomplete.rs`） | 4h | 后端 | 4-1 | [ ] | |
+| 4-1 | Rust 命令执行引擎（`cli/service.rs`，任意 Redis 命令解析 + 执行） | 12h | 后端 | 1-1 | [x] | 2026-05-15 |
+| 4-2 | Rust 命令参数解析器（`cli/parser.rs`） | 4h | 后端 | 4-1 | [x] | 2026-05-15 |
+| 4-3 | Rust 命令自动补全（`cli/autocomplete.rs`，150+ 命令 15 分组） | 4h | 后端 | 4-1 | [x] | 2026-05-15 |
 | 4-4 | Rust Pub/Sub 支持（`cli/service.rs` + Tauri Events `redis:cli:subscribe`） | 8h | 后端 | 1-1 | [ ] | |
 | 4-5 | Rust MONITOR 支持（`tool/monitor_service.rs` + Tauri Events `redis:cli:monitor`） | 8h | 后端 | 1-1 | [ ] | |
-| 4-6 | Rust INFO 命令解析（`tool/info_service.rs`） | 4h | 后端 | 1-1 | [ ] | |
-| 4-7 | Rust SLOWLOG 命令（`tool/slowlog_service.rs`） | 4h | 后端 | 1-1 | [ ] | |
-| 4-8 | Rust MEMORY USAGE 批量分析（`tool/memory_service.rs` + Tauri Events 进度推送） | 8h | 后端 | 1-1 | [ ] | |
-| 4-9 | Rust FLUSHDB 命令（`tool/commands.rs::flush_db`，二次确认由前端处理） | 2h | 后端 | 1-1 | [ ] | |
-| 4-10 | 前端 CLI 组件（命令输入 + 自动补全 + Monaco Editor 输出） | 16h | 前端 | 4-1, 4-2, 4-3 | [ ] | |
-| 4-11 | 前端状态监控面板（INFO 解析展示 + DB 统计 + 自动刷新） | 12h | 前端 | 4-6 | [ ] | |
-| 4-12 | 前端慢日志面板（VTable ListTable） | 6h | 前端 | 4-7 | [ ] | |
-| 4-13 | 前端内存分析面板（VTable ListTable + 进度条） | 8h | 前端 | 4-8 | [ ] | |
+| 4-6 | Rust INFO 命令解析（`tool/service.rs` InfoService） | 4h | 后端 | 1-1 | [x] | 2026-05-15 |
+| 4-7 | Rust SLOWLOG 命令（`tool/service.rs` SlowLogService） | 4h | 后端 | 1-1 | [x] | 2026-05-15 |
+| 4-8 | Rust MEMORY USAGE 批量分析（`tool/service.rs` MemoryAnalysisService + Tauri Events 进度推送） | 8h | 后端 | 1-1 | [x] | 2026-05-15 |
+| 4-9 | Rust FLUSHDB 命令（`tool/service.rs` FlushDbService + FlushAllService） | 2h | 后端 | 1-1 | [x] | 2026-05-15 |
+| 4-10 | 前端 CLI 终端组件（`cli-terminal.tsx`，命令输入 + 自动补全 + 历史导航 + 语法提示） | 16h | 前端 | 4-1, 4-2, 4-3 | [x] | 2026-05-15 |
+| 4-11 | 前端状态监控面板（`status-panel.tsx`，INFO 解析展示 + DB 统计 + 自动刷新） | 12h | 前端 | 4-6 | [x] | 2026-05-15 |
+| 4-12 | 前端慢日志面板（`slow-log-panel.tsx`，列表 + 按耗时排序） | 6h | 前端 | 4-7 | [x] | 2026-05-15 |
+| 4-13 | 前端内存分析面板（`memory-analysis-panel.tsx`，表格 + 进度条 + 排序） | 8h | 前端 | 4-8 | [x] | 2026-05-15 |
 | 4-14 | 前端批量删除面板（VTable ListTable） | 8h | 前端 | 1-3 | [ ] | |
 | 4-15 | 前端快捷键系统（useMagicKeys + scope 管理） | 8h | 前端 | 1-12 | [ ] | |
 | 4-16 | 前端右键菜单组件 | 4h | 前端 | 0-11 | [ ] | |
@@ -546,11 +546,11 @@ src/
 | Phase 0 | 13 | 13 | 0 | 0 | 100% | 2.5 周 |
 | Phase 1 | 14 | 14 | 0 | 0 | 100% | 3.5 周 |
 | Phase 2 | 15 | 13 | 2 | 0 | 87% | 3 周 |
-| Phase 3 | 12 | 0 | 0 | 12 | 0% | 3 周 |
-| Phase 4 | 17 | 0 | 0 | 17 | 0% | 2 周 |
+| Phase 3 | 12 | 10 | 1 | 1 | 83% | 3 周 |
+| Phase 4 | 17 | 11 | 0 | 6 | 65% | 2 周 |
 | Phase 5 | 16 | 0 | 0 | 16 | 0% | 2 周 |
 | Phase 6 | 10 | 0 | 0 | 10 | 0% | 2 周 |
-| **总计** | **97** | **40** | **2** | **55** | **41%** | **18 周** |
+| **总计** | **97** | **61** | **3** | **33** | **63%** | **18 周** |
 
 ### 7.2 里程碑检查点
 
@@ -559,8 +559,8 @@ src/
 | M0: 基础框架 | 三栏布局可运行，暗黑模式切换，Plugin 注册就绪 | Week 2.5 | 2026-05-15 | [x] |
 | M1: 核心连接 | 可连接 Standalone Redis，浏览 Key，多标签页可用 | Week 6 | 2026-05-15 | [x] |
 | M2: 数据编辑 | 6 种数据类型可查看/编辑，基础查看器延后至 Phase 5 | Week 9 | 2026-05-15 | [x] |
-| M3: 高级连接 | Cluster/Sentinel/SSH/SSL 全部可用 | Week 12 | - | [ ] |
-| M4: 工具功能 | CLI/日志/状态/慢日志/内存分析/批量操作 | Week 14 | - | [ ] |
+| M3: 高级连接 | Cluster/Sentinel/SSH/SSL 全部可用 | Week 12 | - | [-] |
+| M4: 工具功能 | CLI/日志/状态/慢日志/内存分析/批量操作 | Week 14 | - | [-] |
 | M5: 查看器 | 全部 15 种数据查看器可用，设置功能完整 | Week 16 | - | [ ] |
 | M6: 发布 | 打包/测试/发布 | Week 18 | - | [ ] |
 

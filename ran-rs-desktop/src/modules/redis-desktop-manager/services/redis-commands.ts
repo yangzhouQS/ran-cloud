@@ -4,11 +4,13 @@
 
 import type {
   AppSettings,
+  CliCommandInfo,
   CliExecResult,
   ConnectionConfig,
   DataAddParams,
   DataDeleteParams,
   DataUpdateParams,
+  DatabaseInfo,
   HashField,
   HashPageParams,
   KeyDetail,
@@ -16,6 +18,7 @@ import type {
   KeyScanResult,
   ListEntry,
   ListPageParams,
+  MemoryAnalysisResult,
   PageResult,
   ServerStatus,
   SetMember,
@@ -276,6 +279,21 @@ export function redisCliComplete(connectionId: string, input: string): Promise<s
   return invoke("redis_cli_complete", { connectionId, input });
 }
 
+/** 获取命令语法 */
+export function redisCliSyntax(commandName: string): Promise<string | null> {
+  return invoke("redis_cli_syntax", { commandName });
+}
+
+/** 获取所有命令列表 */
+export function redisCliCommands(): Promise<CliCommandInfo[]> {
+  return invoke("redis_cli_commands");
+}
+
+/** 按分组获取命令列表 */
+export function redisCliCommandsByGroup(): Promise<Record<string, CliCommandInfo[]>> {
+  return invoke("redis_cli_commands_by_group");
+}
+
 // ==================== 工具 ====================
 
 /** 获取慢日志 */
@@ -316,4 +334,39 @@ export function redisToolCommandLogClear(connectionId: string): Promise<void> {
 /** 清除所有命令日志 */
 export function redisToolCommandLogClearAll(): Promise<void> {
   return invoke("redis_tool_command_log_clear_all");
+}
+
+/** 获取服务器信息（分节） */
+export function redisToolServerInfo(connectionId: string, db: number): Promise<Record<string, Record<string, string>>> {
+  return invoke("redis_tool_server_info", { connectionId, db });
+}
+
+/** 获取数据库列表 */
+export function redisToolDatabaseList(connectionId: string): Promise<DatabaseInfo[]> {
+  return invoke("redis_tool_database_list", { connectionId });
+}
+
+/** 内存分析 */
+export function redisToolMemoryAnalysis(
+  connectionId: string,
+  db: number,
+  pattern?: string,
+  count?: number,
+): Promise<MemoryAnalysisResult> {
+  return invoke("redis_tool_memory_analysis", { connectionId, db, pattern, count });
+}
+
+/** 获取客户端列表 */
+export function redisToolClientList(connectionId: string): Promise<Record<string, string>[]> {
+  return invoke("redis_tool_client_list", { connectionId });
+}
+
+/** 清空当前数据库 */
+export function redisToolFlushDb(connectionId: string, db: number): Promise<void> {
+  return invoke("redis_tool_flush_db", { connectionId, db });
+}
+
+/** 清空所有数据库 */
+export function redisToolFlushAll(connectionId: string): Promise<void> {
+  return invoke("redis_tool_flush_all", { connectionId });
 }

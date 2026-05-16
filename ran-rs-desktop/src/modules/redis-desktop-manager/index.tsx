@@ -13,10 +13,14 @@ import type { TabItem } from "./stores/redis-store";
 import { listen } from "@tauri-apps/api/event";
 import { computed, defineComponent, onMounted, onUnmounted } from "vue";
 import { useCsNamespace } from "../../hooks/use-namespace";
+import CliTerminal from "./components/cli-terminal";
 import CommandLogPanel from "./components/command-log-panel";
 import ConnectionSidebar from "./components/connection-sidebar";
 import KeyDetail from "./components/key-detail";
 import KeyPanel from "./components/key-panel";
+import MemoryAnalysisPanel from "./components/memory-analysis-panel";
+import SlowLogPanel from "./components/slow-log-panel";
+import StatusPanel from "./components/status-panel";
 import TabBar from "./components/tab-bar";
 import { useRedisStore } from "./stores/redis-store";
 import "./index.less";
@@ -62,29 +66,33 @@ const RedisDesktopManager = defineComponent({
       switch (tab.type) {
         case "status":
           return (
-            <div class={ns.e("content-placeholder")}>
-              <el-empty description="服务器状态面板将在 Phase 4 实现" />
-            </div>
+            <StatusPanel
+              connectionId={tab.connectionId}
+              db={tab.db}
+            />
           );
         case "cli":
           return (
-            <div class={ns.e("content-placeholder")}>
-              <el-empty description="CLI 终端将在 Phase 4 实现" />
-            </div>
+            <CliTerminal
+              connectionId={tab.connectionId}
+              db={tab.db}
+            />
           );
         case "key-detail":
           return <KeyDetail />;
         case "slow-log":
           return (
-            <div class={ns.e("content-placeholder")}>
-              <el-empty description="慢日志面板将在 Phase 4 实现" />
-            </div>
+            <SlowLogPanel
+              connectionId={tab.connectionId}
+              db={tab.db}
+            />
           );
         case "memory-analysis":
           return (
-            <div class={ns.e("content-placeholder")}>
-              <el-empty description="内存分析将在 Phase 4 实现" />
-            </div>
+            <MemoryAnalysisPanel
+              connectionId={tab.connectionId}
+              db={tab.db}
+            />
           );
         case "command-log":
           return <CommandLogPanel />;

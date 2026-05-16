@@ -238,3 +238,37 @@ export interface ServerStatus {
   keyspaceMisses: number;
   hitRate: number;
 }
+
+/** 数据库信息（INFO KEYSPACE 解析结果） */
+export interface DatabaseInfo {
+  db: number;
+  keys: number;
+  expires: number;
+  avgTtl: number;
+}
+
+/** 内存分析条目 */
+export interface MemoryAnalysisEntry {
+  key: string;
+  keyType: string;
+  memoryUsage: number;
+  encoding: string;
+  length: number;
+}
+
+/** 内存分析结果 */
+export interface MemoryAnalysisResult {
+  entries: MemoryAnalysisEntry[];
+  totalKeys: number;
+  analyzedKeys: number;
+  totalMemory: number;
+  durationMs: number;
+}
+
+/** CLI 命令信息（自动补全用） */
+export interface CliCommandInfo {
+  name: string;
+  group: string;
+  syntax: string;
+  since: string;
+}

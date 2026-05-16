@@ -13,6 +13,7 @@ pub mod key;
 pub mod shared;
 pub mod storage;
 pub mod tool;
+pub mod tunnel;
 
 /// 获取所有 Redis Desktop 命令的 invoke handler 列表
 /// 用于在 lib.rs 中通过 tauri::generate_handler! 注册

@@ -76,6 +76,9 @@ pub fn run() {
             // ===== CLI 命令 =====
             modules::redis_desktop::cli::commands::redis_cli_exec,
             modules::redis_desktop::cli::commands::redis_cli_complete,
+            modules::redis_desktop::cli::commands::redis_cli_syntax,
+            modules::redis_desktop::cli::commands::redis_cli_commands,
+            modules::redis_desktop::cli::commands::redis_cli_commands_by_group,
             // ===== 运维工具命令 =====
             modules::redis_desktop::tool::commands::redis_tool_command_log_init,
             modules::redis_desktop::tool::commands::redis_tool_command_log_list,
@@ -87,6 +90,8 @@ pub fn run() {
             modules::redis_desktop::tool::commands::redis_tool_database_list,
             modules::redis_desktop::tool::commands::redis_tool_server_info,
             modules::redis_desktop::tool::commands::redis_tool_client_list,
+            modules::redis_desktop::tool::commands::redis_tool_flush_db,
+            modules::redis_desktop::tool::commands::redis_tool_flush_all,
         ])
         .setup(|app| {
             // 初始化 Redis 连接管理器

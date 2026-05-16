@@ -1,6 +1,8 @@
 // modules/redis_desktop/connection/models.rs — 连接配置模型
 // 对应 ARDM 中 NewConnectionDialog 的表单数据
 
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 /// Redis 连接配置
@@ -41,6 +43,11 @@ pub struct ConnectionConfig {
     /// Cluster 模式
     #[serde(default)]
     pub cluster: bool,
+    /// Cluster NAT 映射
+    /// key: "internalHost:internalPort", value: 映射后的地址
+    /// 用于 Docker/NAT 环境下的集群连接
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nat_map: Option<HashMap<String, NatMapEntry>>,
     /// TLS 配置
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tls: Option<TlsConfig>,
@@ -59,6 +66,30 @@ pub struct ConnectionConfig {
     /// 排序序号（用于拖拽排序持久化）
     #[serde(default)]
     pub sort_order: Option<u32>,
+}
+
+/// NAT 映射条目
+/// 将集群内部地址映射为外部可达地址
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NatMapEntry {
+    /// 映射后的主机地址
+    pub host: String,
+    /// 映射后的端口
+    pub port: u16,
+}
+
+/// 集群节点信息（从 CLUSTER NODES 解析）
+#[derive(Debug, Clone)]
+pub struct ClusterNodeInfo {
+    /// 节点 ID
+    pub node_id: String,
+    /// 节点地址 host:port
+    pub host: String,
+    pub port: u16,
+    /// 节点角色标志（master, slave）
+    pub flags: String,
+    /// 是否为 master
+    pub is_master: bool,
 }
 
 /// SSH 隧道配置
