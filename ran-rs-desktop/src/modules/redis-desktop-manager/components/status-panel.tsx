@@ -13,18 +13,21 @@
  * @block ran-status-panel
  */
 
-import type { ServerStatus, DatabaseInfo } from "../types/key-data";
-import { defineComponent, onMounted, onUnmounted, ref, computed } from "vue";
+import type { DatabaseInfo, ServerStatus } from "../types/key-data";
+import { Cpu, DataLine, Loading, Monitor, Search } from "@element-plus/icons-vue";
+import { computed, defineComponent, onMounted, onUnmounted, ref } from "vue";
 import { useCsNamespace } from "../../../hooks/use-namespace";
-import { redisToolServerStatus, redisToolServerInfo } from "../services/redis-commands";
+import { redisToolServerInfo, redisToolServerStatus } from "../services/redis-commands";
 import "./status-panel.less";
 
 /** 人类可读文件大小 */
 function humanFileSize(bytes: number): string {
-  if (bytes === 0) return "0 B";
+  if (bytes === 0) {
+    return "0 B";
+  }
   const units = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${units[i]}`;
+  return `${(bytes / 1024 ** i).toFixed(2)} ${units[i]}`;
 }
 
 const StatusPanel = defineComponent({
@@ -50,9 +53,11 @@ const StatusPanel = defineComponent({
     // ---- 过滤后的全部信息 ----
     const filteredInfo = computed(() => {
       const filter = allInfoFilter.value.toLowerCase().trim();
-      if (!filter) return allInfo.value;
+      if (!filter) {
+        return allInfo.value;
+      }
       return allInfo.value.filter(item =>
-        item.key.toLowerCase().includes(filter)
+        item.key.toLowerCase().includes(filter),
       );
     });
 
@@ -60,7 +65,7 @@ const StatusPanel = defineComponent({
     const fetchStatus = async () => {
       loading.value = true;
       try {
-        const status = await redisToolServerStatus(props.connectionId, props.db);
+        const status = await redisToolServerStatus(props.connectionId);
         serverStatus.value = status;
       } catch (e: any) {
         console.error("[StatusPanel] fetchStatus error:", e);
@@ -72,45 +77,38 @@ const StatusPanel = defineComponent({
     // ---- 加载全部 INFO ----
     const fetchAllInfo = async () => {
       try {
-        const info = await redisToolServerInfo(props.connectionId, props.db);
-        // 解析为 key-value 数组
+        const info = await redisToolServerInfo(props.connectionId);
         const lines: { key: string; value: string }[] = [];
-        if (typeof info === "string") {
-          const parts = info.split("\n");
-          for (const line of parts) {
-            const trimmed = line.trim();
-            if (!trimmed || trimmed.startsWith("#")) continue;
-            const idx = trimmed.indexOf(":");
-            if (idx > 0) {
-              lines.push({
-                key: trimmed.substring(0, idx),
-                value: trimmed.substring(idx + 1),
-              });
-            }
-          }
-        } else if (typeof info === "object" && info !== null) {
-          // 后端可能返回已解析的对象
-          for (const [k, v] of Object.entries(info as Record<string, any>)) {
-            lines.push({ key: k, value: String(v) });
+        const dbs: { db: string; keys: number; expires: number; avgTtl: number }[] = [];
 
-            // 解析 db 统计
-            if (/^db\d+$/.test(k) && typeof v === "string") {
-              const parts = v.split(",");
-              const keysPart = parts.find(p => p.startsWith("keys="));
-              const expiresPart = parts.find(p => p.startsWith("expires="));
-              const ttlPart = parts.find(p => p.startsWith("avg_ttl="));
-              const dbNum = parseInt(k.replace("db", ""), 10);
+        // 后端返回 { sections: { "Server": { k:v, ... }, "Memory": { ... } } }
+        const sections = (info as any).sections ?? info;
 
-              databases.value.push({
-                db: dbNum,
-                keys: keysPart ? parseInt(keysPart.split("=")[1], 10) : 0,
-                expires: expiresPart ? parseInt(expiresPart.split("=")[1], 10) : 0,
-                avgTtl: ttlPart ? parseInt(ttlPart.split("=")[1], 10) : 0,
-              });
+        if (typeof sections === "object" && sections !== null) {
+          for (const [sectionName, sectionData] of Object.entries(sections)) {
+            if (typeof sectionData === "object" && sectionData !== null) {
+              for (const [k, v] of Object.entries(sectionData as Record<string, string>)) {
+                lines.push({ key: k, value: String(v) });
+
+                // 解析 db 统计
+                if (/^db\d+$/.test(k) && typeof v === "string") {
+                  const match = v.match(/keys=(\d+),expires=(\d+),avg_ttl=(\d+)/);
+                  if (match) {
+                    dbs.push({
+                      db: k,
+                      keys: Number.parseInt(match[1], 10),
+                      expires: Number.parseInt(match[2], 10),
+                      avgTtl: Number.parseInt(match[3], 10),
+                    });
+                  }
+                }
+              }
             }
           }
         }
+
         allInfo.value = lines;
+        databases.value = dbs;
       } catch (e: any) {
         console.error("[StatusPanel] fetchAllInfo error:", e);
       }
@@ -163,7 +161,7 @@ const StatusPanel = defineComponent({
 
         {loading.value && !serverStatus.value ? (
           <div class={ns.e("loading")}>
-            <el-icon class="is-loading"><el-icon-loading /></el-icon>
+            <el-icon class="is-loading"><Loading /></el-icon>
             <span style="margin-left: 8px;">加载中...</span>
           </div>
         ) : (
@@ -173,7 +171,7 @@ const StatusPanel = defineComponent({
               {/* 服务器信息 */}
               <div class={ns.e("card")}>
                 <div class={ns.e("card-header")}>
-                  <el-icon><el-icon-monitor /></el-icon>
+                  <el-icon><Monitor /></el-icon>
                   <span>服务器</span>
                 </div>
                 <div class={ns.e("card-body")}>
@@ -187,7 +185,11 @@ const StatusPanel = defineComponent({
                   </div>
                   <div class={ns.e("item")}>
                     <span class={ns.e("item-label")}>运行天数</span>
-                    <span class={ns.e("item-value")}>{serverStatus.value?.uptimeDays ?? "-"} 天</span>
+                    <span class={ns.e("item-value")}>
+                      {serverStatus.value?.uptimeDays ?? "-"}
+                      {" "}
+                      天
+                    </span>
                   </div>
                 </div>
               </div>
@@ -195,7 +197,7 @@ const StatusPanel = defineComponent({
               {/* 内存信息 */}
               <div class={ns.e("card")}>
                 <div class={ns.e("card-header")}>
-                  <el-icon><el-icon-cpu /></el-icon>
+                  <el-icon><Cpu /></el-icon>
                   <span>内存</span>
                 </div>
                 <div class={ns.e("card-body")}>
@@ -209,7 +211,10 @@ const StatusPanel = defineComponent({
                   </div>
                   <div class={ns.e("item")}>
                     <span class={ns.e("item-label")}>命中率</span>
-                    <span class={ns.e("item-value")}>{serverStatus.value?.hitRate?.toFixed(2) ?? "-"}%</span>
+                    <span class={ns.e("item-value")}>
+                      {serverStatus.value?.hitRate?.toFixed(2) ?? "-"}
+                      %
+                    </span>
                   </div>
                 </div>
               </div>
@@ -217,7 +222,7 @@ const StatusPanel = defineComponent({
               {/* 统计信息 */}
               <div class={ns.e("card")}>
                 <div class={ns.e("card-header")}>
-                  <el-icon><el-icon-data-line /></el-icon>
+                  <el-icon><DataLine /></el-icon>
                   <span>统计</span>
                 </div>
                 <div class={ns.e("card-body")}>
@@ -263,13 +268,15 @@ const StatusPanel = defineComponent({
                 <span>全部 Redis INFO</span>
                 <el-input
                   modelValue={allInfoFilter.value}
-                  onUpdate:modelValue={(val: string) => { allInfoFilter.value = val; }}
+                  onUpdate:modelValue={(val: string) => {
+                    allInfoFilter.value = val;
+                  }}
                   size="small"
                   placeholder="搜索..."
                   clearable
                   class={ns.e("filter-input")}
                 >
-                  {{ suffix: () => <el-icon><el-icon-search /></el-icon> }}
+                  {{ suffix: () => <el-icon><Search /></el-icon> }}
                 </el-input>
               </div>
               <el-table

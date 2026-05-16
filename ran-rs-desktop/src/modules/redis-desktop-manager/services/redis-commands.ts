@@ -337,8 +337,11 @@ export function redisToolCommandLogClearAll(): Promise<void> {
 }
 
 /** 获取服务器信息（分节） */
-export function redisToolServerInfo(connectionId: string, db: number): Promise<Record<string, Record<string, string>>> {
-  return invoke("redis_tool_server_info", { connectionId, db });
+export function redisToolServerInfo(
+  connectionId: string,
+  section?: string,
+): Promise<{ sections: Record<string, Record<string, string>> }> {
+  return invoke("redis_tool_server_info", { connectionId, section });
 }
 
 /** 获取数据库列表 */
