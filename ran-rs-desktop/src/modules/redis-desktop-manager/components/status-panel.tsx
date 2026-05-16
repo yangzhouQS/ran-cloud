@@ -47,7 +47,7 @@ const StatusPanel = defineComponent({
 
     const serverStatus = ref<ServerStatus | null>(null);
     const databases = ref<DatabaseInfo[]>([]);
-    const allInfo = ref<{ key: string; value: string }[]>([]);
+    const allInfo = ref<{ key: string; value: string; section: string }[]>([]);
     const allInfoFilter = ref("");
 
     // ---- 过滤后的全部信息 ----
@@ -57,7 +57,9 @@ const StatusPanel = defineComponent({
         return allInfo.value;
       }
       return allInfo.value.filter(item =>
-        item.key.toLowerCase().includes(filter),
+        item.key.toLowerCase().includes(filter)
+        || item.section.toLowerCase().includes(filter)
+        || item.value.toLowerCase().includes(filter),
       );
     });
 
@@ -78,24 +80,32 @@ const StatusPanel = defineComponent({
     const fetchAllInfo = async () => {
       try {
         const info = await redisToolServerInfo(props.connectionId);
-        const lines: { key: string; value: string }[] = [];
-        const dbs: { db: string; keys: number; expires: number; avgTtl: number }[] = [];
+        const lines: { key: string; value: string; section: string }[] = [];
+        const dbs: DatabaseInfo[] = [];
 
         // 后端返回 { sections: { "Server": { k:v, ... }, "Memory": { ... } } }
         const sections = (info as any).sections ?? info;
 
         if (typeof sections === "object" && sections !== null) {
-          for (const [sectionName, sectionData] of Object.entries(sections)) {
+          for (const [_sectionName, sectionData] of Object.entries(sections)) {
             if (typeof sectionData === "object" && sectionData !== null) {
-              for (const [k, v] of Object.entries(sectionData as Record<string, string>)) {
-                lines.push({ key: k, value: String(v) });
+              for (const [k, v] of Object.entries(sectionData as Record<string, unknown>)) {
+                // 防御性处理：确保 value 是字符串
+                const valueStr = v === null || v === undefined
+                  ? ""
+                  : typeof v === "string"
+                    ? v
+                    : JSON.stringify(v);
 
-                // 解析 db 统计
+                lines.push({ key: k, value: valueStr, section: _sectionName });
+
+                // 解析 db 统计（如 db0:keys=1,expires=0,avg_ttl=0）
                 if (/^db\d+$/.test(k) && typeof v === "string") {
-                  const match = v.match(/keys=(\d+),expires=(\d+),avg_ttl=(\d+)/);
+                  const match = v.match(/keys=(\d+),expires=(\d+),avg_ttl=(-?\d+)/);
                   if (match) {
+                    const dbNum = Number.parseInt(k.replace("db", ""), 10);
                     dbs.push({
-                      db: k,
+                      db: dbNum,
                       keys: Number.parseInt(match[1], 10),
                       expires: Number.parseInt(match[2], 10),
                       avgTtl: Number.parseInt(match[3], 10),
@@ -285,7 +295,9 @@ const StatusPanel = defineComponent({
                 size="small"
                 style="width: 100%;"
                 max-height={400}
+                border
               >
+                <el-table-column prop="section" label="Section" width="130" sortable filters={Array.from(new Set(allInfo.value.map(i => i.section))).map(s => ({ text: s, value: s }))} filterPlacement="bottom-end" />
                 <el-table-column prop="key" label="Key" width="300" sortable />
                 <el-table-column prop="value" label="Value" show-overflow-tooltip />
               </el-table>

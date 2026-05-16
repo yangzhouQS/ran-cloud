@@ -1,25 +1,27 @@
 /**
  * Key 面板组件
  *
- * 中间面板，支持树形/列表双视图展示当前 DB 的 Key 列表。
+ * 中间面板，使用 VTable ListTable 树形模式展示当前 DB 的 Key 列表。
  * 功能：
- * - 基于分隔符（默认 :）的虚拟树形结构
+ * - 基于 VTable 的高性能 Canvas 渲染，支持虚拟滚动
+ * - 基于分隔符（默认 :）的树形结构展示
  * - 搜索过滤
  * - 流式 SCAN 进度条
  * - 右键上下文菜单（复制、删除、展开/折叠）
  * - 节点上限保护（超过 10000 个 Key 时警告）
  * - Key 数量状态栏
+ * - 树形/列表双视图切换
  *
  * @block ran-key-panel
  */
 
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import type { KeyScanResult } from "../types";
+import type { ListTable as ListTableType } from "@visactor/vtable";
 import {
   Close,
   CopyDocument,
   Delete,
-  Document,
   Folder,
   FolderOpened,
   List,
@@ -28,15 +30,16 @@ import {
   WarningFilled,
 } from "@element-plus/icons-vue";
 import { listen } from "@tauri-apps/api/event";
-import { ElMessage, ElMessageBox, ElTree } from "element-plus";
-import { computed, defineComponent, onMounted, onUnmounted, ref } from "vue";
+import { ListTable } from "@visactor/vtable";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { computed, defineComponent, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useCsNamespace } from "../../../hooks/use-namespace";
 import { useRedisStore } from "../stores/redis-store";
 import "./key-panel.less";
 
 // ===== 类型定义 =====
 
-/** Key 树节点 */
+/** Key 树节点（兼容 VTable 的 children 结构） */
 interface TreeNode {
   label: string;
   key: string;
@@ -98,17 +101,14 @@ function buildKeyTree(keys: KeyScanResult[], separator: string = ":"): TreeNode[
         pathMap.set(currentPath, existing);
 
         // 特殊情况：如果一个 key 是另一个 key 的前缀
-        // 例如 a:b 和 a:b:c，需要将 a:b 从叶子节点变为非叶子节点
         const existingLeaf = currentLevel.find(
           n => n.label === part && n.isLeaf,
         );
         if (existingLeaf && !isLeaf) {
-          // 将已有叶子节点转为文件夹节点
           existingLeaf.isLeaf = false;
           existingLeaf.keyType = undefined;
           existingLeaf.children = [];
           pathMap.set(existingLeaf.fullPath, existingLeaf);
-          // 将新建节点作为已有节点的子节点加入
           existingLeaf.children!.push(existing);
           currentLevel = existing.children!;
         } else {
@@ -118,7 +118,6 @@ function buildKeyTree(keys: KeyScanResult[], separator: string = ":"): TreeNode[
           }
         }
       } else if (!isLeaf) {
-        // 已存在且当前不是叶子 → 确保 children 存在
         if (!existing.children) {
           existing.children = [];
           existing.isLeaf = false;
@@ -157,7 +156,6 @@ function filterTree(nodes: TreeNode[], keyword: string): TreeNode[] {
           children: filteredChildren,
         });
       } else if (node.label.toLowerCase().includes(lowerKeyword)) {
-        // 文件夹名匹配时也显示
         result.push(node);
       }
     }
@@ -191,7 +189,10 @@ const KeyPanel = defineComponent({
     const searchPattern = ref("*");
     const searchKeyword = ref("");
     const viewMode = ref<"tree" | "list">("tree");
-    const treeRef = ref<InstanceType<typeof ElTree> | null>(null);
+
+    // VTable 实例
+    const tableContainerRef = ref<HTMLDivElement | null>(null);
+    let tableInstance: ListTableType | null = null;
 
     // ===== 右键菜单 =====
     const contextMenu = ref<ContextMenuConfig>({
@@ -231,12 +232,359 @@ const KeyPanel = defineComponent({
     /** 是否超过 Key 数量阈值 */
     const isOverThreshold = computed(() => store.keys.length > MAX_KEY_THRESHOLD);
 
+    // ===== VTable 创建/更新 =====
+
+    /**
+     * 创建 VTable ListTable 实例（树形模式）
+     */
+    const createTreeTable = () => {
+      if (!tableContainerRef.value) {
+        return;
+      }
+
+      // 销毁旧实例
+      destroyTable();
+
+      const container = tableContainerRef.value;
+      const containerWidth = container.clientWidth || 300;
+      const containerHeight = container.clientHeight || 400;
+
+      const options = {
+        records: treeData.value,
+        columns: [
+          {
+            field: "label",
+            title: "Key",
+            tree: true,
+            width: containerWidth - 70,
+            style: {
+              fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+              fontSize: 13,
+              color: "#303133",
+              padding: [0, 0, 0, 4],
+              textAlign: "left" as const,
+            },
+            // 自定义渲染：图标 + 标签 + 类型标签
+            customRender: {
+              render: (args: any) => {
+                const { table } = args;
+                const record = table.getRecordByCell(args.col, args.row);
+                if (!record) {
+                  return null;
+                }
+                const isLeaf = record.isLeaf;
+                const label = record.label || "";
+                const keyType = record.keyType;
+
+                const elements: any[] = [];
+
+                // 图标
+                if (isLeaf) {
+                  elements.push({
+                    type: "icon",
+                    src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23909399'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z'/%3E%3C/svg%3E",
+                    width: 14,
+                    height: 14,
+                    marginRight: 6,
+                    marginLeft: 2,
+                  });
+                } else {
+                  elements.push({
+                    type: "icon",
+                    src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23E6A23C'%3E%3Cpath d='M2 4h8l2 2h10v14H2V4z'/%3E\%3C/svg%3E",
+                    width: 14,
+                    height: 14,
+                    marginRight: 6,
+                    marginLeft: 2,
+                  });
+                }
+
+                // 标签文本
+                elements.push({
+                  type: "text",
+                  text: label,
+                  style: {
+                    fontSize: 13,
+                    color: "#303133",
+                  },
+                });
+
+                // 类型标签（仅叶子节点）
+                if (isLeaf && keyType) {
+                  elements.push({
+                    type: "text",
+                    text: ` ${keyType}`,
+                    style: {
+                      fontSize: 11,
+                      color: "#909399",
+                    },
+                  });
+                }
+
+                return {
+                  type: "group",
+                  children: elements,
+                };
+              },
+            },
+          },
+          {
+            field: "keyType",
+            title: "Type",
+            width: 70,
+            style: {
+              fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+              fontSize: 11,
+              color: "#909399",
+              padding: [0, 4, 0, 4],
+              textAlign: "center" as const,
+            },
+          },
+        ],
+        showHeader: false,
+        hierarchyIndent: 20,
+        hierarchyExpandLevel: 1,
+        defaultRowHeight: 32,
+        autoWrapText: false,
+        width: containerWidth,
+        height: containerHeight,
+        hover: {
+          highlightMode: "row" as const,
+        },
+        select: {
+          highlightMode: "row" as const,
+        },
+        theme: {
+          bodyStyle: {
+            bgColor: "#ffffff",
+            hover: {
+              cellBgColor: "#f5f7fa",
+            },
+          },
+          selectionStyle: {
+            cellBgColor: "#ecf5ff",
+          },
+        },
+      };
+
+      tableInstance = new ListTable(container, options as any);
+
+      // 点击事件 — 选中叶子节点时打开 Key 详情
+      tableInstance.on("click_cell", (args: any) => {
+        const record = tableInstance?.getRecordByCell(args.col, args.row);
+        if (record && record.isLeaf && record.keyType) {
+          store.openKeyDetailTab(store.activeConnectionId, store.activeDb, record.fullPath);
+        }
+      });
+
+      // 右键菜单事件
+      tableInstance.on("contextmenu_cell", (args: any) => {
+        const record = tableInstance?.getRecordByCell(args.col, args.row);
+        if (record) {
+          contextMenu.value = {
+            visible: true,
+            x: args.event.clientX,
+            y: args.event.clientY,
+            node: record as TreeNode,
+          };
+        }
+      });
+    };
+
+    /**
+     * 创建 VTable ListTable 实例（列表模式）
+     */
+    const createListTable = () => {
+      if (!tableContainerRef.value) {
+        return;
+      }
+
+      destroyTable();
+
+      const container = tableContainerRef.value;
+      const containerWidth = container.clientWidth || 300;
+      const containerHeight = container.clientHeight || 400;
+
+      // 将 KeyScanResult 转换为 VTable records
+      const records = flatKeyList.value.map(k => ({
+        key: k.key,
+        keyType: k.keyType,
+        ttl: k.ttl,
+        fullPath: k.key,
+        label: k.key,
+        isLeaf: true,
+      }));
+
+      const options = {
+        records,
+        columns: [
+          {
+            field: "key",
+            title: "Key",
+            width: containerWidth - 120,
+            style: {
+              fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+              fontSize: 13,
+              color: "#303133",
+              padding: [0, 0, 0, 8],
+              textAlign: "left" as const,
+            },
+          },
+          {
+            field: "keyType",
+            title: "Type",
+            width: 60,
+            style: {
+              fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+              fontSize: 11,
+              color: "#909399",
+              padding: [0, 4, 0, 4],
+              textAlign: "center" as const,
+            },
+          },
+          {
+            field: "ttl",
+            title: "TTL",
+            width: 60,
+            style: {
+              fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+              fontSize: 11,
+              color: "#909399",
+              padding: [0, 4, 0, 4],
+              textAlign: "center" as const,
+            },
+            // 格式化 TTL 显示
+            fieldFormat: (record: any) => {
+              const ttl = record?.ttl;
+              if (ttl === -1) {
+                return "∞";
+              }
+              if (ttl === -2) {
+                return "-";
+              }
+              if (ttl < 60) {
+                return `${ttl}s`;
+              }
+              if (ttl < 3600) {
+                return `${Math.floor(ttl / 60)}m`;
+              }
+              if (ttl < 86400) {
+                return `${Math.floor(ttl / 3600)}h`;
+              }
+              return `${Math.floor(ttl / 86400)}d`;
+            },
+          },
+        ],
+        showHeader: false,
+        defaultRowHeight: 36,
+        autoWrapText: false,
+        width: containerWidth,
+        height: containerHeight,
+        hover: {
+          highlightMode: "row" as const,
+        },
+        select: {
+          highlightMode: "row" as const,
+        },
+        theme: {
+          bodyStyle: {
+            bgColor: "#ffffff",
+            hover: {
+              cellBgColor: "#f5f7fa",
+            },
+          },
+          selectionStyle: {
+            cellBgColor: "#ecf5ff",
+          },
+        },
+      };
+
+      tableInstance = new ListTable(container, options as any);
+
+      // 点击事件
+      tableInstance.on("click_cell", (args: any) => {
+        const record = tableInstance?.getRecordByCell(args.col, args.row);
+        if (record && record.key) {
+          store.openKeyDetailTab(store.activeConnectionId, store.activeDb, record.key);
+        }
+      });
+
+      // 右键菜单事件
+      tableInstance.on("contextmenu_cell", (args: any) => {
+        const record = tableInstance?.getRecordByCell(args.col, args.row);
+        if (record) {
+          contextMenu.value = {
+            visible: true,
+            x: args.event.clientX,
+            y: args.event.clientY,
+            node: record as TreeNode,
+          };
+        }
+      });
+    };
+
+    /**
+     * 销毁 VTable 实例
+     */
+    const destroyTable = () => {
+      if (tableInstance) {
+        (tableInstance as any).release();
+        tableInstance = null;
+      }
+    };
+
+    /**
+     * 更新 VTable 数据
+     */
+    const updateTableData = () => {
+      if (!tableInstance) {
+        return;
+      }
+
+      if (viewMode.value === "tree") {
+        tableInstance.setRecords(treeData.value);
+      } else {
+        const records = flatKeyList.value.map(k => ({
+          key: k.key,
+          keyType: k.keyType,
+          ttl: k.ttl,
+          fullPath: k.key,
+          label: k.key,
+          isLeaf: true,
+        }));
+        tableInstance.setRecords(records);
+      }
+    };
+
+    // ===== 监听数据变化 =====
+
+    // 监听树数据变化，更新 VTable
+    watch(treeData, () => {
+      if (viewMode.value === "tree") {
+        if (tableInstance) {
+          updateTableData();
+        } else {
+          nextTick(() => createTreeTable());
+        }
+      }
+    }, { deep: false });
+
+    // 监听列表数据变化
+    watch(flatKeyList, () => {
+      if (viewMode.value === "list") {
+        if (tableInstance) {
+          updateTableData();
+        } else {
+          nextTick(() => createListTable());
+        }
+      }
+    }, { deep: false });
+
     // ===== Tauri 事件监听 =====
     let unlisten: UnlistenFn | null = null;
 
     const setupEventListener = async () => {
       unlisten = await listen("redis:key:scan:progress", (event) => {
-        // 后端 ScanProgressEvent 结构：keys 为 Vec<String>，不是 KeyScanResult[]
         store.handleScanProgress(event.payload as {
           keys: string[];
           batchCount: number;
@@ -252,6 +600,7 @@ const KeyPanel = defineComponent({
 
     onUnmounted(() => {
       unlisten?.();
+      destroyTable();
     });
 
     // ===== 事件处理 =====
@@ -269,30 +618,6 @@ const KeyPanel = defineComponent({
     /** 取消扫描 */
     const handleCancelScan = () => {
       store.cancelScan();
-    };
-
-    /** 树节点点击 */
-    const handleTreeClick = (data: TreeNode) => {
-      if (data.isLeaf && data.keyType) {
-        store.openKeyDetailTab(store.activeConnectionId, store.activeDb, data.fullPath);
-      }
-    };
-
-    /** 右键菜单 */
-    const handleContextMenu = (e: MouseEvent, data: TreeNode) => {
-      e.preventDefault();
-      e.stopPropagation();
-      contextMenu.value = {
-        visible: true,
-        x: e.clientX,
-        y: e.clientY,
-        node: data,
-      };
-    };
-
-    /** 关闭右键菜单 */
-    const closeContextMenu = () => {
-      contextMenu.value.visible = false;
     };
 
     /** 复制 Key 名称 */
@@ -357,11 +682,80 @@ const KeyPanel = defineComponent({
 
     /** 展开所有树节点 */
     const handleExpandAll = () => {
-      // 使用 ElTree 的 store 展开所有
-      const tree = treeRef.value;
-      if (tree) {
-        tree.store._getAllNodes().forEach((node: any) => {
-          node.expand();
+      // VTable ListTree 暂无直接展开所有 API，通过重建实例并设置 hierarchyExpandLevel 为 Infinity
+      if (tableInstance) {
+        (tableInstance as any).release();
+        tableInstance = null;
+      }
+      if (tableContainerRef.value) {
+        const container = tableContainerRef.value;
+        const containerWidth = container.clientWidth || 300;
+        const containerHeight = container.clientHeight || 400;
+
+        const options = {
+          records: treeData.value,
+          columns: [
+            {
+              field: "label",
+              title: "Key",
+              tree: true,
+              width: containerWidth - 70,
+              style: {
+                fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                fontSize: 13,
+                color: "#303133",
+                padding: [0, 0, 0, 4],
+                textAlign: "left" as const,
+              },
+            },
+            {
+              field: "keyType",
+              title: "Type",
+              width: 70,
+              style: {
+                fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                fontSize: 11,
+                color: "#909399",
+                padding: [0, 4, 0, 4],
+                textAlign: "center" as const,
+              },
+            },
+          ],
+          showHeader: false,
+          hierarchyIndent: 20,
+          hierarchyExpandLevel: Infinity, // 展开所有
+          defaultRowHeight: 32,
+          autoWrapText: false,
+          width: containerWidth,
+          height: containerHeight,
+          hover: { highlightMode: "row" as const },
+          select: { highlightMode: "row" as const },
+          theme: {
+            bodyStyle: {
+              bgColor: "#ffffff",
+              hover: { cellBgColor: "#f5f7fa" },
+            },
+            selectionStyle: { cellBgColor: "#ecf5ff" },
+          },
+        };
+
+        tableInstance = new ListTable(container, options as any);
+        tableInstance.on("click_cell", (args: any) => {
+          const record = tableInstance?.getRecordByCell(args.col, args.row);
+          if (record && record.isLeaf && record.keyType) {
+            store.openKeyDetailTab(store.activeConnectionId, store.activeDb, record.fullPath);
+          }
+        });
+        tableInstance.on("contextmenu_cell", (args: any) => {
+          const record = tableInstance?.getRecordByCell(args.col, args.row);
+          if (record) {
+            contextMenu.value = {
+              visible: true,
+              x: args.event.clientX,
+              y: args.event.clientY,
+              node: record as TreeNode,
+            };
+          }
         });
       }
       closeContextMenu();
@@ -369,106 +763,39 @@ const KeyPanel = defineComponent({
 
     /** 折叠所有树节点 */
     const handleCollapseAll = () => {
-      const tree = treeRef.value;
-      if (tree) {
-        tree.store._getAllNodes().forEach((node: any) => {
-          node.collapse();
-        });
+      // 重建实例，hierarchyExpandLevel 设为 1
+      if (tableInstance) {
+        (tableInstance as any).release();
+        tableInstance = null;
       }
+      nextTick(() => createTreeTable());
       closeContextMenu();
-    };
-
-    /** 在列表视图中点击 Key */
-    const handleKeyClick = (key: string) => {
-      store.openKeyDetailTab(store.activeConnectionId, store.activeDb, key);
     };
 
     /** 切换视图模式 */
     const toggleViewMode = () => {
-      viewMode.value = viewMode.value === "tree" ? "list" : "tree";
+      const newMode = viewMode.value === "tree" ? "list" : "tree";
+      viewMode.value = newMode;
+
+      // 切换模式时重建 VTable
+      destroyTable();
+      nextTick(() => {
+        if (newMode === "tree") {
+          createTreeTable();
+        } else {
+          createListTable();
+        }
+      });
     };
 
-    /** 格式化 TTL */
-    const formatTtl = (ttl: number): string => {
-      if (ttl === -1) {
-        return "永不过期";
-      }
-      if (ttl === -2) {
-        return "已过期";
-      }
-      if (ttl < 60) {
-        return `${ttl}s`;
-      }
-      if (ttl < 3600) {
-        return `${Math.floor(ttl / 60)}m ${ttl % 60}s`;
-      }
-      if (ttl < 86400) {
-        return `${Math.floor(ttl / 3600)}h ${Math.floor((ttl % 3600) / 60)}m`;
-      }
-      return `${Math.floor(ttl / 86400)}d ${Math.floor((ttl % 86400) / 3600)}h`;
-    };
-
-    // ===== 树节点渲染插槽 =====
-
-    /**
-     * 渲染树节点内容
-     * - 文件夹节点：显示文件夹图标 + 名称
-     * - 叶子节点：显示 key 图标 + 名称 + 类型标签
-     */
-    const renderTreeNode = (
-      slotProps?: { node: any; data: TreeNode },
-    ) => {
-      // 防御性检查：el-tree scoped slot 在某些情况下可能传入 undefined
-      if (!slotProps?.node || !slotProps?.data) {
-        return null;
-      }
-      const { node, data } = slotProps;
-      const isExpanded = node.expanded;
-      return (
-        <div
-          class={ns.e("tree-node")}
-          onContextmenu={(e: MouseEvent) => handleContextMenu(e, data)}
-        >
-          {data.isLeaf
-            ? (
-                <el-icon class={ns.e("tree-node-icon")}>
-                  <Document />
-                </el-icon>
-              )
-            : (
-                <el-icon class={ns.e("tree-node-icon")}>
-                  {isExpanded ? <FolderOpened /> : <Folder />}
-                </el-icon>
-              )}
-          <span class={ns.e("tree-node-label")}>{data.label}</span>
-          {data.isLeaf && data.keyType && (
-            <el-tag class={ns.e("tree-node-type")} size="small" type="info">
-              {data.keyType}
-            </el-tag>
-          )}
-        </div>
-      );
+    /** 关闭右键菜单 */
+    const closeContextMenu = () => {
+      contextMenu.value.visible = false;
     };
 
     // ===== 渲染 =====
 
     return () => {
-      const treeProps = {
-        ref: treeRef,
-        data: treeData.value,
-        props: {
-          children: "children",
-          label: "label",
-          isLeaf: "isLeaf",
-        },
-        nodeKey: "fullPath",
-        defaultExpandAll: false,
-        highlightCurrent: true,
-        expandOnClickNode: true,
-        filterMethod: () => true,
-        onNodeClick: handleTreeClick,
-      };
-
       return (
         <div
           class={ns.b()}
@@ -564,7 +891,7 @@ const KeyPanel = defineComponent({
             </div>
           )}
 
-          {/* 主内容区 */}
+          {/* 主内容区 — VTable 容器 */}
           {!store.activeConnectionId
             ? (
                 <div class={ns.e("empty")}>
@@ -582,54 +909,12 @@ const KeyPanel = defineComponent({
                     />
                   </div>
                 )
-              : viewMode.value === "tree"
-                ? (
-                    <div class={ns.e("tree")}>
-                      <el-tree
-                        ref={treeRef}
-                        data={treeData.value}
-                        props={{
-                          children: "children",
-                          label: "label",
-                          isLeaf: "isLeaf",
-                        }}
-                        node-key="fullPath"
-                        default-expand-all={false}
-                        highlight-current
-                        expand-on-click-node
-                        filter-node-method={() => true}
-                        onNode-click={handleTreeClick}
-                      >
-                        {{
-                          default: renderTreeNode,
-                        }}
-                      </el-tree>
-                    </div>
-                  )
-                : (
-                    <div class={ns.e("list")}>
-                      <div class={ns.e("list-inner")}>
-                        {flatKeyList.value.map(keyItem => (
-                          <div
-                            key={keyItem.key}
-                            class={[
-                              ns.e("key-item"),
-                              store.selectedKey === keyItem.key && ns.is("selected"),
-                            ]}
-                            onClick={() => handleKeyClick(keyItem.key)}
-                          >
-                            <div class={ns.e("key-info")}>
-                              <span class={ns.e("key-name")}>{keyItem.key}</span>
-                              <div class={ns.e("key-meta")}>
-                                <el-tag size="small" type="info">{keyItem.keyType}</el-tag>
-                                <span class={ns.e("key-ttl")}>{formatTtl(keyItem.ttl)}</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+              : (
+                  <div
+                    ref={tableContainerRef}
+                    class={ns.e("vtable-container")}
+                  />
+                )}
 
           {/* 底部状态栏 */}
           {store.activeConnectionId && (

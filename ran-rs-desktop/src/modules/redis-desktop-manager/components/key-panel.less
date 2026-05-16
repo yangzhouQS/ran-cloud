@@ -1,13 +1,10 @@
 /**
  * @component KeyPanel
- * @description Key 面板样式 — 中间面板，支持树形/列表双视图展示 Key、搜索过滤、
- *              SCAN 进度、右键上下文菜单、节点上限保护、Key 统计状态栏
+ * @description Key 面板样式 — 中间面板，使用 VTable ListTable 高性能 Canvas 渲染展示 Key 树形/列表视图。
+ *              支持搜索过滤、SCAN 进度、右键上下文菜单、节点上限保护、Key 统计状态栏。
  * @block ran-key-panel
- * @elements __search, __toolbar-top, __toolbar-actions, __search-input, __warning,
- *           __progress, __progress-info, __toolbar, __list, __list-inner,
- *           __key-item, __key-info, __key-name, __key-meta, __key-ttl, __key-actions,
- *           __tree, __tree-node, __tree-node-icon, __tree-node-label, __tree-node-type,
- *           __status, __empty, __contextmenu-icon
+ * @elements __toolbar-top, __toolbar-actions, __search-input, __warning,
+ *           __progress, __progress-info, __vtable-container, __status, __empty, __contextmenu-icon
  */
 
 @import (reference) "../../../assets/styles/global.less";
@@ -46,13 +43,6 @@
     min-width: 0;
   }
 
-  // ---- 搜索栏（保留兼容） ----
-  &__search {
-    padding: 12px;
-    border-bottom: 1px solid @color-border;
-    flex-shrink: 0;
-  }
-
   // ---- SCAN 进度 ----
   &__progress {
     padding: 8px 12px;
@@ -71,19 +61,6 @@
     color: @color-text-secondary;
   }
 
-  // ---- 批量操作工具栏 ----
-  &__toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    background: #fdf6ec;
-    border-bottom: 1px solid @color-border-light;
-    font-size: 12px;
-    color: @color-text-secondary;
-    flex-shrink: 0;
-  }
-
   // ---- Key 数量超限警告 ----
   &__warning {
     padding: 6px 12px;
@@ -97,139 +74,15 @@
     gap: 4px;
   }
 
-  // ---- 树形容器 ----
-  &__tree {
+  // ---- VTable Canvas 容器 ----
+  &__vtable-container {
     flex: 1;
+    min-height: 0;
     overflow: hidden;
 
-    .el-tree {
-      background: transparent;
-      height: 100%;
-      overflow-y: auto;
-
-      .el-tree-node__content {
-        height: 32px;
-        padding-right: 8px;
-
-        &:hover {
-          background-color: #f5f7fa;
-        }
-      }
-
-      .el-tree-node.is-current > .el-tree-node__content {
-        background-color: #ecf5ff;
-      }
-
-      // 叶子节点选中样式
-      .el-tree-node.is-leaf.is-current > .el-tree-node__content {
-        background-color: #ecf5ff;
-      }
-    }
-  }
-
-  // ---- 树节点内容区 ----
-  &__tree-node {
-    display: flex;
-    align-items: center;
-    flex: 1;
-    min-width: 0;
-    gap: 6px;
-  }
-
-  // ---- 树节点图标 ----
-  &__tree-node-icon {
-    flex-shrink: 0;
-    font-size: 14px;
-    color: @color-text-secondary;
-  }
-
-  // ---- 树节点标签 ----
-  &__tree-node-label {
-    flex: 1;
-    min-width: 0;
-    font-size: 13px;
-    color: @color-text-primary;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  // ---- 树节点类型标签 ----
-  &__tree-node-type {
-    flex-shrink: 0;
-    font-size: 11px;
-    color: @color-text-secondary;
-  }
-
-  // ---- Key 列表容器 ----
-  &__list {
-    flex: 1;
-    overflow: hidden;
-  }
-
-  // ---- Key 列表内部滚动区 ----
-  &__list-inner {
-    height: 100%;
-    overflow-y: auto;
-  }
-
-  // ---- Key 项 ----
-  &__key-item {
-    display: flex;
-    align-items: center;
-    padding: 8px 12px;
-    border-bottom: 1px solid @color-border-light;
-    cursor: pointer;
-    transition: background-color 0.15s;
-    gap: 8px;
-
-    &:hover {
-      background-color: #f5f7fa;
-    }
-
-    &.is-selected {
-      background-color: #ecf5ff;
-    }
-  }
-
-  // ---- Key 信息区 ----
-  &__key-info {
-    flex: 1;
-    min-width: 0;
-  }
-
-  // ---- Key 名称 ----
-  &__key-name {
-    display: block;
-    font-size: 13px;
-    color: @color-text-primary;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  // ---- Key 元信息 ----
-  &__key-meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 4px;
-  }
-
-  // ---- Key TTL ----
-  &__key-ttl {
-    font-size: 11px;
-    color: @color-text-secondary;
-  }
-
-  // ---- Key 操作按钮 ----
-  &__key-actions {
-    flex-shrink: 0;
-    opacity: 0;
-    transition: opacity 0.15s;
-
-    .ran-key-panel__key-item:hover & {
-      opacity: 1;
+    // VTable 内部 canvas 自适应容器
+    canvas {
+      display: block;
     }
   }
 
@@ -270,57 +123,14 @@ html.dark {
       border-bottom-color: #363637;
     }
 
-    &__search {
-      border-bottom-color: #363637;
-    }
-
     &__progress {
       background: #1a2e1a;
-      border-bottom-color: #363637;
-    }
-
-    &__toolbar {
-      background: #2e2a1e;
       border-bottom-color: #363637;
     }
 
     &__warning {
       background: #2e1a1a;
       border-bottom-color: #363637;
-    }
-
-    &__tree {
-      .el-tree {
-        .el-tree-node__content {
-          &:hover {
-            background-color: #262727;
-          }
-        }
-
-        .el-tree-node.is-current > .el-tree-node__content {
-          background-color: #1a3a5c;
-        }
-      }
-    }
-
-    &__key-item {
-      border-bottom-color: #363637;
-
-      &:hover {
-        background-color: #262727;
-      }
-
-      &.is-selected {
-        background-color: #1a3a5c;
-      }
-    }
-
-    &__key-name {
-      color: #e5eaf3;
-    }
-
-    &__tree-node-label {
-      color: #e5eaf3;
     }
 
     &__status {
