@@ -526,9 +526,19 @@ impl ConnectionManager<ConnectionConfig> for RedisConnectionManager {
     async fn create(&self, config: ConnectionConfig) -> Result<String, AppError> {
         let connection_id = config.id.clone();
 
-        // 检查是否已存在同名连接
-        if self.clients.contains_key(&connection_id) {
-            return Err(AppError::BadRequest(format!("连接已存在: {}", connection_id)));
+        // 检查是否已存在同名连接 - 如果存在且有效则复用，无效则先清理再重建
+        if let Some(client) = self.clients.get(&connection_id) {
+            let is_alive = client.ping().await.is_ok();
+            drop(client); // 释放 DashMap 引用，以便后续 remove 操作
+
+            if is_alive {
+                log::info!("[RedisConnectionManager] 连接已存在且有效，复用: {}", connection_id);
+                return Ok(connection_id);
+            } else {
+                // 连接已断开，先清理旧连接（包括 SSH 隧道）
+                log::info!("[RedisConnectionManager] 连接已断开，清理旧连接: {}", connection_id);
+                let _ = self.close(&connection_id).await;
+            }
         }
 
         // 发送连接中事件

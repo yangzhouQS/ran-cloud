@@ -21,6 +21,7 @@ import { useModuleBus } from "../../_shared/use-module-bus";
 import {
   redisConnectionClose,
   redisConnectionCreate,
+  redisConnectionList,
   redisConnectionPing,
   redisConnectionStatus,
   redisKeyDelete,
@@ -130,12 +131,39 @@ export const useRedisStore = defineStore("redis-desktop", () => {
 
   // ===== 连接操作 =====
 
-  /** 加载已保存的连接列表 */
+  /** 加载已保存的连接列表，并同步后端活跃连接状态 */
   async function loadConnections() {
     try {
       connections.value = await redisStorageLoadConnections();
     } catch (e) {
       console.error("[RedisStore] 加载连接列表失败:", e);
+    }
+
+    // 同步后端活跃连接状态：页面刷新后前端 Pinia 内存态丢失，
+    // 但后端 DashMap 仍持有活跃连接，需从后端拉取并回填 connectionInfos
+    try {
+      const activeIds = await redisConnectionList();
+      for (const id of activeIds) {
+        const config = connections.value.find(c => c.id === id);
+        if (config) {
+          connectionInfos.value.set(id, {
+            id,
+            name: config.name,
+            host: config.host,
+            port: config.port,
+            db: config.db,
+            status: ConnectionStatus.Connected,
+            cluster: config.cluster,
+            hasSentinel: !!config.sentinel,
+            hasSshTunnel: !!config.sshTunnel,
+            hasTls: !!config.tls,
+            readonly: config.readonly,
+            separator: config.separator,
+          });
+        }
+      }
+    } catch (e) {
+      console.error("[RedisStore] 同步后端连接状态失败:", e);
     }
   }
 
@@ -296,12 +324,24 @@ export const useRedisStore = defineStore("redis-desktop", () => {
   }
 
   /** 处理 SCAN 进度事件 */
-  function handleScanProgress(event: { keys: KeyScanResult[]; progress: number; total: number; done: boolean }) {
+  function handleScanProgress(event: {
+    keys: string[];
+    batchCount: number;
+    totalScanned: number;
+    done: boolean;
+  }) {
     if (event.keys && event.keys.length > 0) {
-      keys.value.push(...event.keys);
+      // 后端 ScanProgressEvent.keys 是 Vec<String>（纯字符串），
+      // 需要转换为 KeyScanResult 对象，keyType 和 TTL 在用户点击时按需获取
+      const newKeys: KeyScanResult[] = event.keys.map((keyName: string) => ({
+        key: keyName,
+        keyType: "unknown",
+        ttl: -1,
+      }));
+      keys.value.push(...newKeys);
     }
-    scanState.value.progress = event.progress;
-    scanState.value.total = event.total;
+    scanState.value.progress = event.totalScanned ?? 0;
+    scanState.value.total = event.totalScanned ?? 0;
     if (event.done) {
       scanState.value.scanning = false;
       currentScanId.value = "";

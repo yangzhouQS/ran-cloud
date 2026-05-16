@@ -1,15 +1,18 @@
 /**
  * @component KeyPanel
- * @description Key 面板样式 — 中间面板，显示 Key 列表、搜索和 SCAN 进度
+ * @description Key 面板样式 — 中间面板，支持树形/列表双视图展示 Key、搜索过滤、
+ *              SCAN 进度、右键上下文菜单、节点上限保护、Key 统计状态栏
  * @block ran-key-panel
- * @elements __search, __progress, __progress-info, __toolbar, __list, __list-inner,
- *           __key-item, __key-info, __key-name, __key-meta, __key-ttl, __key-actions, __status, __empty
+ * @elements __search, __toolbar-top, __toolbar-actions, __search-input, __warning,
+ *           __progress, __progress-info, __toolbar, __list, __list-inner,
+ *           __key-item, __key-info, __key-name, __key-meta, __key-ttl, __key-actions,
+ *           __tree, __tree-node, __tree-node-icon, __tree-node-label, __tree-node-type,
+ *           __status, __empty, __contextmenu-icon
  */
 
 @import (reference) "../../../assets/styles/global.less";
 
 .ran-key-panel {
-  width: 320px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -18,7 +21,32 @@
   flex-shrink: 0;
   overflow: hidden;
 
-  // ---- 搜索栏 ----
+  // ---- 顶部工具栏 ----
+  &__toolbar-top {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-bottom: 1px solid @color-border;
+    flex-shrink: 0;
+    background: #fafbfc;
+  }
+
+  // ---- 工具栏操作按钮区 ----
+  &__toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  // ---- 搜索输入框 ----
+  &__search-input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  // ---- 搜索栏（保留兼容） ----
   &__search {
     padding: 12px;
     border-bottom: 1px solid @color-border;
@@ -43,7 +71,7 @@
     color: @color-text-secondary;
   }
 
-  // ---- 工具栏 ----
+  // ---- 批量操作工具栏 ----
   &__toolbar {
     display: flex;
     align-items: center;
@@ -54,6 +82,83 @@
     font-size: 12px;
     color: @color-text-secondary;
     flex-shrink: 0;
+  }
+
+  // ---- Key 数量超限警告 ----
+  &__warning {
+    padding: 6px 12px;
+    border-bottom: 1px solid @color-border-light;
+    background: #fef0f0;
+    font-size: 12px;
+    color: #f56c6c;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  // ---- 树形容器 ----
+  &__tree {
+    flex: 1;
+    overflow: hidden;
+
+    .el-tree {
+      background: transparent;
+      height: 100%;
+      overflow-y: auto;
+
+      .el-tree-node__content {
+        height: 32px;
+        padding-right: 8px;
+
+        &:hover {
+          background-color: #f5f7fa;
+        }
+      }
+
+      .el-tree-node.is-current > .el-tree-node__content {
+        background-color: #ecf5ff;
+      }
+
+      // 叶子节点选中样式
+      .el-tree-node.is-leaf.is-current > .el-tree-node__content {
+        background-color: #ecf5ff;
+      }
+    }
+  }
+
+  // ---- 树节点内容区 ----
+  &__tree-node {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    gap: 6px;
+  }
+
+  // ---- 树节点图标 ----
+  &__tree-node-icon {
+    flex-shrink: 0;
+    font-size: 14px;
+    color: @color-text-secondary;
+  }
+
+  // ---- 树节点标签 ----
+  &__tree-node-label {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    color: @color-text-primary;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  // ---- 树节点类型标签 ----
+  &__tree-node-type {
+    flex-shrink: 0;
+    font-size: 11px;
+    color: @color-text-secondary;
   }
 
   // ---- Key 列表容器 ----
@@ -147,6 +252,11 @@
     justify-content: center;
     height: 100%;
   }
+
+  // ---- 右键菜单图标 ----
+  &__contextmenu-icon {
+    margin-right: 4px;
+  }
 }
 
 // ---- 暗黑主题 ----
@@ -154,6 +264,11 @@ html.dark {
   .ran-key-panel {
     background: #1d1e1f;
     border-right-color: #363637;
+
+    &__toolbar-top {
+      background: #1d1e1f;
+      border-bottom-color: #363637;
+    }
 
     &__search {
       border-bottom-color: #363637;
@@ -169,6 +284,25 @@ html.dark {
       border-bottom-color: #363637;
     }
 
+    &__warning {
+      background: #2e1a1a;
+      border-bottom-color: #363637;
+    }
+
+    &__tree {
+      .el-tree {
+        .el-tree-node__content {
+          &:hover {
+            background-color: #262727;
+          }
+        }
+
+        .el-tree-node.is-current > .el-tree-node__content {
+          background-color: #1a3a5c;
+        }
+      }
+    }
+
     &__key-item {
       border-bottom-color: #363637;
 
@@ -182,6 +316,10 @@ html.dark {
     }
 
     &__key-name {
+      color: #e5eaf3;
+    }
+
+    &__tree-node-label {
       color: #e5eaf3;
     }
 

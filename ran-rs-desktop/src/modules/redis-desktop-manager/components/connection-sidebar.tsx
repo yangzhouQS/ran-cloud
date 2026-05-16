@@ -2,20 +2,32 @@
  * 连接侧边栏组件
  *
  * 左侧面板，显示：
- * - 连接列表（带状态指示器）
+ * - 搜索/过滤输入框
+ * - 连接列表（带状态指示器、hover 显示操作菜单）
  * - 新建连接按钮
- * - 连接操作（连接/断开/编辑/删除）
+ * - 通过 ElDropdown 提供丰富操作菜单（连接/断开/编辑/复制/删除/刷新）
  * - DB 选择器（连接后展开）
  *
  * @block ran-connection-sidebar
  */
 
-import { Delete, Edit, Link as LinkIcon, Plus, RefreshRight } from "@element-plus/icons-vue";
+import {
+  CopyDocument,
+  Delete,
+  Edit,
+  Link as LinkIcon,
+  MoreFilled,
+  Plus,
+  RefreshRight,
+  Search,
+  SwitchButton,
+} from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { defineComponent, ref } from "vue";
+import { computed, defineComponent, ref } from "vue";
 import { useCsNamespace } from "../../../hooks/use-namespace";
 import { useRedisStore } from "../stores/redis-store";
 import { ConnectionStatus } from "../types";
+import type { ConnectionConfig } from "../types";
 import ConnectionForm from "./connection-form";
 import "./connection-sidebar.less";
 
@@ -29,9 +41,23 @@ const ConnectionSidebar = defineComponent({
     const showFormDialog = ref(false);
     const editingConnection = ref<string | null>(null);
     const expandedConnections = ref<Set<string>>(new Set());
+    const searchKeyword = ref("");
 
     // ===== 初始化 =====
     store.loadConnections();
+
+    // ===== 计算属性 =====
+
+    /** 按搜索关键词过滤的连接列表 */
+    const filteredConnections = computed(() => {
+      if (!searchKeyword.value) {
+        return store.connectionList;
+      }
+      const keyword = searchKeyword.value.toLowerCase();
+      return store.connectionList.filter((item) =>
+        item.config.name.toLowerCase().includes(keyword),
+      );
+    });
 
     // ===== 事件处理 =====
 
@@ -48,7 +74,7 @@ const ConnectionSidebar = defineComponent({
     };
 
     /** 连接/断开 */
-    const handleToggleConnect = async (config: import("../types").ConnectionConfig) => {
+    const handleToggleConnect = async (config: ConnectionConfig) => {
       const info = store.connectionInfos.get(config.id);
       if (info?.status === ConnectionStatus.Connected) {
         await store.disconnect(config.id);
@@ -66,12 +92,16 @@ const ConnectionSidebar = defineComponent({
     };
 
     /** 删除连接 */
-    const handleDelete = async (config: import("../types").ConnectionConfig) => {
+    const handleDelete = async (config: ConnectionConfig) => {
       try {
         await ElMessageBox.confirm(
           `确定要删除连接 "${config.name}" 吗？`,
           "删除确认",
-          { confirmButtonText: "确定", cancelButtonText: "取消", type: "warning" },
+          {
+            confirmButtonText: "确定",
+            cancelButtonText: "取消",
+            type: "warning",
+          },
         );
         await store.deleteConnection(config.id);
         ElMessage.success("已删除");
@@ -80,8 +110,19 @@ const ConnectionSidebar = defineComponent({
       }
     };
 
+    /** 复制连接 */
+    const handleCopy = async (config: ConnectionConfig) => {
+      const newConfig: ConnectionConfig = {
+        ...config,
+        id: crypto.randomUUID(),
+        name: `${config.name} (副本)`,
+      };
+      await store.saveConnection(newConfig);
+      ElMessage.success(`已复制连接: ${newConfig.name}`);
+    };
+
     /** 刷新连接 */
-    const handleRefresh = async (config: import("../types").ConnectionConfig) => {
+    const handleRefresh = async (config: ConnectionConfig) => {
       try {
         await store.pingConnection(config.id);
         ElMessage.success("连接正常");
@@ -105,10 +146,33 @@ const ConnectionSidebar = defineComponent({
     };
 
     /** 表单保存回调 */
-    const handleFormSave = async (config: import("../types").ConnectionConfig) => {
+    const handleFormSave = async (config: ConnectionConfig) => {
       await store.saveConnection(config);
       showFormDialog.value = false;
-      ElMessage.success(editingConnection.value ? "连接已更新" : "连接已创建");
+      ElMessage.success(
+        editingConnection.value ? "连接已更新" : "连接已创建",
+      );
+    };
+
+    /** Dropdown 菜单命令处理 */
+    const handleDropdownCommand = (command: string, config: ConnectionConfig) => {
+      switch (command) {
+        case "connect":
+          handleToggleConnect(config);
+          break;
+        case "edit":
+          handleEdit(config.id);
+          break;
+        case "copy":
+          handleCopy(config);
+          break;
+        case "delete":
+          handleDelete(config);
+          break;
+        case "refresh":
+          handleRefresh(config);
+          break;
+      }
     };
 
     // ===== 渲染 =====
@@ -142,7 +206,7 @@ const ConnectionSidebar = defineComponent({
 
       return (
         <div class={ns.e("db-list")}>
-          {dbs.map(db => (
+          {dbs.map((db) => (
             <div
               key={db}
               class={[
@@ -151,19 +215,69 @@ const ConnectionSidebar = defineComponent({
               ]}
               onClick={() => handleSwitchDb(db)}
             >
-              <span class={ns.e("db-index")}>
-                DB
-                {db}
-              </span>
+              <span class={ns.e("db-index")}>db{db}</span>
             </div>
           ))}
         </div>
       );
     };
 
+    /** 渲染下拉操作菜单 */
+    const renderDropdownMenu = (config: ConnectionConfig, isConnected: boolean) => {
+      return (
+        <el-dropdown-menu>
+          {isConnected
+            ? (
+                <el-dropdown-item
+                  command="connect"
+                >
+                  <el-icon style="margin-right: 6px;">
+                    <SwitchButton />
+                  </el-icon>
+                  断开连接
+                </el-dropdown-item>
+              )
+            : (
+                <el-dropdown-item command="connect">
+                  <el-icon style="margin-right: 6px;">
+                    <LinkIcon />
+                  </el-icon>
+                  打开连接
+                </el-dropdown-item>
+              )}
+          <el-dropdown-item command="edit">
+            <el-icon style="margin-right: 6px;">
+              <Edit />
+            </el-icon>
+            编辑连接
+          </el-dropdown-item>
+          <el-dropdown-item command="copy">
+            <el-icon style="margin-right: 6px;">
+              <CopyDocument />
+            </el-icon>
+            复制连接
+          </el-dropdown-item>
+          <el-dropdown-item command="delete" divided>
+            <el-icon style="margin-right: 6px;">
+              <Delete />
+            </el-icon>
+            删除连接
+          </el-dropdown-item>
+          {isConnected && (
+            <el-dropdown-item command="refresh" divided>
+              <el-icon style="margin-right: 6px;">
+                <RefreshRight />
+              </el-icon>
+              刷新连接
+            </el-dropdown-item>
+          )}
+        </el-dropdown-menu>
+      );
+    };
+
     /** 渲染连接项 */
     const renderConnectionItem = (item: {
-      config: import("../types").ConnectionConfig;
+      config: ConnectionConfig;
       status: ConnectionStatus;
     }) => {
       const { config, status } = item;
@@ -186,61 +300,34 @@ const ConnectionSidebar = defineComponent({
             {renderStatusDot(status)}
             <span class={ns.e("item-name")}>{config.name}</span>
             <span class={ns.e("item-host")}>
-              {config.host}
-              :
-              {config.port}
+              {config.host}:{config.port}
             </span>
-          </div>
 
-          {/* 操作按钮 */}
-          <div class={ns.e("item-actions")}>
-            <el-tooltip content={isConnected ? "断开" : "连接"} placement="top" showAfter={300}>
-              <el-button
-                link
-                size="small"
-                type={isConnected ? "danger" : "primary"}
-                onClick={() => handleToggleConnect(config)}
+            {/* Dropdown 操作菜单 — hover 时可见 */}
+            <div
+              class={ns.e("item-dropdown")}
+              onClick={(e: MouseEvent) => {
+                // 阻止冒泡，防止触发展开/折叠
+                e.stopPropagation();
+              }}
+            >
+              <el-dropdown
+                trigger="click"
+                placement="bottom-end"
+                onCommand={(command: string) =>
+                  handleDropdownCommand(command, config)
+                }
+                v-slots={{
+                  dropdown: () => renderDropdownMenu(config, isConnected),
+                }}
               >
-                <el-icon><LinkIcon /></el-icon>
-              </el-button>
-            </el-tooltip>
-
-            {!isConnected && (
-              <el-tooltip content="编辑" placement="top" showAfter={300}>
-                <el-button
-                  link
-                  size="small"
-                  onClick={() => handleEdit(config.id)}
-                >
-                  <el-icon><Edit /></el-icon>
-                </el-button>
-              </el-tooltip>
-            )}
-
-            {!isConnected && (
-              <el-tooltip content="删除" placement="top" showAfter={300}>
-                <el-button
-                  link
-                  size="small"
-                  type="danger"
-                  onClick={() => handleDelete(config)}
-                >
-                  <el-icon><Delete /></el-icon>
-                </el-button>
-              </el-tooltip>
-            )}
-
-            {isConnected && (
-              <el-tooltip content="刷新" placement="top" showAfter={300}>
-                <el-button
-                  link
-                  size="small"
-                  onClick={() => handleRefresh(config)}
-                >
-                  <el-icon><RefreshRight /></el-icon>
-                </el-button>
-              </el-tooltip>
-            )}
+                <span class={ns.e("item-dropdown-trigger")}>
+                  <el-icon size={16}>
+                    <MoreFilled />
+                  </el-icon>
+                </span>
+              </el-dropdown>
+            </div>
           </div>
 
           {/* DB 列表 */}
@@ -260,21 +347,48 @@ const ConnectionSidebar = defineComponent({
             circle
             onClick={handleCreate}
           >
-            <el-icon><Plus /></el-icon>
+            <el-icon>
+              <Plus />
+            </el-icon>
           </el-button>
         </div>
 
+        {/* 搜索框 — 仅在有足够连接时显示 */}
+        {store.connections.length >= 4 && (
+          <div class={ns.e("search")}>
+            <el-input
+              v-model={searchKeyword}
+              placeholder="搜索连接..."
+              size="small"
+              clearable
+              suffix-icon={
+                <el-icon>
+                  <Search />
+                </el-icon>
+              }
+            />
+          </div>
+        )}
+
         {/* 连接列表 */}
         <div class={ns.e("list")}>
-          {store.connectionList.length === 0
+          {filteredConnections.value.length === 0 && searchKeyword.value
             ? (
                 <div class={ns.e("empty")}>
-                  <el-empty description="暂无连接" image-size={60} />
+                  <el-empty description="无匹配连接" image-size={50} />
                 </div>
               )
-            : (
-                store.connectionList.map(item => renderConnectionItem(item))
-              )}
+            : store.connectionList.length === 0
+              ? (
+                  <div class={ns.e("empty")}>
+                    <el-empty description="暂无连接" image-size={60} />
+                  </div>
+                )
+              : (
+                  filteredConnections.value.map((item) =>
+                    renderConnectionItem(item),
+                  )
+                )}
         </div>
 
         {/* 连接表单对话框 */}
