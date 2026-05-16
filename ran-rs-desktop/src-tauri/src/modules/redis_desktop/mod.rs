@@ -1,8 +1,8 @@
 // modules/redis_desktop/mod.rs — Redis Desktop 模块入口
-// 注册为 Tauri Plugin，所有 Redis 相关功能的统一入口
+// 使用直接命令注册（非 Plugin 架构），避免 Tauri 2 权限系统复杂性
 
 use std::sync::Arc;
-use tauri::{plugin::TauriPlugin, Manager};
+use tauri::Manager;
 
 use connection::RedisConnectionManager;
 
@@ -14,94 +14,96 @@ pub mod shared;
 pub mod storage;
 pub mod tool;
 
-/// Redis Desktop Plugin 工厂函数
-/// 返回一个完整的 TauriPlugin，包含所有 Redis 相关命令和状态管理
-pub fn plugin() -> TauriPlugin<tauri::Wry> {
-    tauri::plugin::Builder::new("redis-desktop")
-        .invoke_handler(tauri::generate_handler![
+/// 获取所有 Redis Desktop 命令的 invoke handler 列表
+/// 用于在 lib.rs 中通过 tauri::generate_handler! 注册
+#[macro_export]
+macro_rules! register_redis_desktop_commands {
+    () => {
+        tauri::generate_handler![
             // ===== 连接管理命令 =====
-            connection::commands::redis_connection_create,
-            connection::commands::redis_connection_close,
-            connection::commands::redis_connection_close_all,
-            connection::commands::redis_connection_status,
-            connection::commands::redis_connection_list,
-            connection::commands::redis_connection_ping,
-            connection::commands::redis_connection_save,
-            connection::commands::redis_connection_delete,
-            connection::commands::redis_connection_select_db,
-            connection::commands::redis_connection_get_config,
-            connection::commands::redis_connection_list_info,
-            connection::commands::redis_connection_test,
-            connection::commands::redis_connection_get_database_list,
-            connection::commands::redis_connection_save_all,
+            $crate::modules::redis_desktop::connection::commands::redis_connection_create,
+            $crate::modules::redis_desktop::connection::commands::redis_connection_close,
+            $crate::modules::redis_desktop::connection::commands::redis_connection_close_all,
+            $crate::modules::redis_desktop::connection::commands::redis_connection_status,
+            $crate::modules::redis_desktop::connection::commands::redis_connection_list,
+            $crate::modules::redis_desktop::connection::commands::redis_connection_ping,
+            $crate::modules::redis_desktop::connection::commands::redis_connection_save,
+            $crate::modules::redis_desktop::connection::commands::redis_connection_delete,
+            $crate::modules::redis_desktop::connection::commands::redis_connection_select_db,
+            $crate::modules::redis_desktop::connection::commands::redis_connection_get_config,
+            $crate::modules::redis_desktop::connection::commands::redis_connection_list_info,
+            $crate::modules::redis_desktop::connection::commands::redis_connection_test,
+            $crate::modules::redis_desktop::connection::commands::redis_connection_get_database_list,
+            $crate::modules::redis_desktop::connection::commands::redis_connection_save_all,
             // ===== 存储命令 =====
-            storage::commands::redis_storage_load_connections,
-            storage::commands::redis_storage_save_connections,
-            storage::commands::redis_storage_save_connection,
-            storage::commands::redis_storage_delete_connection,
-            storage::commands::redis_storage_load_settings,
-            storage::commands::redis_storage_save_settings,
-            storage::commands::redis_storage_load_cli_history,
-            storage::commands::redis_storage_save_cli_history,
+            $crate::modules::redis_desktop::storage::commands::redis_storage_load_connections,
+            $crate::modules::redis_desktop::storage::commands::redis_storage_save_connections,
+            $crate::modules::redis_desktop::storage::commands::redis_storage_save_connection,
+            $crate::modules::redis_desktop::storage::commands::redis_storage_delete_connection,
+            $crate::modules::redis_desktop::storage::commands::redis_storage_load_settings,
+            $crate::modules::redis_desktop::storage::commands::redis_storage_save_settings,
+            $crate::modules::redis_desktop::storage::commands::redis_storage_load_cli_history,
+            $crate::modules::redis_desktop::storage::commands::redis_storage_save_cli_history,
             // ===== Key 操作命令 =====
-            key::commands::redis_key_scan,
-            key::commands::redis_key_scan_start,
-            key::commands::redis_key_scan_cancel,
-            key::commands::redis_key_scan_continue,
-            key::commands::redis_key_detail,
-            key::commands::redis_key_delete,
-            key::commands::redis_key_rename,
-            key::commands::redis_key_expire,
-            key::commands::redis_key_type,
+            $crate::modules::redis_desktop::key::commands::redis_key_scan,
+            $crate::modules::redis_desktop::key::commands::redis_key_scan_start,
+            $crate::modules::redis_desktop::key::commands::redis_key_scan_cancel,
+            $crate::modules::redis_desktop::key::commands::redis_key_scan_continue,
+            $crate::modules::redis_desktop::key::commands::redis_key_detail,
+            $crate::modules::redis_desktop::key::commands::redis_key_delete,
+            $crate::modules::redis_desktop::key::commands::redis_key_rename,
+            $crate::modules::redis_desktop::key::commands::redis_key_expire,
+            $crate::modules::redis_desktop::key::commands::redis_key_type,
             // ===== 数据类型操作命令 =====
             // -- String --
-            data::commands::redis_data_string_get,
-            data::commands::redis_data_string_set,
+            $crate::modules::redis_desktop::data::commands::redis_data_string_get,
+            $crate::modules::redis_desktop::data::commands::redis_data_string_set,
             // -- Hash --
-            data::commands::redis_data_hash_page,
-            data::commands::redis_data_hash_add,
-            data::commands::redis_data_hash_update,
-            data::commands::redis_data_hash_delete,
+            $crate::modules::redis_desktop::data::commands::redis_data_hash_page,
+            $crate::modules::redis_desktop::data::commands::redis_data_hash_add,
+            $crate::modules::redis_desktop::data::commands::redis_data_hash_update,
+            $crate::modules::redis_desktop::data::commands::redis_data_hash_delete,
             // -- List --
-            data::commands::redis_data_list_page,
-            data::commands::redis_data_list_add,
-            data::commands::redis_data_list_update,
-            data::commands::redis_data_list_delete,
+            $crate::modules::redis_desktop::data::commands::redis_data_list_page,
+            $crate::modules::redis_desktop::data::commands::redis_data_list_add,
+            $crate::modules::redis_desktop::data::commands::redis_data_list_update,
+            $crate::modules::redis_desktop::data::commands::redis_data_list_delete,
             // -- Set --
-            data::commands::redis_data_set_page,
-            data::commands::redis_data_set_add,
-            data::commands::redis_data_set_delete,
+            $crate::modules::redis_desktop::data::commands::redis_data_set_page,
+            $crate::modules::redis_desktop::data::commands::redis_data_set_add,
+            $crate::modules::redis_desktop::data::commands::redis_data_set_delete,
             // -- ZSet --
-            data::commands::redis_data_zset_page,
-            data::commands::redis_data_zset_add,
-            data::commands::redis_data_zset_update,
-            data::commands::redis_data_zset_delete,
+            $crate::modules::redis_desktop::data::commands::redis_data_zset_page,
+            $crate::modules::redis_desktop::data::commands::redis_data_zset_add,
+            $crate::modules::redis_desktop::data::commands::redis_data_zset_update,
+            $crate::modules::redis_desktop::data::commands::redis_data_zset_delete,
             // -- Stream --
-            data::commands::redis_data_stream_page,
-            data::commands::redis_data_stream_add,
-            data::commands::redis_data_stream_delete,
-            data::commands::redis_data_stream_groups,
+            $crate::modules::redis_desktop::data::commands::redis_data_stream_page,
+            $crate::modules::redis_desktop::data::commands::redis_data_stream_add,
+            $crate::modules::redis_desktop::data::commands::redis_data_stream_delete,
+            $crate::modules::redis_desktop::data::commands::redis_data_stream_groups,
             // ===== CLI 命令 =====
-            cli::commands::redis_cli_exec,
-            cli::commands::redis_cli_complete,
+            $crate::modules::redis_desktop::cli::commands::redis_cli_exec,
+            $crate::modules::redis_desktop::cli::commands::redis_cli_complete,
             // ===== 运维工具命令 =====
-            tool::commands::redis_tool_command_log_init,
-            tool::commands::redis_tool_command_log_list,
-            tool::commands::redis_tool_command_log_clear,
-            tool::commands::redis_tool_command_log_clear_all,
-            tool::commands::redis_tool_slow_log,
-            tool::commands::redis_tool_memory_analysis,
-            tool::commands::redis_tool_server_status,
-            tool::commands::redis_tool_database_list,
-            tool::commands::redis_tool_server_info,
-            tool::commands::redis_tool_client_list,
-        ])
-        .setup(|app, _api| {
-            // 初始化连接管理器
-            let manager = Arc::new(RedisConnectionManager::new());
-            app.manage(manager);
-            log::info!("Redis Desktop Plugin 已加载");
-            Ok(())
-        })
-        .build()
+            $crate::modules::redis_desktop::tool::commands::redis_tool_command_log_init,
+            $crate::modules::redis_desktop::tool::commands::redis_tool_command_log_list,
+            $crate::modules::redis_desktop::tool::commands::redis_tool_command_log_clear,
+            $crate::modules::redis_desktop::tool::commands::redis_tool_command_log_clear_all,
+            $crate::modules::redis_desktop::tool::commands::redis_tool_slow_log,
+            $crate::modules::redis_desktop::tool::commands::redis_tool_memory_analysis,
+            $crate::modules::redis_desktop::tool::commands::redis_tool_server_status,
+            $crate::modules::redis_desktop::tool::commands::redis_tool_database_list,
+            $crate::modules::redis_desktop::tool::commands::redis_tool_server_info,
+            $crate::modules::redis_desktop::tool::commands::redis_tool_client_list,
+        ]
+    };
+}
+
+/// 初始化 Redis Desktop 模块状态
+/// 在 Tauri Builder 的 setup 中调用
+pub fn setup(app: &tauri::App) {
+    let manager = Arc::new(RedisConnectionManager::new());
+    app.manage(manager);
+    log::info!("Redis Desktop 模块已加载（直接命令注册模式）");
 }

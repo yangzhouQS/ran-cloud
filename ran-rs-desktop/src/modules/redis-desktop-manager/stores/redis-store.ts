@@ -77,6 +77,7 @@ export const useRedisStore = defineStore("redis-desktop", () => {
 
   // ===== Key 管理 =====
   const keys = ref<KeyScanResult[]>([]);
+  const currentScanId = ref<string>("");
   const scanState = ref<ScanState>({
     scanning: false,
     progress: 0,
@@ -213,6 +214,7 @@ export const useRedisStore = defineStore("redis-desktop", () => {
         keys.value = [];
         selectedKey.value = "";
         keyDetail.value = null;
+        currentScanId.value = "";
         scanState.value = { scanning: false, progress: 0, total: 0, pattern: "*" };
       }
       // 关闭该连接的所有标签页
@@ -257,6 +259,9 @@ export const useRedisStore = defineStore("redis-desktop", () => {
       return;
     }
 
+    const scanId = crypto.randomUUID();
+    currentScanId.value = scanId;
+
     scanState.value = {
       scanning: true,
       progress: 0,
@@ -266,24 +271,27 @@ export const useRedisStore = defineStore("redis-desktop", () => {
     keys.value = [];
 
     try {
-      await redisKeyScanStart({
-        connectionId: activeConnectionId.value,
-        db: activeDb.value,
+      await redisKeyScanStart(
+        activeConnectionId.value,
+        activeDb.value,
+        scanId,
         pattern,
         count,
-      });
+      );
     } catch (e) {
       console.error("[RedisStore] SCAN 启动失败:", e);
       scanState.value.scanning = false;
+      currentScanId.value = "";
     }
   }
 
   /** 取消扫描 */
   async function cancelScan() {
-    if (!activeConnectionId.value) {
+    if (!currentScanId.value) {
       return;
     }
-    await redisKeyScanCancel(activeConnectionId.value);
+    await redisKeyScanCancel(currentScanId.value);
+    currentScanId.value = "";
     scanState.value.scanning = false;
   }
 
@@ -296,6 +304,7 @@ export const useRedisStore = defineStore("redis-desktop", () => {
     scanState.value.total = event.total;
     if (event.done) {
       scanState.value.scanning = false;
+      currentScanId.value = "";
     }
   }
 
@@ -364,6 +373,7 @@ export const useRedisStore = defineStore("redis-desktop", () => {
     keys.value = [];
     selectedKey.value = "";
     keyDetail.value = null;
+    currentScanId.value = "";
     scanState.value = { scanning: false, progress: 0, total: 0, pattern: "*" };
   }
 
@@ -521,6 +531,7 @@ export const useRedisStore = defineStore("redis-desktop", () => {
     activeConnectionId,
     activeDb,
     keys,
+    currentScanId,
     scanState,
     selectedKey,
     keyDetail,
