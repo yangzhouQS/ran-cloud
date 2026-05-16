@@ -104,7 +104,11 @@ const SlowLogPanel = defineComponent({
             刷新
           </el-button>
           <span class={ns.e("config")}>
-            单位: ms | 共 {entries.value.length} 条
+            单位: ms | 共
+            {" "}
+            {entries.value.length}
+            {" "}
+            条
           </span>
         </div>
 
@@ -114,33 +118,40 @@ const SlowLogPanel = defineComponent({
           <span class={ns.e("col-time")}>时间</span>
           <span class={ns.e("col-cmd")}>命令</span>
           <span class={ns.e("col-cost")} onClick={toggleSort}>
-            耗时(ms) {sortOrder.value === "asc" ? "↑" : "↓"}
+            耗时(ms)
+            {" "}
+            {sortOrder.value === "asc" ? "↑" : "↓"}
           </span>
         </div>
 
         {/* 列表体 */}
-        {entries.value.length > 0 ? (
-          <div class={ns.e("list-body")}>
-            {entries.value.map((entry, index) => (
-              <div class={ns.e("row")} key={entry.id}>
-                <span class={ns.e("row-index")}>{index + 1}.</span>
-                <span class={ns.e("row-time")} title={formatTime(entry.timestamp)}>
-                  {formatTimeShort(entry.timestamp)}
-                </span>
-                <span class={ns.e("row-cmd")} title={entry.command.join(" ")}>
-                  {entry.command.join(" ")}
-                </span>
-                <span class={ns.e("row-cost")}>
-                  <el-tag size="small">{formatCost(entry.durationUs)}</el-tag>
-                </span>
+        {entries.value.length > 0
+          ? (
+              <div class={ns.e("list-body")}>
+                {entries.value.map((entry, index) => (
+                  <div class={ns.e("row")} key={entry.id}>
+                    <span class={ns.e("row-index")}>
+                      {index + 1}
+                      .
+                    </span>
+                    <span class={ns.e("row-time")} title={formatTime(entry.timestamp)}>
+                      {formatTimeShort(entry.timestamp)}
+                    </span>
+                    <span class={ns.e("row-cmd")} title={entry.command.join(" ")}>
+                      {entry.command.join(" ")}
+                    </span>
+                    <span class={ns.e("row-cost")}>
+                      <el-tag size="small">{formatCost(entry.durationUs)}</el-tag>
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        ) : (
-          <div class={ns.e("empty")}>
-            {loading.value ? "加载中..." : "暂无慢日志"}
-          </div>
-        )}
+            )
+          : (
+              <div class={ns.e("empty")}>
+                {loading.value ? "加载中..." : "暂无慢日志"}
+              </div>
+            )}
 
         {/* 底部 */}
         <div class={ns.e("footer")}>

@@ -50,6 +50,7 @@ impl InnerConnection {
 
 /// Redis 客户端封装
 /// 内部持有异步连接，支持 Standalone / Cluster 模式
+/// 支持连接断开后自动重连
 pub struct RedisClient {
     /// 连接名称（用于日志和调试）
     name: String,
@@ -59,6 +60,10 @@ pub struct RedisClient {
     command_timeout: Duration,
     /// 是否为集群模式
     is_cluster: bool,
+    /// Standalone 模式的原始 Client（用于重连）
+    standalone_client: Arc<Mutex<Option<redis::Client>>>,
+    /// Cluster 模式的原始 ClusterClient（用于重连）
+    cluster_client: Arc<Mutex<Option<redis::cluster::ClusterClient>>>,
 }
 
 impl RedisClient {
@@ -73,6 +78,8 @@ impl RedisClient {
             conn: Arc::new(Mutex::new(None)),
             command_timeout: timeout,
             is_cluster: false,
+            standalone_client: Arc::new(Mutex::new(None)),
+            cluster_client: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -82,6 +89,12 @@ impl RedisClient {
         let conn = client
             .get_multiplexed_async_connection()
             .await?;
+
+        // 缓存原始 Client 用于自动重连
+        {
+            let mut guard = self.standalone_client.lock().await;
+            *guard = Some(client);
+        }
 
         let mut guard = self.conn.lock().await;
         *guard = Some(InnerConnection::Standalone(conn));
@@ -95,6 +108,12 @@ impl RedisClient {
         let conn = client
             .get_multiplexed_async_connection()
             .await?;
+
+        // 缓存原始 Client 用于自动重连
+        {
+            let mut guard = self.standalone_client.lock().await;
+            *guard = Some(client);
+        }
 
         let mut guard = self.conn.lock().await;
         *guard = Some(InnerConnection::Standalone(conn));
@@ -110,6 +129,12 @@ impl RedisClient {
         let conn = client
             .get_async_connection()
             .await?;
+
+        // 缓存原始 ClusterClient 用于自动重连
+        {
+            let mut guard = self.cluster_client.lock().await;
+            *guard = Some(client);
+        }
 
         let mut guard = self.conn.lock().await;
         *guard = Some(InnerConnection::Cluster(conn));
@@ -128,6 +153,12 @@ impl RedisClient {
         let conn = client
             .get_async_connection()
             .await?;
+
+        // 缓存原始 ClusterClient 用于自动重连
+        {
+            let mut guard = self.cluster_client.lock().await;
+            *guard = Some(client);
+        }
 
         let mut guard = self.conn.lock().await;
         *guard = Some(InnerConnection::Cluster(conn));
@@ -172,8 +203,23 @@ impl RedisClient {
         Ok(master_info)
     }
 
-    /// 执行 Redis 命令（带超时），返回原始 Value
+    /// 执行 Redis 命令（带超时 + 自动重连），返回原始 Value
     pub async fn run_command(&self, cmd: &Cmd) -> RedisResult<Value> {
+        let result = self.run_command_inner(cmd).await;
+        if let Err(ref e) = result {
+            if Self::is_connection_error(e) {
+                log::warn!("[RedisClient:{}] 检测到连接错误: {}, 尝试自动重连...", self.name, e);
+                if self.try_reconnect().await.is_ok() {
+                    log::info!("[RedisClient:{}] 重连成功, 重试命令", self.name);
+                    return self.run_command_inner(cmd).await;
+                }
+            }
+        }
+        result
+    }
+
+    /// 内部执行命令（不带重连逻辑）
+    async fn run_command_inner(&self, cmd: &Cmd) -> RedisResult<Value> {
         let mut guard = self.conn.lock().await;
         let conn = guard
             .as_mut()
@@ -199,8 +245,23 @@ impl RedisClient {
         redis::from_redis_value::<T>(&value)
     }
 
-    /// 执行 Pipeline（多条命令一次性发送）
+    /// 执行 Pipeline（多条命令一次性发送，带自动重连）
     pub async fn run_pipeline(&self, pipeline: &redis::Pipeline) -> RedisResult<Vec<Value>> {
+        let result = self.run_pipeline_inner(pipeline).await;
+        if let Err(ref e) = result {
+            if Self::is_connection_error(e) {
+                log::warn!("[RedisClient:{}] Pipeline 检测到连接错误: {}, 尝试自动重连...", self.name, e);
+                if self.try_reconnect().await.is_ok() {
+                    log::info!("[RedisClient:{}] 重连成功, 重试 Pipeline", self.name);
+                    return self.run_pipeline_inner(pipeline).await;
+                }
+            }
+        }
+        result
+    }
+
+    /// 内部执行 Pipeline（不带重连逻辑）
+    async fn run_pipeline_inner(&self, pipeline: &redis::Pipeline) -> RedisResult<Vec<Value>> {
         let mut guard = self.conn.lock().await;
         let conn = guard
             .as_mut()
@@ -222,11 +283,74 @@ impl RedisClient {
 
     // ==================== 连接管理 ====================
 
-    /// 关闭连接
+    /// 判断错误是否为连接断开类错误（需要重连）
+    fn is_connection_error(e: &redis::RedisError) -> bool {
+        let error_msg = e.to_string().to_lowercase();
+        // 常见的连接断开错误关键词
+        error_msg.contains("broken pipe")
+            || error_msg.contains("connection reset")
+            || error_msg.contains("connection refused")
+            || error_msg.contains("not connected")
+            || error_msg.contains("eof")
+            || error_msg.contains("unexpected end")
+            || error_msg.contains("connection aborted")
+            || error_msg.contains("network unreachable")
+            || error_msg.contains("no connection")
+            || error_msg.contains("io error")
+    }
+
+    /// 尝试使用缓存的 Client 重新建立连接
+    async fn try_reconnect(&self) -> RedisResult<()> {
+        if self.is_cluster {
+            // Cluster 模式重连
+            let client = {
+                let guard = self.cluster_client.lock().await;
+                guard.as_ref()
+                    .ok_or_else(|| redis::RedisError::from(std::io::Error::new(
+                        std::io::ErrorKind::NotConnected,
+                        format!("Redis 客户端 {} 无缓存的 ClusterClient，无法重连", self.name),
+                    )))?
+                    .clone()
+            };
+            let conn = client.get_async_connection().await?;
+            let mut guard = self.conn.lock().await;
+            *guard = Some(InnerConnection::Cluster(conn));
+            log::info!("[RedisClient:{}] Cluster 自动重连成功", self.name);
+            Ok(())
+        } else {
+            // Standalone 模式重连
+            let client = {
+                let guard = self.standalone_client.lock().await;
+                guard.as_ref()
+                    .ok_or_else(|| redis::RedisError::from(std::io::Error::new(
+                        std::io::ErrorKind::NotConnected,
+                        format!("Redis 客户端 {} 无缓存的 Client，无法重连", self.name),
+                    )))?
+                    .clone()
+            };
+            let conn = client.get_multiplexed_async_connection().await?;
+            let mut guard = self.conn.lock().await;
+            *guard = Some(InnerConnection::Standalone(conn));
+            log::info!("[RedisClient:{}] Standalone 自动重连成功", self.name);
+            Ok(())
+        }
+    }
+
+    /// 关闭连接（同时清理缓存的 Client）
     pub async fn disconnect(&self) {
-        let mut guard = self.conn.lock().await;
-        *guard = None;
-        log::info!("[RedisClient:{}] 已断开连接", self.name);
+        {
+            let mut guard = self.conn.lock().await;
+            *guard = None;
+        }
+        {
+            let mut guard = self.standalone_client.lock().await;
+            *guard = None;
+        }
+        {
+            let mut guard = self.cluster_client.lock().await;
+            *guard = None;
+        }
+        log::info!("[RedisClient:{}] 已断开连接并清理缓存", self.name);
     }
 
     /// 检查是否已连接
@@ -823,6 +947,12 @@ impl RedisClient {
 
         let client = redis::cluster::ClusterClient::new(resolved_nodes)?;
         let conn = client.get_async_connection().await?;
+
+        // 缓存原始 ClusterClient 用于自动重连
+        {
+            let mut guard = self.cluster_client.lock().await;
+            *guard = Some(client);
+        }
 
         let mut guard = self.conn.lock().await;
         *guard = Some(InnerConnection::Cluster(conn));

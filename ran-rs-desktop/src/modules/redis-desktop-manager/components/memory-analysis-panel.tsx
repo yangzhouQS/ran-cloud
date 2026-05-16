@@ -20,11 +20,13 @@ import "./memory-analysis-panel.less";
 
 /** 字节大小格式化 */
 function humanFileSize(bytes: number): string {
-  if (bytes === 0) return "0 B";
+  if (bytes === 0) {
+    return "0 B";
+  }
   const threshold = 1024;
   const units = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(threshold));
-  return `${(bytes / Math.pow(threshold, i)).toFixed(2)} ${units[i]}`;
+  return `${(bytes / threshold ** i).toFixed(2)} ${units[i]}`;
 }
 
 const MemoryAnalysisPanel = defineComponent({
@@ -119,16 +121,25 @@ const MemoryAnalysisPanel = defineComponent({
         {/* 统计汇总 */}
         <div class={ns.e("summary")} style={{ marginBottom: "12px", fontSize: "13px", color: "var(--color-text-secondary)" }}>
           <el-tag size="small" style={{ marginRight: "8px" }}>
-            总 Key: {totalKeys.value}
+            总 Key:
+            {" "}
+            {totalKeys.value}
           </el-tag>
           <el-tag size="small" type="success" style={{ marginRight: "8px" }}>
-            已分析: {analyzedKeys.value}
+            已分析:
+            {" "}
+            {analyzedKeys.value}
           </el-tag>
           <el-tag size="small" type="warning" style={{ marginRight: "8px" }}>
-            总内存: {humanFileSize(totalMemory.value)}
+            总内存:
+            {" "}
+            {humanFileSize(totalMemory.value)}
           </el-tag>
           <el-tag size="small" type="info">
-            耗时: {durationMs.value}ms
+            耗时:
+            {" "}
+            {durationMs.value}
+            ms
           </el-tag>
         </div>
 
@@ -138,33 +149,40 @@ const MemoryAnalysisPanel = defineComponent({
           <span class={ns.e("col-key")}>Key</span>
           <span class={ns.e("col-type")}>类型</span>
           <span class={ns.e("col-size")} onClick={toggleSort}>
-            内存 {sortOrder.value === "asc" ? "↑" : "↓"}
+            内存
+            {" "}
+            {sortOrder.value === "asc" ? "↑" : "↓"}
           </span>
         </div>
 
         {/* 列表体 */}
-        {entries.value.length > 0 ? (
-          <div class={ns.e("list-body")}>
-            {entries.value.map((entry, index) => (
-              <div class={ns.e("row")} key={`${entry.key}-${index}`}>
-                <span class={ns.e("row-index")}>{index + 1}.</span>
-                <span class={ns.e("row-key")} title={entry.key}>
-                  {entry.key}
-                </span>
-                <span class={ns.e("row-type")}>
-                  <el-tag size="small">{entry.keyType}</el-tag>
-                </span>
-                <span class={ns.e("row-size")}>
-                  <el-tag size="small" type="warning">{humanFileSize(entry.memoryUsage)}</el-tag>
-                </span>
+        {entries.value.length > 0
+          ? (
+              <div class={ns.e("list-body")}>
+                {entries.value.map((entry, index) => (
+                  <div class={ns.e("row")} key={`${entry.key}-${index}`}>
+                    <span class={ns.e("row-index")}>
+                      {index + 1}
+                      .
+                    </span>
+                    <span class={ns.e("row-key")} title={entry.key}>
+                      {entry.key}
+                    </span>
+                    <span class={ns.e("row-type")}>
+                      <el-tag size="small">{entry.keyType}</el-tag>
+                    </span>
+                    <span class={ns.e("row-size")}>
+                      <el-tag size="small" type="warning">{humanFileSize(entry.memoryUsage)}</el-tag>
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        ) : (
-          <div class={ns.e("empty")}>
-            {loading.value ? "分析中..." : "暂无数据，点击「分析」开始"}
-          </div>
-        )}
+            )
+          : (
+              <div class={ns.e("empty")}>
+                {loading.value ? "分析中..." : "暂无数据，点击「分析」开始"}
+              </div>
+            )}
 
         {/* 底部 */}
         <div class={ns.e("footer")}>

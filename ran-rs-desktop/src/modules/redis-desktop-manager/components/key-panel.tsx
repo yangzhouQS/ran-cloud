@@ -135,7 +135,9 @@ function buildKeyTree(keys: KeyScanResult[], separator: string = ":"): TreeNode[
  * 过滤树节点（递归搜索匹配的 label）
  */
 function filterTree(nodes: TreeNode[], keyword: string): TreeNode[] {
-  if (!keyword) return nodes;
+  if (!keyword) {
+    return nodes;
+  }
 
   const lowerKeyword = keyword.toLowerCase();
   const result: TreeNode[] = [];
@@ -203,19 +205,25 @@ const KeyPanel = defineComponent({
 
     /** 原始树数据 */
     const rawTreeData = computed<TreeNode[]>(() => {
-      if (store.keys.length === 0) return [];
+      if (store.keys.length === 0) {
+        return [];
+      }
       return buildKeyTree(store.keys, ":");
     });
 
     /** 过滤后的树数据 */
     const treeData = computed<TreeNode[]>(() => {
-      if (!searchKeyword.value) return rawTreeData.value;
+      if (!searchKeyword.value) {
+        return rawTreeData.value;
+      }
       return filterTree(rawTreeData.value, searchKeyword.value);
     });
 
     /** 扁平 Key 列表（列表视图用） */
     const flatKeyList = computed<KeyScanResult[]>(() => {
-      if (!searchKeyword.value) return store.keys;
+      if (!searchKeyword.value) {
+        return store.keys;
+      }
       const lower = searchKeyword.value.toLowerCase();
       return store.keys.filter(k => k.key.toLowerCase().includes(lower));
     });
@@ -290,7 +298,9 @@ const KeyPanel = defineComponent({
     /** 复制 Key 名称 */
     const handleCopyKey = () => {
       const node = contextMenu.value.node;
-      if (!node) return;
+      if (!node) {
+        return;
+      }
       navigator.clipboard.writeText(node.fullPath).then(() => {
         ElMessage.success("Key 名称已复制");
       });
@@ -300,7 +310,9 @@ const KeyPanel = defineComponent({
     /** 删除单个 Key */
     const handleDeleteKey = async () => {
       const node = contextMenu.value.node;
-      if (!node) return;
+      if (!node) {
+        return;
+      }
       closeContextMenu();
 
       try {
@@ -319,7 +331,9 @@ const KeyPanel = defineComponent({
     /** 删除文件夹下所有 Key */
     const handleDeleteFolder = async () => {
       const node = contextMenu.value.node;
-      if (!node || node.isLeaf) return;
+      if (!node || node.isLeaf) {
+        return;
+      }
       closeContextMenu();
 
       const leafKeys = collectLeafKeys(node.children || []);
@@ -376,11 +390,21 @@ const KeyPanel = defineComponent({
 
     /** 格式化 TTL */
     const formatTtl = (ttl: number): string => {
-      if (ttl === -1) return "永不过期";
-      if (ttl === -2) return "已过期";
-      if (ttl < 60) return `${ttl}s`;
-      if (ttl < 3600) return `${Math.floor(ttl / 60)}m ${ttl % 60}s`;
-      if (ttl < 86400) return `${Math.floor(ttl / 3600)}h ${Math.floor((ttl % 3600) / 60)}m`;
+      if (ttl === -1) {
+        return "永不过期";
+      }
+      if (ttl === -2) {
+        return "已过期";
+      }
+      if (ttl < 60) {
+        return `${ttl}s`;
+      }
+      if (ttl < 3600) {
+        return `${Math.floor(ttl / 60)}m ${ttl % 60}s`;
+      }
+      if (ttl < 86400) {
+        return `${Math.floor(ttl / 3600)}h ${Math.floor((ttl % 3600) / 60)}m`;
+      }
       return `${Math.floor(ttl / 86400)}d ${Math.floor((ttl % 86400) / 3600)}h`;
     };
 
@@ -501,7 +525,10 @@ const KeyPanel = defineComponent({
                 <WarningFilled />
               </el-icon>
               <span>
-                Key 数量超过 {MAX_KEY_THRESHOLD.toLocaleString()}，建议使用更精确的 Pattern 过滤
+                Key 数量超过
+                {" "}
+                {MAX_KEY_THRESHOLD.toLocaleString()}
+                ，建议使用更精确的 Pattern 过滤
               </span>
             </div>
           )}
@@ -608,14 +635,19 @@ const KeyPanel = defineComponent({
           {store.activeConnectionId && (
             <div class={ns.e("status")}>
               <span>
-                DB{store.activeDb}
+                DB
+                {store.activeDb}
               </span>
               <span>
-                共 {store.keys.length} 个 Key
+                共
+                {" "}
+                {store.keys.length}
+                {" "}
+                个 Key
                 {searchKeyword.value && treeData.value.length !== store.keys.length
                   ? `（匹配 ${viewMode.value === "tree"
-                      ? collectLeafKeys(treeData.value).length
-                      : flatKeyList.value.length} 个）`
+                    ? collectLeafKeys(treeData.value).length
+                    : flatKeyList.value.length} 个）`
                   : ""}
               </span>
             </div>

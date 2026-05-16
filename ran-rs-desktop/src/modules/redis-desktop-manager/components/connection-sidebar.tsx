@@ -11,6 +11,7 @@
  * @block ran-connection-sidebar
  */
 
+import type { ConnectionConfig } from "../types";
 import {
   CopyDocument,
   Delete,
@@ -27,7 +28,6 @@ import { computed, defineComponent, ref } from "vue";
 import { useCsNamespace } from "../../../hooks/use-namespace";
 import { useRedisStore } from "../stores/redis-store";
 import { ConnectionStatus } from "../types";
-import type { ConnectionConfig } from "../types";
 import ConnectionForm from "./connection-form";
 import "./connection-sidebar.less";
 
@@ -54,7 +54,7 @@ const ConnectionSidebar = defineComponent({
         return store.connectionList;
       }
       const keyword = searchKeyword.value.toLowerCase();
-      return store.connectionList.filter((item) =>
+      return store.connectionList.filter(item =>
         item.config.name.toLowerCase().includes(keyword),
       );
     });
@@ -206,7 +206,7 @@ const ConnectionSidebar = defineComponent({
 
       return (
         <div class={ns.e("db-list")}>
-          {dbs.map((db) => (
+          {dbs.map(db => (
             <div
               key={db}
               class={[
@@ -215,7 +215,10 @@ const ConnectionSidebar = defineComponent({
               ]}
               onClick={() => handleSwitchDb(db)}
             >
-              <span class={ns.e("db-index")}>db{db}</span>
+              <span class={ns.e("db-index")}>
+                db
+                {db}
+              </span>
             </div>
           ))}
         </div>
@@ -300,7 +303,9 @@ const ConnectionSidebar = defineComponent({
             {renderStatusDot(status)}
             <span class={ns.e("item-name")}>{config.name}</span>
             <span class={ns.e("item-host")}>
-              {config.host}:{config.port}
+              {config.host}
+              :
+              {config.port}
             </span>
 
             {/* Dropdown 操作菜单 — hover 时可见 */}
@@ -315,8 +320,7 @@ const ConnectionSidebar = defineComponent({
                 trigger="click"
                 placement="bottom-end"
                 onCommand={(command: string) =>
-                  handleDropdownCommand(command, config)
-                }
+                  handleDropdownCommand(command, config)}
                 v-slots={{
                   dropdown: () => renderDropdownMenu(config, isConnected),
                 }}
@@ -361,11 +365,11 @@ const ConnectionSidebar = defineComponent({
               placeholder="搜索连接..."
               size="small"
               clearable
-              suffix-icon={
+              suffix-icon={(
                 <el-icon>
                   <Search />
                 </el-icon>
-              }
+              )}
             />
           </div>
         )}
@@ -385,7 +389,7 @@ const ConnectionSidebar = defineComponent({
                   </div>
                 )
               : (
-                  filteredConnections.value.map((item) =>
+                  filteredConnections.value.map(item =>
                     renderConnectionItem(item),
                   )
                 )}

@@ -189,7 +189,7 @@ const ContentZset = defineComponent({
                 onKeydown={(e: KeyboardEvent) => {
                   if (e.key === "Enter") {
                     currentPage.value = 1;
-										loadData();
+                    loadData();
                   }
                 }}
               />

@@ -11,17 +11,17 @@
  *   - 特殊命令：clear / help / exit
  */
 
-import { defineComponent, ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from "vue";
+import type { CliExecResult } from "../types";
+import { computed, defineComponent, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { useCsNamespace } from "../../../hooks/use-namespace";
-import { useRedisStore } from "../stores/redis-store";
 import {
-  redisCliExec,
   redisCliComplete,
+  redisCliExec,
   redisCliSyntax,
   redisStorageLoadCliHistory,
   redisStorageSaveCliHistory,
 } from "../services/redis-commands";
-import type { CliExecResult } from "../types";
+import { useRedisStore } from "../stores/redis-store";
 import "./cli-terminal.less";
 
 /** 输出行类型 */
@@ -74,7 +74,7 @@ export default defineComponent({
 
     /** 命令提示符 */
     const prompt = computed(() =>
-      `${store.activeConnection?.name ?? "redis"} [${props.db}]>`
+      `${store.activeConnection?.name ?? "redis"} [${props.db}]>`,
     );
 
     /** 当前输入的命令名（第一个单词，小写） */
@@ -188,14 +188,14 @@ export default defineComponent({
         return;
       }
       const items = historyItems.value;
-      if (items[items.length - 1] !== cmd) {
+      if (items.at(-1) !== cmd) {
         items.push(cmd);
       }
       historyIndex.value = items.length;
     }
 
     /** 上翻历史 */
-      function navigateUp() {
+    function navigateUp() {
       if (showSuggestions.value) {
         return;
       }
@@ -261,7 +261,7 @@ export default defineComponent({
       // 将建议项替换当前输入中的命令部分
       const parts = inputValue.value.split(/\s+/);
       parts[0] = item.split(/\s+/)[0]; // 只替换命令名
-      inputValue.value = parts.join(" ") + " ";
+      inputValue.value = `${parts.join(" ")} `;
       showSuggestions.value = false;
       focusInput();
     }
@@ -325,7 +325,6 @@ export default defineComponent({
       if (e.key === "l" && e.ctrlKey) {
         e.preventDefault();
         outputLines.value = [];
-        return;
       }
     }
 
@@ -339,7 +338,7 @@ export default defineComponent({
     onMounted(async () => {
       // 初始化欢迎信息
       addLine(`> ${store.activeConnection?.name ?? "redis"} connected!`, "success");
-      addLine('Type "help" for special commands, or enter Redis commands.', "info");
+      addLine("Type \"help\" for special commands, or enter Redis commands.", "info");
       addLine("", "info");
 
       // 加载历史

@@ -8,8 +8,8 @@
  */
 
 import type { PropType } from "vue";
-import type { ConnectionConfig, SshTunnelConfig, SentinelConfig, TlsConfig } from "../types";
-import { defineComponent, reactive, ref, computed, watch } from "vue";
+import type { ConnectionConfig, SentinelConfig, SshTunnelConfig, TlsConfig } from "../types";
+import { computed, defineComponent, reactive, ref, watch } from "vue";
 import { useCsNamespace } from "../../../hooks/use-namespace";
 
 /** 创建默认连接配置 */
