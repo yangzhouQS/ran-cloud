@@ -214,6 +214,9 @@ export const useRedisStore = defineStore("redis-desktop", () => {
       // 打开状态标签页
       openStatusTab(config.id, config.db);
 
+      // 自动加载默认 DB 的 key 列表
+      startScan();
+
       bus.emit("redis:connection:opened", { id: config.id, name: config.name });
       bus.emit("redis:connection:status", { id: config.id, status: "connected" });
     } catch (e: unknown) {
@@ -287,6 +290,16 @@ export const useRedisStore = defineStore("redis-desktop", () => {
       return;
     }
 
+    // 取消正在进行的旧扫描，避免旧 SCAN 结果混入新列表
+    if (currentScanId.value) {
+      try {
+        await redisKeyScanCancel(currentScanId.value);
+      } catch {
+        // 旧扫描可能已结束，忽略取消失败
+      }
+      currentScanId.value = "";
+    }
+
     const scanId = crypto.randomUUID();
     currentScanId.value = scanId;
 
@@ -329,7 +342,18 @@ export const useRedisStore = defineStore("redis-desktop", () => {
     batchCount: number;
     totalScanned: number;
     done: boolean;
+    scanId?: string;
   }) {
+    // 过滤旧扫描事件：如果事件包含 scanId 且与当前扫描不匹配，忽略
+    if (event.scanId && event.scanId !== currentScanId.value) {
+      return;
+    }
+
+    // 无活跃扫描时忽略事件
+    if (!currentScanId.value) {
+      return;
+    }
+
     if (event.keys && event.keys.length > 0) {
       // 后端 ScanProgressEvent.keys 是 Vec<String>（纯字符串），
       // 需要转换为 KeyScanResult 对象，keyType 和 TTL 在用户点击时按需获取
@@ -421,6 +445,7 @@ export const useRedisStore = defineStore("redis-desktop", () => {
     if (activeConnectionId.value) {
       openStatusTab(activeConnectionId.value, db);
     }
+    // 注意：key 列表加载由调用方（sidebar / key-panel）负责触发 startScan
   }
 
   // ===== 标签页操作 =====

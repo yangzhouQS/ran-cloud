@@ -134,16 +134,19 @@ const ConnectionSidebar = defineComponent({
     /** 切换 DB */
     const handleSwitchDb = (db: number) => {
       store.switchDb(db);
+      // 显式触发 key 列表加载（switchDb 已重置状态）
+      store.startScan();
     };
 
     /** 点击连接项 — 激活连接 */
     const handleConnectionClick = (config: ConnectionConfig) => {
       const info = store.connectionInfos.get(config.id);
       if (info?.status === ConnectionStatus.Connected) {
-        // 已连接：切换为活跃连接，并通过 switchDb 重置状态
+        // 已连接：切换为活跃连接，并通过 switchDb 重置状态并加载 key
         if (store.activeConnectionId !== config.id) {
           store.activeConnectionId = config.id;
           store.switchDb(config.db);
+          store.startScan();
         }
       }
     };

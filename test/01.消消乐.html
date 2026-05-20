@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Match-3 Game</title>
+    <style>
+        .game-container {
+            display: grid;
+            grid-template-columns: repeat(10, 50px);
+            grid-template-rows: repeat(10, 50px);
+            gap: 2px;
+            padding: 10px;
+        }
+        .gem {
+            width: 48px;
+            height: 48px;
+            background-color: lightblue;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+<div id="game-container" class="game-container"></div>
+
+<script>
+	const gameContainer = document.getElementById('game-container');
+	let grid = Array.from({ length: 10 }, () => Array(10).fill(null));
+
+	// Initialize the game with random gems
+	for (let i = 0; i < 10; i++) {
+		for (let j = 0; j < 10; j++) {
+			grid[i][j] = Math.floor(Math.random() * 3) + 1;
+		}
+	}
+
+	// Create the game board
+	const createBoard = () => {
+		gameContainer.innerHTML = '';
+		grid.forEach((row, rowIndex) => {
+			row.forEach((gem, colIndex) => {
+				if (grid[rowIndex][colIndex]) {
+					const gemElement = document.createElement('div');
+					gemElement.className = `gem ${gem}`;
+					gemElement.textContent = grid[rowIndex][colIndex];
+					gameContainer.appendChild(gemElement);
+				}
+			});
+		});
+	};
+
+	// Check for matches
+	const checkForMatches = () => {
+		let hasMatched = false;
+
+		// Check horizontally and vertically
+		for (let i = 0; i < 10; i++) {
+			for (let j = 0; j < 8; j++) {
+				if (grid[i][j] === grid[i][j + 1] && grid[i][j] === grid[i][j + 2]) hasMatched = true;
+			}
+
+			if (grid[j][i] === grid[j + 1][i] && grid[j][i] === grid[j + 2][i]) hasMatched = true;
+		}
+
+		return hasMatched;
+	};
+
+	createBoard();
+
+	// Add event listener for swapping gems
+	gameContainer.addEventListener('click', (event) => {
+		if (!event.target.classList.contains('gem')) return;
+
+		const selectedGem = event.target;
+		let [x, y] = [selectedGem.dataset.x, selectedGem.dataset.y];
+
+		// Swap with the next gem horizontally or vertically
+		setTimeout(() => {
+			if ([0, 1].includes(selectedGem.dataset.direction)) { // Horizontal swap
+				[grid[x][y], grid[x][y + 1]] = [grid[x][y + 1], grid[x][y]];
+			} else { // Vertical swap
+				[grid[x][y], grid[x + 1][y]] = [grid[x + 1][y], grid[x][y]];
+			}
+
+			createBoard();
+			if (checkForMatches()) {
+				// Remove matched gems and refill empty spaces
+				setTimeout(() => {
+					document.querySelectorAll('.gem.match').forEach(gemElement => gemElement.remove());
+					fillEmptySpaces();
+				}, 500);
+			} else {
+				// If no matches, refill empty spaces
+				setTimeout(() => {
+					document.querySelectorAll('.gem.match').forEach(gemElement => gemElement.remove());
+					fillEmptySpaces();
+				}, 500);
+			}
+		}, 200);
+	});
+
+	// Refill empty spaces with new gems
+	const fillEmptySpaces = () => {
+		for (let i = 0; i < 10; i++) {
+			for (let j = 0; j < 10; j++) {
+				if (!grid[i][j]) grid[i][j] = Math.floor(Math.random() * 3) + 1;
+			}
+		}
+
+		createBoard();
+	};
+
+	// Initial dataset setup
+	document.querySelectorAll('.gem').forEach((gem, index) => {
+		const x = index % 10;
+		const y = Math.floor(index / 10);
+		gem.dataset.x = x.toString();
+		gem.dataset.y = y.toString();
+		if (x < 8 && grid[y][x] === grid[y][x + 1] && grid[y][x] === grid[y][x + 2]) {
+			gem.classList.add('match');
+		}
+	});
+</script>
+</body>
+</html>

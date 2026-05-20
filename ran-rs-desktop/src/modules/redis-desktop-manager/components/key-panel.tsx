@@ -528,6 +528,18 @@ const KeyPanel = defineComponent({
 
     // ===== 监听数据变化 =====
 
+    // 监听 DB 切换 — 自动触发 SCAN 加载新 DB 的 key 列表
+    watch(() => store.activeDb, () => {
+      if (store.activeConnectionId) {
+        // switchDb 已重置状态，这里只需等待容器就绪后创建 VTable
+        nextTick(() => {
+          if (store.keys.length > 0 && !tableInstance) {
+            initOrRecreateTable();
+          }
+        });
+      }
+    });
+
     // 监听树数据变化，更新 VTable
     watch(treeData, (newVal) => {
       if (viewMode.value === "tree") {
