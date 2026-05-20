@@ -206,6 +206,9 @@ const KeyPanel = defineComponent({
       node: null,
     });
 
+    /** 是否已完成过至少一次扫描（用于区分"从未扫描"和"扫描完成但无结果"） */
+    const hasScanned = ref(false);
+
     // ===== 计算属性 =====
 
     /** 原始树数据 */
@@ -531,6 +534,7 @@ const KeyPanel = defineComponent({
     // 监听 DB 切换 — 自动触发 SCAN 加载新 DB 的 key 列表
     watch(() => store.activeDb, () => {
       if (store.activeConnectionId) {
+        hasScanned.value = false;
         // switchDb 已重置状态，这里只需等待容器就绪后创建 VTable
         nextTick(() => {
           if (store.keys.length > 0 && !tableInstance) {
@@ -540,11 +544,31 @@ const KeyPanel = defineComponent({
       }
     });
 
+    // 监听扫描状态变化 — 扫描完成时标记 hasScanned
+    watch(() => store.scanState.scanning, (scanning, wasScanning) => {
+      if (wasScanning && !scanning) {
+        // 扫描从进行中变为完成
+        hasScanned.value = true;
+      }
+    });
+
+    // 安全网：keys 清空时确保 VTable 被销毁（防止 canvas 残留）
+    watch(() => store.keys.length, (len) => {
+      if (len === 0 && tableInstance) {
+        destroyTable();
+      }
+    });
+
     // 监听树数据变化，更新 VTable
     watch(treeData, (newVal) => {
       if (viewMode.value === "tree") {
         if (tableInstance) {
-          updateTableData();
+          // 数据清空时销毁 VTable，避免空 canvas 残留
+          if (newVal.length === 0) {
+            destroyTable();
+          } else {
+            updateTableData();
+          }
         } else if (newVal.length > 0) {
           initOrRecreateTable();
         }
@@ -555,7 +579,12 @@ const KeyPanel = defineComponent({
     watch(flatKeyList, (newVal) => {
       if (viewMode.value === "list") {
         if (tableInstance) {
-          updateTableData();
+          // 数据清空时销毁 VTable，避免空 canvas 残留
+          if (newVal.length === 0) {
+            destroyTable();
+          } else {
+            updateTableData();
+          }
         } else if (newVal.length > 0) {
           initOrRecreateTable();
         }
@@ -600,12 +629,17 @@ const KeyPanel = defineComponent({
 
     const setupEventListener = async () => {
       unlisten = await listen("redis:key:scan:progress", (event) => {
-        store.handleScanProgress(event.payload as {
+        const payload = event.payload as {
           keys: string[];
           batchCount: number;
           totalScanned: number;
           done: boolean;
-        });
+        };
+        store.handleScanProgress(payload);
+        // SCAN 完成时标记已扫描
+        if (payload.done) {
+          hasScanned.value = true;
+        }
       });
     };
 
@@ -630,6 +664,7 @@ const KeyPanel = defineComponent({
         ElMessage.warning("请先连接到 Redis");
         return;
       }
+      hasScanned.value = false;
       store.startScan(searchPattern.value);
       searchKeyword.value = "";
     };
@@ -798,6 +833,11 @@ const KeyPanel = defineComponent({
         resizeObserver.disconnect();
         resizeObserver = null;
       }
+      // 容器被卸载时（条件渲染切换到空状态），清理 ref
+      if (!el) {
+        tableContainerRef.value = null;
+        return;
+      }
       // Vue template ref 可能传入 ComponentPublicInstance，需要提取 $el
       const domEl = el instanceof Element ? el : (el as ComponentPublicInstance)?.$el as Element | undefined;
       tableContainerRef.value = (domEl as HTMLDivElement) ?? null;
@@ -911,13 +951,19 @@ const KeyPanel = defineComponent({
                   <el-empty description="请先连接到 Redis 服务器" image-size={80} />
                 </div>
               )
-            : store.keys.length === 0 && !store.scanState.scanning
+            : store.keys.length === 0
               ? (
                   <div class={ns.e("empty")}>
                     <el-empty
-                      description={store.scanState.pattern !== "*"
-                        ? "未找到匹配的 Key"
-                        : "点击刷新加载 Key"}
+                      description={
+                        store.scanState.scanning
+                          ? "正在加载 Key…"
+                          : hasScanned.value
+                            ? store.scanState.pattern !== "*"
+                              ? "未找到匹配的 Key"
+                              : "当前数据库下不存在 Key"
+                            : "点击刷新加载 Key"
+                      }
                       image-size={80}
                     />
                   </div>
