@@ -4,6 +4,34 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ran RS Desktop</title>
+    <!-- 在 rsbuild overlay 之前注册，抑制 ResizeObserver 循环警告 -->
+    <script>
+      (function() {
+        var RO_ERR = 'ResizeObserver loop';
+        // 拦截 ErrorEvent（捕获阶段，最早执行）
+        window.addEventListener('error', function(e) {
+          if (e.message && e.message.indexOf(RO_ERR) !== -1) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+          }
+        }, true);
+        // 拦截未处理的 Promise rejection
+        window.addEventListener('unhandledrejection', function(e) {
+          var r = e.reason;
+          if ((typeof r === 'string' && r.indexOf(RO_ERR) !== -1) ||
+              (r && r.message && r.message.indexOf(RO_ERR) !== -1)) {
+            e.preventDefault();
+          }
+        });
+        // 覆盖 console.error 过滤 ResizeObserver 警告
+        var origConsoleError = console.error;
+        console.error = function() {
+          var msg = Array.prototype.slice.call(arguments).join(' ');
+          if (msg.indexOf(RO_ERR) !== -1) return;
+          return origConsoleError.apply(console, arguments);
+        };
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
