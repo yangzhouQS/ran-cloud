@@ -12,6 +12,7 @@
 import type {
   ConnectionConfig,
   ConnectionInfo,
+  DatabaseInfo,
   KeyDetail,
   KeyScanResult,
 } from "../types";
@@ -35,6 +36,7 @@ import {
   redisStorageSaveConnection,
   redisToolCommandLogClear,
   redisToolCommandLogList,
+  redisToolDatabaseList,
 } from "../services/redis-commands";
 import { ConnectionStatus } from "../types";
 
@@ -78,6 +80,9 @@ export const useRedisStore = defineStore("redis-desktop", () => {
 
   /** 记住每个连接上次选择的 DB（connectionId → db） */
   const connectionActiveDbs = ref<Map<string, number>>(new Map());
+
+  /** 各数据库 Key 数量信息（INFO KEYSPACE 解析结果） */
+  const dbInfoList = ref<DatabaseInfo[]>([]);
 
   // ===== Key 管理 =====
   const keys = ref<KeyScanResult[]>([]);
@@ -219,6 +224,9 @@ export const useRedisStore = defineStore("redis-desktop", () => {
 
       // 自动加载默认 DB 的 key 列表
       startScan();
+
+      // 加载各数据库 Key 数量
+      loadDbInfo();
 
       bus.emit("redis:connection:opened", { id: config.id, name: config.name });
       bus.emit("redis:connection:status", { id: config.id, status: "connected" });
@@ -433,6 +441,19 @@ export const useRedisStore = defineStore("redis-desktop", () => {
   }
 
   // ===== DB 操作 =====
+
+  /** 加载各数据库 Key 数量（INFO KEYSPACE） */
+  async function loadDbInfo() {
+    if (!activeConnectionId.value) {
+      return;
+    }
+    try {
+      dbInfoList.value = await redisToolDatabaseList(activeConnectionId.value);
+    } catch (e) {
+      console.error("[RedisStore] 加载数据库信息失败:", e);
+      dbInfoList.value = [];
+    }
+  }
 
   /** 获取连接上次选择的 DB，若无记录则返回配置的默认 DB */
   function getConnectionActiveDb(connectionId: string): number {
@@ -654,6 +675,8 @@ export const useRedisStore = defineStore("redis-desktop", () => {
     // DB 操作
     switchDb,
     getConnectionActiveDb,
+    dbInfoList,
+    loadDbInfo,
 
     // 标签页操作
     openStatusTab,

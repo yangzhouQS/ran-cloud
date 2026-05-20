@@ -136,6 +136,8 @@ const ConnectionSidebar = defineComponent({
       store.switchDb(db);
       // 显式触发 key 列表加载（switchDb 已重置状态）
       store.startScan();
+      // 切换后刷新 DB 信息（key 数量可能变化）
+      store.loadDbInfo();
     };
 
     /** 点击连接项 — 激活连接 */
@@ -148,6 +150,7 @@ const ConnectionSidebar = defineComponent({
           const lastDb = store.getConnectionActiveDb(config.id);
           store.switchDb(lastDb);
           store.startScan();
+          store.loadDbInfo();
         }
       }
     };
@@ -200,11 +203,17 @@ const ConnectionSidebar = defineComponent({
       );
     };
 
-    /** 渲染 DB 选择器 — 紧凑下拉模式 */
+    /** 渲染 DB 选择器 — 紧凑下拉模式，显示 key 数量 */
     const renderDbSelector = (connectionId: string) => {
       // 仅在活跃连接时显示
       if (store.activeConnectionId !== connectionId) {
         return null;
+      }
+
+      // 构建 db → keyCount 映射
+      const dbKeyCountMap = new Map<number, number>();
+      for (const info of store.dbInfoList) {
+        dbKeyCountMap.set(info.db, info.keys);
       }
 
       return (
@@ -218,13 +227,19 @@ const ConnectionSidebar = defineComponent({
             placement="bottom-start"
             onChange={(val: number) => handleSwitchDb(val)}
           >
-            {Array.from({ length: dbCount }, (_, i) => (
-              <el-option
-                key={i}
-                label={`db${i}`}
-                value={i}
-              />
-            ))}
+            {Array.from({ length: dbCount }, (_, i) => {
+              const keyCount = dbKeyCountMap.get(i);
+              const label = keyCount !== undefined && keyCount > 0
+                ? `db${i} (${keyCount})`
+                : `db${i}`;
+              return (
+                <el-option
+                  key={i}
+                  label={label}
+                  value={i}
+                />
+              );
+            })}
           </el-select>
         </div>
       );
