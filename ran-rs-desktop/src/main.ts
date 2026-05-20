@@ -27,17 +27,7 @@ import "./assets/styles/dark-theme.css";
 // 初始化暗黑主题系统（尽早执行，避免闪烁）
 setupTheme();
 
-// 抑制 ResizeObserver 循环警告（dockview 等布局库常见，无害）
-const debounceResizeObserverError = () => {
-  const resizeObserverErr = window.onerror;
-  window.onerror = (message, ...args) => {
-    if (typeof message === "string" && message.includes("ResizeObserver loop")) {
-      return true;
-    }
-    return resizeObserverErr?.(message, ...args) ?? false;
-  };
-};
-debounceResizeObserverError();
+// ResizeObserver 循环警告已在 index.html 内联脚本中抑制（需在 rsbuild overlay 之前执行）
 
 // 创建 Vue 应用（RootApp 仅包含 <router-view>）
 const app = createApp(RootApp);
