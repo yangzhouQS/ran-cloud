@@ -1,11 +1,13 @@
 /**
  * @component RedisDesktopManager
- * @description Redis 桌面管理器主布局样式 — 三栏布局
+ * @description Redis 桌面管理器主布局样式 — 基于 dockview Splitview 三栏可拖拽布局
  * @block ran-redis-desktop
- * @elements __sidebar, __key-panel, __main, __content, __content-empty, __content-placeholder
+ * @elements __splitview, __sidebar-panel, __key-panel-wrapper, __key-panel-empty, __main-panel, __content, __content-empty, __content-placeholder
  */
 
 @import (reference) "../../assets/styles/global.less";
+
+// ==================== 主容器 ====================
 
 .ran-redis-desktop {
   height: 100%;
@@ -13,33 +15,43 @@
   overflow: hidden;
   background: #ffffff;
 
-  // ---- 左栏：连接侧边栏 ----
-  &__sidebar {
-    width: 260px;
-    min-width: 260px;
+  // ---- Splitview 容器 ----
+  &__splitview {
+    width: 100%;
     height: 100%;
-    border-right: 1px solid @color-border;
-    flex-shrink: 0;
+  }
+
+  // ---- 面板通用：确保面板内容撑满 ----
+  &__sidebar-panel,
+  &__key-panel-wrapper,
+  &__main-panel {
+    height: 100%;
     overflow: hidden;
+  }
+
+  // ---- 左栏：连接侧边栏 ----
+  &__sidebar-panel {
+    border-right: 1px solid @color-border;
   }
 
   // ---- 中栏：Key 列表面板 ----
-  &__key-panel {
-    width: 280px;
-    min-width: 280px;
-    height: 100%;
+  &__key-panel-wrapper {
     border-right: 1px solid @color-border;
-    flex-shrink: 0;
-    overflow: hidden;
   }
 
-  // ---- 右栏：标签栏 + 内容区 ----
-  &__main {
-    flex: 1;
+  // ---- Key 面板空状态 ----
+  &__key-panel-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     height: 100%;
+    color: #999;
+  }
+
+  // ---- 右栏：主内容区 ----
+  &__main-panel {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
     min-width: 0;
   }
 
@@ -66,17 +78,74 @@
   }
 }
 
-// ---- 暗黑主题 ----
+// ==================== dockview Splitview 样式覆写 ====================
+
+// 去除 dockview 默认边框，使用自定义分割线
+.dv-split-view-container {
+  .dv-view-container {
+    // 面板之间的分割线样式
+    > .dv-sash {
+      // 拖拽手柄样式
+      &.dv-sash-horizontal,
+      &.dv-sash-vertical {
+        background: transparent;
+        position: relative;
+
+        &::after {
+          content: "";
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 2px;
+          height: 24px;
+          background: #d0d0d0;
+          border-radius: 1px;
+          transition: background 0.2s;
+        }
+
+        &:hover::after {
+          background: @color-primary;
+        }
+      }
+    }
+  }
+}
+
+// ==================== 暗黑主题 ====================
+
 html.dark {
   .ran-redis-desktop {
     background: #1d1e1f;
 
-    &__sidebar {
+    &__sidebar-panel {
       border-right-color: #363637;
     }
 
-    &__key-panel {
+    &__key-panel-wrapper {
       border-right-color: #363637;
+    }
+
+    &__key-panel-empty {
+      color: #666;
+    }
+  }
+
+  // 暗黑主题下的分割线
+  .dv-split-view-container {
+    .dv-view-container {
+      > .dv-sash {
+        &.dv-sash-horizontal,
+        &.dv-sash-vertical {
+          &::after {
+            background: #4a4a4a;
+          }
+
+          &:hover::after {
+            background: @color-primary;
+          }
+        }
+      }
     }
   }
 }

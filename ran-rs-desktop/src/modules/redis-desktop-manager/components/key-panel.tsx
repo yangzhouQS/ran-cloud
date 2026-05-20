@@ -16,8 +16,9 @@
  */
 
 import type { UnlistenFn } from "@tauri-apps/api/event";
-import type { KeyScanResult } from "../types";
 import type { ListTable as ListTableType } from "@visactor/vtable";
+import type { ComponentPublicInstance } from "vue";
+import type { KeyScanResult } from "../types";
 import {
   Close,
   CopyDocument,
@@ -32,7 +33,7 @@ import {
 import { listen } from "@tauri-apps/api/event";
 import { ListTable } from "@visactor/vtable";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { type ComponentPublicInstance, computed, defineComponent, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, defineComponent, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useCsNamespace } from "../../../hooks/use-namespace";
 import { useRedisStore } from "../stores/redis-store";
 import "./key-panel.less";
@@ -246,9 +247,15 @@ const KeyPanel = defineComponent({
         hover: {
           cellBgColor: "#f5f7fa",
         },
+        select: {
+          cellBgColor: "rgba(64,158,255,0.08)",
+          inlineRowBgColor: "rgba(64,158,255,0.08)",
+        },
       },
       selectionStyle: {
-        cellBgColor: "#ecf5ff",
+        cellBgColor: "rgba(64,158,255,0.08)",
+        inlineRowBgColor: "rgba(64,158,255,0.08)",
+        selectionFillMode: "overlay" as const,
       },
     });
 
