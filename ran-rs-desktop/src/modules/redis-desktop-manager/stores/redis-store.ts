@@ -415,6 +415,12 @@ export const useRedisStore = defineStore("redis-desktop", () => {
     keyDetail.value = null;
     currentScanId.value = "";
     scanState.value = { scanning: false, progress: 0, total: 0, pattern: "*" };
+
+    // 关闭所有可关闭的标签页，打开新 DB 的状态标签页
+    tabs.value = tabs.value.filter(t => !t.closable);
+    if (activeConnectionId.value) {
+      openStatusTab(activeConnectionId.value, db);
+    }
   }
 
   // ===== 标签页操作 =====

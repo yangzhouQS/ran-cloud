@@ -1,10 +1,10 @@
 /**
  * @component ConnectionSidebar
- * @description 连接侧边栏样式 — 左侧面板，显示搜索框、连接列表（含 hover 下拉菜单）和 DB 选择器
+ * @description 连接侧边栏样式 — 左侧面板，显示搜索框、连接列表（含 hover 下拉菜单）和 DB 下拉选择器
  * @block ran-connection-sidebar
  * @elements __header, __title, __search, __list, __item, __item-header,
  *           __item-name, __item-host, __item-dropdown, __item-dropdown-trigger,
- *           __status-dot, __db-list, __db-item, __db-index, __empty
+ *           __status-dot, __db-selector, __db-selector-label, __db-select, __empty
  */
 
 @import (reference) "../../../assets/styles/global.less";
@@ -141,39 +141,30 @@
     flex-shrink: 0;
   }
 
-  // ---- DB 列表 — 网格布局 ----
-  &__db-list {
+  // ---- DB 选择器行 — 紧凑下拉模式 ----
+  &__db-selector {
     display: flex;
-    flex-wrap: wrap;
-    padding: 4px 12px 8px;
-    gap: 4px;
+    align-items: center;
+    padding: 4px 12px 8px 28px; // 左侧 28px 对齐状态点+间距
+    gap: 8px;
   }
 
-  // ---- DB 项 ----
-  &__db-item {
-    padding: 3px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s;
+  // ---- DB 选择器标签 ----
+  &__db-selector-label {
     font-size: 11px;
-    color: @color-text-regular;
-    background-color: #f5f7fa;
-
-    &:hover {
-      background-color: #e8eaed;
-      color: @color-text-primary;
-    }
-
-    &.is-active {
-      background-color: #409eff;
-      color: #ffffff;
-    }
+    color: @color-text-secondary;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
-  // ---- DB 索引文本 ----
-  &__db-index {
-    color: inherit;
-    font-family: "Cascadia Code", "Fira Code", monospace;
+  // ---- DB 下拉选择器 — 覆盖 Element Plus 默认宽度 ----
+  &__db-select {
+    width: 90px;
+
+    // 紧凑化 el-input 内部尺寸
+    .el-input__wrapper {
+      padding: 1px 8px;
+    }
   }
 
   // ---- 空状态 ----
@@ -229,19 +220,8 @@ html.dark {
       }
     }
 
-    &__db-item {
+    &__db-selector-label {
       color: #a3a6ad;
-      background-color: #2a2a2b;
-
-      &:hover {
-        background-color: #363637;
-        color: #e5eaf3;
-      }
-
-      &.is-active {
-        background-color: #409eff;
-        color: #ffffff;
-      }
     }
   }
 }

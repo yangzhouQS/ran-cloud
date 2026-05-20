@@ -6,7 +6,7 @@
  * - 连接列表（带状态指示器、hover 显示操作菜单）
  * - 新建连接按钮
  * - 通过 ElDropdown 提供丰富操作菜单（连接/断开/编辑/复制/删除/刷新）
- * - DB 选择器（连接后展开）
+ * - DB 选择器（连接后以下拉选择器展示，紧凑友好）
  *
  * @block ran-connection-sidebar
  */
@@ -40,8 +40,10 @@ const ConnectionSidebar = defineComponent({
     // ===== 状态 =====
     const showFormDialog = ref(false);
     const editingConnection = ref<string | null>(null);
-    const expandedConnections = ref<Set<string>>(new Set());
     const searchKeyword = ref("");
+
+    /** Redis 默认数据库数量（可通过 CONFIG GET databases 获取，这里使用默认值） */
+    const dbCount = 16;
 
     // ===== 初始化 =====
     store.loadConnections();
@@ -78,11 +80,9 @@ const ConnectionSidebar = defineComponent({
       const info = store.connectionInfos.get(config.id);
       if (info?.status === ConnectionStatus.Connected) {
         await store.disconnect(config.id);
-        expandedConnections.value.delete(config.id);
       } else {
         try {
           await store.connect(config);
-          expandedConnections.value.add(config.id);
           ElMessage.success(`已连接到 ${config.name}`);
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e);
@@ -131,18 +131,21 @@ const ConnectionSidebar = defineComponent({
       }
     };
 
-    /** 切换展开/折叠 */
-    const handleToggleExpand = (id: string) => {
-      if (expandedConnections.value.has(id)) {
-        expandedConnections.value.delete(id);
-      } else {
-        expandedConnections.value.add(id);
-      }
-    };
-
     /** 切换 DB */
     const handleSwitchDb = (db: number) => {
       store.switchDb(db);
+    };
+
+    /** 点击连接项 — 激活连接 */
+    const handleConnectionClick = (config: ConnectionConfig) => {
+      const info = store.connectionInfos.get(config.id);
+      if (info?.status === ConnectionStatus.Connected) {
+        // 已连接：切换为活跃连接，并通过 switchDb 重置状态
+        if (store.activeConnectionId !== config.id) {
+          store.activeConnectionId = config.id;
+          store.switchDb(config.db);
+        }
+      }
     };
 
     /** 表单保存回调 */
@@ -193,34 +196,32 @@ const ConnectionSidebar = defineComponent({
       );
     };
 
-    /** 渲染 DB 列表 */
-    const renderDbList = (connectionId: string) => {
-      if (!expandedConnections.value.has(connectionId)) {
-        return null;
-      }
+    /** 渲染 DB 选择器 — 紧凑下拉模式 */
+    const renderDbSelector = (connectionId: string) => {
+      // 仅在活跃连接时显示
       if (store.activeConnectionId !== connectionId) {
         return null;
       }
 
-      const dbs = Array.from({ length: 16 }, (_, i) => i);
-
       return (
-        <div class={ns.e("db-list")}>
-          {dbs.map(db => (
-            <div
-              key={db}
-              class={[
-                ns.e("db-item"),
-                store.activeDb === db && ns.is("active"),
-              ]}
-              onClick={() => handleSwitchDb(db)}
-            >
-              <span class={ns.e("db-index")}>
-                db
-                {db}
-              </span>
-            </div>
-          ))}
+        <div class={ns.e("db-selector")} onClick={(e: MouseEvent) => e.stopPropagation()}>
+          <span class={ns.e("db-selector-label")}>数据库</span>
+          <el-select
+            modelValue={store.activeDb}
+            size="small"
+            class={ns.e("db-select")}
+            teleported={false}
+            placement="bottom-start"
+            onChange={(val: number) => handleSwitchDb(val)}
+          >
+            {Array.from({ length: dbCount }, (_, i) => (
+              <el-option
+                key={i}
+                label={`db${i}`}
+                value={i}
+              />
+            ))}
+          </el-select>
         </div>
       );
     };
@@ -298,7 +299,7 @@ const ConnectionSidebar = defineComponent({
           {/* 连接信息行 */}
           <div
             class={ns.e("item-header")}
-            onClick={() => isConnected && handleToggleExpand(config.id)}
+            onClick={() => handleConnectionClick(config)}
           >
             {renderStatusDot(status)}
             <span class={ns.e("item-name")}>{config.name}</span>
@@ -312,7 +313,7 @@ const ConnectionSidebar = defineComponent({
             <div
               class={ns.e("item-dropdown")}
               onClick={(e: MouseEvent) => {
-                // 阻止冒泡，防止触发展开/折叠
+                // 阻止冒泡，防止触发连接激活
                 e.stopPropagation();
               }}
             >
@@ -334,8 +335,8 @@ const ConnectionSidebar = defineComponent({
             </div>
           </div>
 
-          {/* DB 列表 */}
-          {renderDbList(config.id)}
+          {/* DB 选择器 — 仅活跃连接显示 */}
+          {renderDbSelector(config.id)}
         </div>
       );
     };
