@@ -349,6 +349,11 @@ export function redisToolDatabaseList(connectionId: string): Promise<DatabaseInf
   return invoke("redis_tool_database_list", { connectionId });
 }
 
+/** 获取配置的数据库数量（CONFIG GET databases） */
+export function redisToolDatabaseCount(connectionId: string): Promise<number> {
+  return invoke("redis_tool_database_count", { connectionId });
+}
+
 /** 内存分析 */
 export function redisToolMemoryAnalysis(
   connectionId: string,

@@ -88,6 +88,7 @@ pub fn run() {
             modules::redis_desktop::tool::commands::redis_tool_memory_analysis,
             modules::redis_desktop::tool::commands::redis_tool_server_status,
             modules::redis_desktop::tool::commands::redis_tool_database_list,
+            modules::redis_desktop::tool::commands::redis_tool_database_count,
             modules::redis_desktop::tool::commands::redis_tool_server_info,
             modules::redis_desktop::tool::commands::redis_tool_client_list,
             modules::redis_desktop::tool::commands::redis_tool_flush_db,

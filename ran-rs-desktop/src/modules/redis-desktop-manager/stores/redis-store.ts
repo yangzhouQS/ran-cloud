@@ -36,6 +36,7 @@ import {
   redisStorageSaveConnection,
   redisToolCommandLogClear,
   redisToolCommandLogList,
+  redisToolDatabaseCount,
   redisToolDatabaseList,
 } from "../services/redis-commands";
 import { ConnectionStatus } from "../types";
@@ -83,6 +84,9 @@ export const useRedisStore = defineStore("redis-desktop", () => {
 
   /** 各数据库 Key 数量信息（INFO KEYSPACE 解析结果） */
   const dbInfoList = ref<DatabaseInfo[]>([]);
+
+  /** 配置的数据库数量（CONFIG GET databases），默认 16 */
+  const dbCount = ref<number>(16);
 
   // ===== Key 管理 =====
   const keys = ref<KeyScanResult[]>([]);
@@ -227,6 +231,9 @@ export const useRedisStore = defineStore("redis-desktop", () => {
 
       // 加载各数据库 Key 数量
       loadDbInfo();
+
+      // 加载配置的数据库数量
+      loadDbCount();
 
       bus.emit("redis:connection:opened", { id: config.id, name: config.name });
       bus.emit("redis:connection:status", { id: config.id, status: "connected" });
@@ -455,6 +462,19 @@ export const useRedisStore = defineStore("redis-desktop", () => {
     }
   }
 
+  /** 加载配置的数据库数量（CONFIG GET databases） */
+  async function loadDbCount() {
+    if (!activeConnectionId.value) {
+      return;
+    }
+    try {
+      dbCount.value = await redisToolDatabaseCount(activeConnectionId.value);
+    } catch (e) {
+      console.error("[RedisStore] 加载数据库数量失败:", e);
+      dbCount.value = 16;
+    }
+  }
+
   /** 获取连接上次选择的 DB，若无记录则返回配置的默认 DB */
   function getConnectionActiveDb(connectionId: string): number {
     const saved = connectionActiveDbs.value.get(connectionId);
@@ -677,6 +697,8 @@ export const useRedisStore = defineStore("redis-desktop", () => {
     getConnectionActiveDb,
     dbInfoList,
     loadDbInfo,
+    dbCount,
+    loadDbCount,
 
     // 标签页操作
     openStatusTab,

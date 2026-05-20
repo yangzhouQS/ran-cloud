@@ -95,6 +95,7 @@ macro_rules! register_redis_desktop_commands {
             $crate::modules::redis_desktop::tool::commands::redis_tool_memory_analysis,
             $crate::modules::redis_desktop::tool::commands::redis_tool_server_status,
             $crate::modules::redis_desktop::tool::commands::redis_tool_database_list,
+            $crate::modules::redis_desktop::tool::commands::redis_tool_database_count,
             $crate::modules::redis_desktop::tool::commands::redis_tool_server_info,
             $crate::modules::redis_desktop::tool::commands::redis_tool_client_list,
         ]

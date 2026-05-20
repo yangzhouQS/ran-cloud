@@ -249,6 +249,31 @@ impl InfoService {
         sections
     }
 
+    /// Get configured database count from CONFIG GET databases
+    pub async fn get_database_count(client: &RedisClient) -> Result<u32, AppError> {
+        let mut cmd = redis::Cmd::new();
+        cmd.arg("CONFIG").arg("GET").arg("databases");
+        let value = client
+            .run_command(&cmd)
+            .await
+            .map_err(|e| AppError::Redis(e))?;
+
+        // CONFIG GET returns: ["databases", "16"]
+        if let redis::Value::Array(arr) = &value {
+            if arr.len() >= 2 {
+                if let redis::Value::BulkString(s) = &arr[1] {
+                    let count = String::from_utf8_lossy(s)
+                        .parse::<u32>()
+                        .unwrap_or(16);
+                    return Ok(count);
+                }
+            }
+        }
+
+        // Fallback to default 16
+        Ok(16)
+    }
+
     /// Get database list from INFO KEYSPACE
     pub async fn get_database_list(client: &RedisClient) -> Result<Vec<DatabaseInfo>, AppError> {
         let info = client

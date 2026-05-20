@@ -42,9 +42,6 @@ const ConnectionSidebar = defineComponent({
     const editingConnection = ref<string | null>(null);
     const searchKeyword = ref("");
 
-    /** Redis 默认数据库数量（可通过 CONFIG GET databases 获取，这里使用默认值） */
-    const dbCount = 16;
-
     // ===== 初始化 =====
     store.loadConnections();
 
@@ -151,6 +148,7 @@ const ConnectionSidebar = defineComponent({
           store.switchDb(lastDb);
           store.startScan();
           store.loadDbInfo();
+          store.loadDbCount();
         }
       }
     };
@@ -227,7 +225,7 @@ const ConnectionSidebar = defineComponent({
             placement="bottom-start"
             onChange={(val: number) => handleSwitchDb(val)}
           >
-            {Array.from({ length: dbCount }, (_, i) => {
+            {Array.from({ length: store.dbCount }, (_, i) => {
               const keyCount = dbKeyCountMap.get(i);
               const label = keyCount !== undefined && keyCount > 0
                 ? `db${i} (${keyCount})`

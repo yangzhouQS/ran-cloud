@@ -96,6 +96,16 @@ pub async fn redis_tool_database_list(
     InfoService::get_database_list(&client).await
 }
 
+/// get configured database count (CONFIG GET databases)
+#[tauri::command]
+pub async fn redis_tool_database_count(
+    manager: tauri::State<'_, Arc<RedisConnectionManager>>,
+    connection_id: String,
+) -> AppResult<u32> {
+    let client = manager.get_client(&connection_id)?;
+    InfoService::get_database_count(&client).await
+}
+
 /// get full server info (INFO command)
 #[tauri::command]
 pub async fn redis_tool_server_info(
