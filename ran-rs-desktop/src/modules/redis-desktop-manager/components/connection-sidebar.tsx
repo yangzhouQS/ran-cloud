@@ -142,10 +142,11 @@ const ConnectionSidebar = defineComponent({
     const handleConnectionClick = (config: ConnectionConfig) => {
       const info = store.connectionInfos.get(config.id);
       if (info?.status === ConnectionStatus.Connected) {
-        // 已连接：切换为活跃连接，并通过 switchDb 重置状态并加载 key
+        // 已连接：切换为活跃连接，恢复上次选择的 DB
         if (store.activeConnectionId !== config.id) {
           store.activeConnectionId = config.id;
-          store.switchDb(config.db);
+          const lastDb = store.getConnectionActiveDb(config.id);
+          store.switchDb(lastDb);
           store.startScan();
         }
       }

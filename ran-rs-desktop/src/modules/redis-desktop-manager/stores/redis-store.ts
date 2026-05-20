@@ -76,6 +76,9 @@ export const useRedisStore = defineStore("redis-desktop", () => {
   const activeConnectionId = ref<string>("");
   const activeDb = ref<number>(0);
 
+  /** 记住每个连接上次选择的 DB（connectionId → db） */
+  const connectionActiveDbs = ref<Map<string, number>>(new Map());
+
   // ===== Key 管理 =====
   const keys = ref<KeyScanResult[]>([]);
   const currentScanId = ref<string>("");
@@ -431,9 +434,23 @@ export const useRedisStore = defineStore("redis-desktop", () => {
 
   // ===== DB 操作 =====
 
+  /** 获取连接上次选择的 DB，若无记录则返回配置的默认 DB */
+  function getConnectionActiveDb(connectionId: string): number {
+    const saved = connectionActiveDbs.value.get(connectionId);
+    if (saved !== undefined) {
+      return saved;
+    }
+    const config = connections.value.find(c => c.id === connectionId);
+    return config?.db ?? 0;
+  }
+
   /** 切换 DB */
   function switchDb(db: number) {
     activeDb.value = db;
+    // 记住当前连接选择的 DB
+    if (activeConnectionId.value) {
+      connectionActiveDbs.value.set(activeConnectionId.value, db);
+    }
     keys.value = [];
     selectedKey.value = "";
     keyDetail.value = null;
@@ -636,6 +653,7 @@ export const useRedisStore = defineStore("redis-desktop", () => {
 
     // DB 操作
     switchDb,
+    getConnectionActiveDb,
 
     // 标签页操作
     openStatusTab,
