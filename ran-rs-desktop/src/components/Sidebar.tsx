@@ -2,9 +2,9 @@ import type { PropType } from "vue";
 import {
   HomeFilled,
   InfoFilled,
-  Link as LinkIcon,
   Monitor,
   Setting,
+  SetUp,
 } from "@element-plus/icons-vue";
 import { defineComponent } from "vue";
 import iconRedis from "../assets/images/icon-redis.jpeg";
@@ -30,7 +30,7 @@ export interface ToolItem {
 /** 主导航项 */
 export const navItems: NavItem[] = [
   { key: "home", label: "首页", icon: HomeFilled },
-  { key: "k8s", label: "K8s 连接", icon: LinkIcon },
+  { key: "k8s", label: "开发工具", icon: SetUp },
   { key: "redis", label: "Redis", iconSrc: iconRedis },
 ];
 

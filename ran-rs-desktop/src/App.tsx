@@ -4,6 +4,7 @@ import { computed, defineComponent, ref } from "vue";
 import { getCategoriesByNav, getCategoryTitle } from "./components/category-panel";
 import Layout from "./components/layout";
 import { TelepresencePanel } from "./modules/develop-tools/telepresence";
+import { Json2TsPanel } from "./modules/develop-tools/json2ts";
 import { useCsNamespace } from "./hooks/use-namespace";
 import "./components/layout.less";
 
@@ -153,7 +154,12 @@ const App = defineComponent({
     const renderMainContent = () => {
       switch (activeNav.value) {
         case "k8s":
-          return <TelepresencePanel />;
+          switch (activeCategory.value) {
+            case "json2ts":
+              return <Json2TsPanel />;
+            default:
+              return <TelepresencePanel />;
+          }
         case "home":
           return (
             <div class={nsPage.b()}>

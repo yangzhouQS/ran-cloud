@@ -2,6 +2,7 @@ import type { PropType } from "vue";
 import {
   Connection,
   Document,
+  DocumentCopy,
   Grid,
   Setting,
 } from "@element-plus/icons-vue";
@@ -20,6 +21,7 @@ export interface CategoryItem {
 /** K8s 网络连接工具分类 */
 export const k8sCategories: CategoryItem[] = [
   { key: "k8s-network-tools", label: "k8s网络连接工具", icon: Connection, description: "Telepresence 网络代理管理" },
+  { key: "json2ts", label: "JSON → TypeScript", icon: DocumentCopy, description: "JSON 类型转换工具" },
 ];
 
 /** 首页分类 */

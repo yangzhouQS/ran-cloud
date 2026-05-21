@@ -30,4 +30,11 @@ export default defineConfig({
     },
     assetPrefix: '/',
   },
+  tools: {
+    rspack: {
+      output: {
+        globalObject: 'self',
+      },
+    },
+  },
 });
