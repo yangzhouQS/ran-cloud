@@ -1,8 +1,8 @@
 /**
  * @component RedisDesktopManager
- * @description Redis 桌面管理器主布局样式 — 基于 dockview Splitview 三栏可拖拽布局
+ * @description Redis 桌面管理器主布局样式 — 基于 dockview Splitview 三栏 + Dockview 标签页
  * @block ran-redis-desktop
- * @elements __splitview, __sidebar-panel, __key-panel-wrapper, __key-panel-empty, __main-panel, __content, __content-empty, __content-placeholder
+ * @elements __splitview, __sidebar-panel, __key-panel-wrapper, __key-panel-empty, __main-panel
  */
 
 @import (reference) "../../assets/styles/global.less";
@@ -48,34 +48,55 @@
     color: #999;
   }
 
-  // ---- 右栏：主内容区 ----
+  // ---- 右栏：主内容区（DockviewVue） ----
   &__main-panel {
-    display: flex;
-    flex-direction: column;
     min-width: 0;
   }
+}
 
-  // ---- 内容区 ----
-  &__content {
-    flex: 1;
+// ==================== dockview 自定义 Tab 样式 ====================
+
+.ran-dockview-tab {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 12px;
+  gap: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &__title {
+    max-width: 160px;
     overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  // ---- 空状态 ----
-  &__content-empty {
+  &__close {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 100%;
-  }
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    font-size: 14px;
+    line-height: 1;
+    color: #909399;
+    transition: all 0.15s;
 
-  // ---- 占位提示 ----
-  &__content-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
+    &:hover {
+      background: #c0c4cc;
+      color: #ffffff;
+    }
   }
+}
+
+// ---- dockview 空状态水印 ----
+.ran-dockview-watermark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
 }
 
 // ==================== dockview Splitview 样式覆写 ====================
@@ -128,6 +149,18 @@ html.dark {
 
     &__key-panel-empty {
       color: #666;
+    }
+  }
+
+  // 暗黑主题下的 dockview Tab
+  .ran-dockview-tab {
+    &__close {
+      color: #a3a6ad;
+
+      &:hover {
+        background: #6c6e72;
+        color: #e5eaf3;
+      }
     }
   }
 

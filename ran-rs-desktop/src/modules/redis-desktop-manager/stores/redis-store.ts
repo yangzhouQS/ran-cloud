@@ -5,7 +5,7 @@
  * - 连接列表与活跃连接
  * - 当前选中 DB
  * - Key 列表与树形结构
- * - 多标签页管理
+ * - 多标签页管理（dockview 集成）
  * - 命令日志
  */
 
@@ -17,7 +17,7 @@ import type {
   KeyScanResult,
 } from "../types";
 import { defineStore } from "pinia";
-import { computed, ref } from "vue";
+import { computed, markRaw, ref } from "vue";
 import { useModuleBus } from "../../_shared/use-module-bus";
 import {
   redisConnectionClose,
@@ -116,6 +116,109 @@ export const useRedisStore = defineStore("redis-desktop", () => {
     error: string;
     timestamp: number;
   }>>([]);
+
+  // ===== dockview 集成 =====
+  const dockviewApi = ref<any>(null);
+  let _syncing = false;
+
+  /** dockview 面板操作辅助方法 */
+  function dockviewAddPanel(tab: TabItem) {
+    if (!dockviewApi.value) return;
+    _syncing = true;
+    try {
+      dockviewApi.value.addPanel({
+        id: tab.id,
+        component: tab.type,
+        title: tab.title,
+        params: {
+          connectionId: tab.connectionId,
+          db: tab.db,
+          key: tab.key,
+          closable: tab.closable,
+        },
+      });
+    } catch (e) {
+      console.error("[RedisStore] dockview addPanel error:", e);
+    }
+    _syncing = false;
+  }
+
+  function dockviewRemovePanel(tabId: string) {
+    if (!dockviewApi.value) return;
+    _syncing = true;
+    try {
+      const panel = dockviewApi.value.getPanel(tabId);
+      if (panel) {
+        dockviewApi.value.removePanel(panel);
+      }
+    } catch (e) {
+      console.error("[RedisStore] dockview removePanel error:", e);
+    }
+    _syncing = false;
+  }
+
+  function dockviewSetActive(tabId: string) {
+    if (!dockviewApi.value) return;
+    _syncing = true;
+    try {
+      const panel = dockviewApi.value.getPanel(tabId);
+      if (panel) {
+        panel.api.setActive();
+      }
+    } catch {
+      // ignore
+    }
+    _syncing = false;
+  }
+
+  /** 设置 dockview API 并同步已有标签页 */
+  function setDockviewApi(api: any) {
+    dockviewApi.value = markRaw(api);
+
+    // 将 store 中已有的标签页同步到 dockview
+    _syncing = true;
+    for (const tab of tabs.value) {
+      try {
+        api.addPanel({
+          id: tab.id,
+          component: tab.type,
+          title: tab.title,
+          params: {
+            connectionId: tab.connectionId,
+            db: tab.db,
+            key: tab.key,
+            closable: tab.closable,
+          },
+        });
+      } catch (e) {
+        console.error("[RedisStore] dockview sync addPanel error:", e);
+      }
+    }
+    if (activeTabId.value) {
+      const panel = api.getPanel(activeTabId.value);
+      if (panel) {
+        panel.api.setActive();
+      }
+    }
+    _syncing = false;
+
+    // 监听 dockview 用户操作，同步回 store
+    api.onDidActivePanelChange((panel: any) => {
+      if (_syncing) return;
+      activeTabId.value = panel?.id ?? "";
+    });
+
+    api.onDidRemovePanel((panel: any) => {
+      if (_syncing) return;
+      const idx = tabs.value.findIndex(t => t.id === panel.id);
+      if (idx >= 0) {
+        tabs.value.splice(idx, 1);
+        if (activeTabId.value === panel.id) {
+          activeTabId.value = tabs.value.length > 0 ? tabs.value[0].id : "";
+        }
+      }
+    });
+  }
 
   // ===== 计算属性 =====
   const activeConnection = computed(() =>
@@ -266,10 +369,15 @@ export const useRedisStore = defineStore("redis-desktop", () => {
         currentScanId.value = "";
         scanState.value = { scanning: false, progress: 0, total: 0, pattern: "*" };
       }
-      // 关闭该连接的所有标签页
+      // 关闭该连接的所有标签页（同步移除 dockview 面板）
+      const connTabs = tabs.value.filter(t => t.connectionId === connectionId);
       tabs.value = tabs.value.filter(t => t.connectionId !== connectionId);
+      for (const tab of connTabs) {
+        dockviewRemovePanel(tab.id);
+      }
       if (tabs.value.length > 0) {
         activeTabId.value = tabs.value[0].id;
+        dockviewSetActive(activeTabId.value);
       } else {
         activeTabId.value = "";
       }
@@ -500,7 +608,11 @@ export const useRedisStore = defineStore("redis-desktop", () => {
 
     // 移除当前连接的所有标签页（包括不可关闭的状态标签页），再打开新 DB 的状态标签页
     const connId = activeConnectionId.value;
+    const connTabs = tabs.value.filter(t => t.connectionId === connId);
     tabs.value = tabs.value.filter(t => t.connectionId !== connId);
+    for (const tab of connTabs) {
+      dockviewRemovePanel(tab.id);
+    }
     if (connId) {
       openStatusTab(connId, db);
     }
@@ -529,8 +641,10 @@ export const useRedisStore = defineStore("redis-desktop", () => {
         closable: false,
       };
       tabs.value.push(tab);
+      dockviewAddPanel(tab);
     }
     activeTabId.value = id;
+    dockviewSetActive(id);
   }
 
   /** 打开 CLI 标签页 */
@@ -547,8 +661,10 @@ export const useRedisStore = defineStore("redis-desktop", () => {
         closable: true,
       };
       tabs.value.push(tab);
+      dockviewAddPanel(tab);
     }
     activeTabId.value = id;
+    dockviewSetActive(id);
   }
 
   /** 打开 Key 详情标签页 */
@@ -568,8 +684,10 @@ export const useRedisStore = defineStore("redis-desktop", () => {
         closable: true,
       };
       tabs.value.push(tab);
+      dockviewAddPanel(tab);
     }
     activeTabId.value = id;
+    dockviewSetActive(id);
     loadKeyDetail(key);
   }
 
@@ -587,8 +705,10 @@ export const useRedisStore = defineStore("redis-desktop", () => {
         closable: true,
       };
       tabs.value.push(tab);
+      dockviewAddPanel(tab);
     }
     activeTabId.value = id;
+    dockviewSetActive(id);
   }
 
   /** 打开命令日志标签页 */
@@ -605,8 +725,10 @@ export const useRedisStore = defineStore("redis-desktop", () => {
         closable: true,
       };
       tabs.value.push(tab);
+      dockviewAddPanel(tab);
     }
     activeTabId.value = id;
+    dockviewSetActive(id);
   }
 
   /** 关闭标签页 */
@@ -616,10 +738,12 @@ export const useRedisStore = defineStore("redis-desktop", () => {
       return;
     }
     tabs.value.splice(idx, 1);
+    dockviewRemovePanel(tabId);
     if (activeTabId.value === tabId) {
       if (tabs.value.length > 0) {
         const newIdx = Math.min(idx, tabs.value.length - 1);
         activeTabId.value = tabs.value[newIdx].id;
+        dockviewSetActive(activeTabId.value);
       } else {
         activeTabId.value = "";
       }
@@ -628,9 +752,14 @@ export const useRedisStore = defineStore("redis-desktop", () => {
 
   /** 关闭其他标签页 */
   function closeOtherTabs(tabId: string) {
+    const otherTabs = tabs.value.filter(t => t.id !== tabId && t.closable);
     tabs.value = tabs.value.filter(t => !t.closable || t.id === tabId);
+    for (const tab of otherTabs) {
+      dockviewRemovePanel(tab.id);
+    }
     if (!tabs.value.some(t => t.id === activeTabId.value)) {
       activeTabId.value = tabs.value.length > 0 ? tabs.value[0].id : "";
+      dockviewSetActive(activeTabId.value);
     }
   }
 
@@ -710,6 +839,9 @@ export const useRedisStore = defineStore("redis-desktop", () => {
     openCommandLogTab,
     closeTab,
     closeOtherTabs,
+
+    // dockview 集成
+    setDockviewApi,
 
     // 命令日志
     loadCommandLogs,
