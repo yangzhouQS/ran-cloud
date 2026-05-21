@@ -1,17 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-
-/** Telepresence 连接参数 */
-export interface ConnectParams {
-  kubeconfig: string;
-  namespace: string;
-  skipTlsVerify: boolean;
-}
-
-/** Telepresence 操作结果 */
-export interface TelepresenceResult {
-  success: boolean;
-  message: string;
-}
+import type { ConnectParams, TelepresenceResult } from "../types";
 
 /**
  * 连接 Telepresence 到 Kubernetes 集群

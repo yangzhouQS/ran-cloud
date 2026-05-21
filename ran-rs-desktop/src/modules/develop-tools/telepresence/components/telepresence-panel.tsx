@@ -14,20 +14,14 @@ import {
 } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { computed, defineComponent, reactive, ref } from "vue";
-import { useCsNamespace } from "../hooks/use-namespace";
+import { useCsNamespace } from "../../../../hooks/use-namespace";
 import {
   connectTelepresence,
   getStatus,
   quitTelepresence,
 } from "../services/telepresence";
+import type { LogEntry } from "../types";
 import "./telepresence-panel.less";
-
-/** 操作日志条目 */
-interface LogEntry {
-  timestamp: string;
-  type: "info" | "success" | "error" | "command";
-  message: string;
-}
 
 const TelepresencePanel = defineComponent({
   name: "TelepresencePanel",

@@ -3,7 +3,7 @@ import { ElMessage } from "element-plus";
 import { computed, defineComponent, ref } from "vue";
 import { getCategoriesByNav, getCategoryTitle } from "./components/category-panel";
 import Layout from "./components/layout";
-import TelepresencePanel from "./components/telepresence-panel";
+import { TelepresencePanel } from "./modules/develop-tools/telepresence";
 import { useCsNamespace } from "./hooks/use-namespace";
 import "./components/layout.less";
 
