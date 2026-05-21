@@ -3,7 +3,6 @@ import {
   Connection,
   Document,
   Grid,
-  Monitor,
   Setting,
 } from "@element-plus/icons-vue";
 import { defineComponent } from "vue";
@@ -18,12 +17,9 @@ export interface CategoryItem {
   description?: string;
 }
 
-/** K8s 连接分类 */
+/** K8s 网络连接工具分类 */
 export const k8sCategories: CategoryItem[] = [
-  { key: "connect", label: "连接管理", icon: Connection, description: "Telepresence 连接/断开" },
-  { key: "status", label: "状态监控", icon: Monitor, description: "查看连接状态" },
-  { key: "config", label: "配置管理", icon: Setting, description: "连接参数配置" },
-  { key: "logs", label: "操作日志", icon: Document, description: "查看操作记录" },
+  { key: "k8s-network-tools", label: "k8s网络连接工具", icon: Connection, description: "Telepresence 网络代理管理" },
 ];
 
 /** 首页分类 */
@@ -65,7 +61,7 @@ export function getCategoryTitle(navKey: string): string {
     case "home":
       return "首页";
     case "k8s":
-      return "K8s 连接";
+      return "k8s网络连接工具";
     case "settings":
       return "设置";
     case "about":

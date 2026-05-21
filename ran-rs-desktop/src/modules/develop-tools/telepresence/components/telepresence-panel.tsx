@@ -6,7 +6,6 @@ import {
   DocumentCopy,
   FolderOpened,
   InfoFilled,
-  Monitor,
   Refresh,
   RefreshRight,
   Setting,
@@ -25,13 +24,7 @@ import "./telepresence-panel.less";
 
 const TelepresencePanel = defineComponent({
   name: "TelepresencePanel",
-  props: {
-    activeCategory: {
-      type: String,
-      default: "connect",
-    },
-  },
-  setup(props) {
+  setup() {
     // ===== BEM 命名空间 =====
     const ns = useCsNamespace("telepresence");
     const nsPage = useCsNamespace("content-page");
@@ -254,15 +247,16 @@ const TelepresencePanel = defineComponent({
     };
     initStatus();
 
-    // ===== 渲染：连接管理 =====
-    const renderConnect = () => (
+    // ===== 合并渲染：单页面垂直堆叠 =====
+    return () => (
       <div class={nsPage.b()}>
+        {/* 页面标题 */}
         <div class={nsPage.e("header")}>
           <h2 class={nsPage.e("title")}>
             <el-icon style={{ marginRight: "8px", verticalAlign: "middle" }}>
               <Connection />
             </el-icon>
-            连接管理
+            K8s 网络连接工具
           </h2>
           <el-tag type={statusType.value} effect="dark" size="small">
             <el-icon style={{ marginRight: "4px" }}>
@@ -272,9 +266,27 @@ const TelepresencePanel = defineComponent({
           </el-tag>
         </div>
 
-        {/* 操作按钮 */}
+        {/* Section 1: 连接状态 + 操作按钮 */}
         <div class={nsSection.b()}>
-          <h3 class={nsSection.e("title")}>快捷操作</h3>
+          <h3 class={nsSection.e("title")}>连接操作</h3>
+          <div class={ns.e("status-row")}>
+            <div class={ns.e("status-indicator")}>
+              <el-icon size={36} color={isConnected.value ? "#67c23a" : "#f56c6c"}>
+                {isConnected.value ? <CircleCheck /> : <CircleClose />}
+              </el-icon>
+              <span class={[ns.e("status-value"), isConnected.value ? ns.is("connected") : ns.is("disconnected")]}>
+                {statusText.value}
+              </span>
+            </div>
+            <el-button
+              size="small"
+              icon={RefreshRight}
+              loading={statusLoading.value}
+              onClick={handleStatus}
+            >
+              刷新状态
+            </el-button>
+          </div>
           <div class={ns.e("actions")}>
             <el-button
               type="primary"
@@ -304,11 +316,7 @@ const TelepresencePanel = defineComponent({
               {quitLoading.value ? "断开中..." : "断开连接"}
             </el-button>
           </div>
-        </div>
-
-        {/* 命令预览 */}
-        <div class={nsSection.b()}>
-          <h3 class={nsSection.e("title")}>执行命令</h3>
+          {/* 命令预览 */}
           <code class={ns.e("command")}>
             telepresence connect --kubeconfig
             {" "}
@@ -316,64 +324,19 @@ const TelepresencePanel = defineComponent({
             {config.skipTlsVerify ? " --insecure-skip-tls-verify" : ""}
             {" "}
             --namespace
+            {" "}
             {config.namespace}
           </code>
         </div>
-      </div>
-    );
 
-    // ===== 渲染：状态监控 =====
-    const renderStatus = () => (
-      <div class={nsPage.b()}>
-        <div class={nsPage.e("header")}>
-          <h2 class={nsPage.e("title")}>
-            <el-icon style={{ marginRight: "8px", verticalAlign: "middle" }}>
-              <Monitor />
-            </el-icon>
-            状态监控
-          </h2>
-          <el-button
-            type="primary"
-            size="small"
-            icon={RefreshRight}
-            loading={statusLoading.value}
-            onClick={handleStatus}
-          >
-            刷新状态
-          </el-button>
-        </div>
-
+        {/* Section 2: 配置管理 */}
         <div class={nsSection.b()}>
-          <div class={ns.e("status")}>
-            <div class={ns.e("status-indicator")}>
-              <el-icon size={48} color={isConnected.value ? "#67c23a" : "#f56c6c"}>
-                {isConnected.value ? <CircleCheck /> : <CircleClose />}
-              </el-icon>
-              <div class={ns.e("status-info")}>
-                <span class={ns.e("status-label")}>连接状态</span>
-                <span class={[ns.e("status-value"), isConnected.value ? ns.is("connected") : ns.is("disconnected")]}>
-                  {statusText.value}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-
-    // ===== 渲染：配置管理 =====
-    const renderConfig = () => (
-      <div class={nsPage.b()}>
-        <div class={nsPage.e("header")}>
-          <h2 class={nsPage.e("title")}>
-            <el-icon style={{ marginRight: "8px", verticalAlign: "middle" }}>
+          <h3 class={nsSection.e("title")}>
+            <el-icon style={{ marginRight: "6px", verticalAlign: "middle" }}>
               <Setting />
             </el-icon>
             配置管理
-          </h2>
-        </div>
-
-        <div class={nsSection.b()}>
+          </h3>
           <div class={ns.e("form")}>
             <div class={ns.e("form-row")}>
               <label class={ns.e("form-label")}>Kubeconfig 路径</label>
@@ -418,25 +381,20 @@ const TelepresencePanel = defineComponent({
             </div>
           </div>
         </div>
-      </div>
-    );
 
-    // ===== 渲染：操作日志 =====
-    const renderLogs = () => (
-      <div class={nsPage.b()}>
-        <div class={nsPage.e("header")}>
-          <h2 class={nsPage.e("title")}>
-            <el-icon style={{ marginRight: "8px", verticalAlign: "middle" }}>
-              <Document />
-            </el-icon>
-            操作日志
-          </h2>
-          <el-button text size="small" icon={RefreshRight} onClick={handleClearLogs}>
-            清空
-          </el-button>
-        </div>
-
+        {/* Section 3: 操作日志 */}
         <div class={nsSection.b()} style={{ padding: 0 }}>
+          <div class={nsPage.e("header")} style={{ padding: "16px 20px 8px" }}>
+            <h3 class={nsSection.e("title")} style={{ margin: 0 }}>
+              <el-icon style={{ marginRight: "6px", verticalAlign: "middle" }}>
+                <Document />
+              </el-icon>
+              操作日志
+            </h3>
+            <el-button text size="small" icon={RefreshRight} onClick={handleClearLogs}>
+              清空
+            </el-button>
+          </div>
           <div class={ns.e("terminal")}>
             {logs.value.length === 0
               ? (
@@ -458,17 +416,6 @@ const TelepresencePanel = defineComponent({
         </div>
       </div>
     );
-
-    // ===== 根据分类渲染 =====
-    return () => {
-      switch (props.activeCategory) {
-        case "connect": return renderConnect();
-        case "status": return renderStatus();
-        case "config": return renderConfig();
-        case "logs": return renderLogs();
-        default: return renderConnect();
-      }
-    };
   },
 });
 

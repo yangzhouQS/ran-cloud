@@ -24,7 +24,7 @@ const App = defineComponent({
 
     // ===== 导航状态 =====
     const activeNav = ref("k8s");
-    const activeCategory = ref("connect");
+    const activeCategory = ref("k8s-network-tools");
 
     // ===== 计算属性 =====
     const categories = computed(() => getCategoriesByNav(activeNav.value));
@@ -153,7 +153,7 @@ const App = defineComponent({
     const renderMainContent = () => {
       switch (activeNav.value) {
         case "k8s":
-          return <TelepresencePanel activeCategory={activeCategory.value} />;
+          return <TelepresencePanel />;
         case "home":
           return (
             <div class={nsPage.b()}>

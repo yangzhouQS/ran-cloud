@@ -1,8 +1,8 @@
 /**
  * @component TelepresencePanel
- * @description Telepresence 连接管理面板 — 包含连接操作按钮、命令预览、状态监控、配置表单、操作日志终端
+ * @description Telepresence K8s 网络连接工具面板 — 合并连接操作、状态监控、配置表单、操作日志终端为单页面
  * @block ran-telepresence
- * @elements __actions, __command, __status, __status-indicator, __status-info, __status-label, __status-value,
+ * @elements __actions, __command, __status-row, __status-indicator, __status-value,
  *           __form, __form-row, __form-label, __form-input-group, __info-icon,
  *           __terminal, __terminal-empty, __log-line, __log-time, __log-message
  * @modifiers __log-line--command, __log-line--info, __log-line--success, __log-line--error
@@ -17,6 +17,7 @@
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
+    margin-bottom: 16px;
   }
 
   // ---- 命令预览（内联） ----
@@ -33,30 +34,22 @@
     white-space: pre-wrap;
   }
 
-  // ---- 状态监控 ----
-  &__status {
+  // ---- 状态行（状态指示 + 刷新按钮） ----
+  &__status-row {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
   }
 
   &__status-indicator {
     display: flex;
     align-items: center;
-    gap: 20px;
-  }
-
-  &__status-info {
-    display: flex;
-    flex-direction: column;
-  }
-
-  &__status-label {
-    font-size: 13px;
-    color: @color-text-secondary;
+    gap: 12px;
   }
 
   &__status-value {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 600;
 
     &.is-connected {
