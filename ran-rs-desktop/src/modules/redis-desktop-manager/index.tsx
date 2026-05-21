@@ -11,7 +11,7 @@
 
 import type { SplitviewReadyEvent } from "dockview-vue";
 import { listen } from "@tauri-apps/api/event";
-import { DockviewVue, Orientation, SplitviewVue } from "dockview-vue";
+import { DockviewVue, Orientation, SplitviewVue, themeVisualStudio } from "dockview-vue";
 import { defineComponent, onMounted, onUnmounted, ref, watch } from "vue";
 import { useCsNamespace } from "../../hooks/use-namespace";
 import CliTerminal from "./components/cli-terminal";
@@ -237,7 +237,7 @@ const MainPanelWrapper = defineComponent({
     return () => (
       <div class="ran-redis-desktop__main-panel">
         <DockviewVue
-          defaultTabComponent="CustomTab"
+          theme={themeVisualStudio}
           watermarkComponent="EmptyWatermark"
           disableFloatingGroups={true}
           onReady={onDockviewReady}
