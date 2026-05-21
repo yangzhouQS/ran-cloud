@@ -6,7 +6,7 @@ use tauri::{plugin::TauriPlugin, Runtime};
 
 /// 执行 Telepresence 连接
 #[tauri::command]
-fn telepresence_connect(
+pub fn telepresence_connect(
     kubeconfig: String,
     namespace: String,
     skip_tls_verify: bool,
@@ -20,7 +20,7 @@ fn telepresence_connect(
         cmd.arg("--insecure-skip-tls-verify");
     }
 
-    cmd.arg("--namespace").arg(&namespace);
+    cmd.arg(format!("--namespace={}", namespace));
 
     let output = cmd.output().map_err(|e| {
         format!(
@@ -49,7 +49,7 @@ fn telepresence_connect(
 
 /// 断开 Telepresence 连接
 #[tauri::command]
-fn telepresence_quit() -> Result<String, String> {
+pub fn telepresence_quit() -> Result<String, String> {
     let output = Command::new("telepresence")
         .arg("quit")
         .output()
@@ -75,7 +75,7 @@ fn telepresence_quit() -> Result<String, String> {
 
 /// 获取 Telepresence 状态
 #[tauri::command]
-fn telepresence_status() -> Result<String, String> {
+pub fn telepresence_status() -> Result<String, String> {
     let output = Command::new("telepresence")
         .arg("status")
         .output()

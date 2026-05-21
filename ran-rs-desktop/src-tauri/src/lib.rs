@@ -93,6 +93,10 @@ pub fn run() {
             modules::redis_desktop::tool::commands::redis_tool_client_list,
             modules::redis_desktop::tool::commands::redis_tool_flush_db,
             modules::redis_desktop::tool::commands::redis_tool_flush_all,
+            // ===== Telepresence 命令 =====
+            modules::telepresence::telepresence_connect,
+            modules::telepresence::telepresence_quit,
+            modules::telepresence::telepresence_status,
         ])
         .setup(|app| {
             // 初始化 Redis 连接管理器
