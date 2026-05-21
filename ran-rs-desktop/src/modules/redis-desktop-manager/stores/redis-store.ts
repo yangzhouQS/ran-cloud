@@ -498,10 +498,11 @@ export const useRedisStore = defineStore("redis-desktop", () => {
     currentScanId.value = "";
     scanState.value = { scanning: false, progress: 0, total: 0, pattern: "*" };
 
-    // 关闭所有可关闭的标签页，打开新 DB 的状态标签页
-    tabs.value = tabs.value.filter(t => !t.closable);
-    if (activeConnectionId.value) {
-      openStatusTab(activeConnectionId.value, db);
+    // 移除当前连接的所有标签页（包括不可关闭的状态标签页），再打开新 DB 的状态标签页
+    const connId = activeConnectionId.value;
+    tabs.value = tabs.value.filter(t => t.connectionId !== connId);
+    if (connId) {
+      openStatusTab(connId, db);
     }
     // 注意：key 列表加载由调用方（sidebar / key-panel）负责触发 startScan
   }

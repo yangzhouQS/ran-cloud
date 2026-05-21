@@ -276,7 +276,12 @@ const StatusPanel = defineComponent({
             {/* 全部 Redis INFO */}
             <div class={ns.e("section")}>
               <div class={ns.e("section-header")}>
-                <span>全部 Redis INFO（{filteredInfo.value.length} 条）</span>
+                <span>
+                  全部 Redis INFO（
+                  {filteredInfo.value.length}
+                  {" "}
+                  条）
+                </span>
                 <el-input
                   modelValue={allInfoFilter.value}
                   onUpdate:modelValue={(val: string) => {
