@@ -519,10 +519,11 @@ export const useRedisStore = defineStore("redis-desktop", () => {
     const id = generateTabId("status", connectionId, db);
     let tab = tabs.value.find(t => t.id === id);
     if (!tab) {
+      const connName = connections.value.find(c => c.id === connectionId)?.name ?? "服务器状态";
       tab = {
         id,
         type: "status",
-        title: "服务器状态",
+        title: `${connName} | 服务器状态`,
         connectionId,
         db,
         closable: false,
