@@ -88,7 +88,7 @@ export function applyAliases(
     case "union":
       return {
         ...node,
-        members: node.members.map((m) => applyAliases(m, aliasMap)),
+        members: node.members.map(m => applyAliases(m, aliasMap)),
       };
     default:
       return node;

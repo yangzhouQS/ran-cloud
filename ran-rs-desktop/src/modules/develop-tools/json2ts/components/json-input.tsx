@@ -1,6 +1,5 @@
 import type { PropType } from "vue";
 import { defineComponent } from "vue";
-import type { ConversionOptions } from "../types";
 import MonacoEditorWrapper from "./monaco-editor";
 
 const JsonInput = defineComponent({

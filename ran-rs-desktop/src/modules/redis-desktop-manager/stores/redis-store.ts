@@ -123,7 +123,9 @@ export const useRedisStore = defineStore("redis-desktop", () => {
 
   /** dockview 面板操作辅助方法 */
   function dockviewAddPanel(tab: TabItem) {
-    if (!dockviewApi.value) return;
+    if (!dockviewApi.value) {
+      return;
+    }
     _syncing = true;
     try {
       dockviewApi.value.addPanel({
@@ -144,7 +146,9 @@ export const useRedisStore = defineStore("redis-desktop", () => {
   }
 
   function dockviewRemovePanel(tabId: string) {
-    if (!dockviewApi.value) return;
+    if (!dockviewApi.value) {
+      return;
+    }
     _syncing = true;
     try {
       const panel = dockviewApi.value.getPanel(tabId);
@@ -158,7 +162,9 @@ export const useRedisStore = defineStore("redis-desktop", () => {
   }
 
   function dockviewSetActive(tabId: string) {
-    if (!dockviewApi.value) return;
+    if (!dockviewApi.value) {
+      return;
+    }
     _syncing = true;
     try {
       const panel = dockviewApi.value.getPanel(tabId);
@@ -204,12 +210,16 @@ export const useRedisStore = defineStore("redis-desktop", () => {
 
     // 监听 dockview 用户操作，同步回 store
     api.onDidActivePanelChange((panel: any) => {
-      if (_syncing) return;
+      if (_syncing) {
+        return;
+      }
       activeTabId.value = panel?.id ?? "";
     });
 
     api.onDidRemovePanel((panel: any) => {
-      if (_syncing) return;
+      if (_syncing) {
+        return;
+      }
       const idx = tabs.value.findIndex(t => t.id === panel.id);
       if (idx >= 0) {
         tabs.value.splice(idx, 1);

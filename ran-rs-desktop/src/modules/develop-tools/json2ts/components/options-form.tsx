@@ -1,6 +1,6 @@
 import type { PropType } from "vue";
-import { defineComponent } from "vue";
 import type { ConversionOptions } from "../types";
+import { defineComponent } from "vue";
 
 const OptionsForm = defineComponent({
   name: "OptionsForm",

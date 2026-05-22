@@ -1,5 +1,5 @@
-import { invoke } from "@tauri-apps/api/core";
 import type { ConnectParams, TelepresenceResult } from "../types";
+import { invoke } from "@tauri-apps/api/core";
 
 /**
  * 连接 Telepresence 到 Kubernetes 集群

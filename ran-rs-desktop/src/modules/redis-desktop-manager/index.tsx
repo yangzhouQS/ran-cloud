@@ -215,8 +215,8 @@ const MainPanelWrapper = defineComponent({
   components: {
     DockviewVue,
     // 面板组件：键名 = panel type，用于 findComponent 解析
-    status: StatusPanelAdapter,
-    cli: CliTerminalAdapter,
+    "status": StatusPanelAdapter,
+    "cli": CliTerminalAdapter,
     "key-detail": KeyDetailAdapter,
     "slow-log": SlowLogPanelAdapter,
     "memory-analysis": MemoryAnalysisPanelAdapter,

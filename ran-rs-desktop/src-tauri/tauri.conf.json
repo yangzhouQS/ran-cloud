@@ -5,7 +5,7 @@
   "identifier": "com.ran.rsdesktop",
   "build": {
     "beforeDevCommand": "npm run dev",
-    "devUrl": "http://localhost:4420",
+    "devUrl": "http://localhost:4421",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
   },

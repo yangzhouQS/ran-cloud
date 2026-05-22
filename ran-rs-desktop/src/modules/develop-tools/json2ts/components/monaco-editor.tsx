@@ -1,12 +1,13 @@
 import * as monaco from "monaco-editor";
-import type { PropType } from "vue";
 import { defineComponent, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 // 配置 Worker 环境（必须在创建编辑器之前）
 let workersConfigured = false;
 
 function configureWorkers(): void {
-  if (workersConfigured) return;
+  if (workersConfigured) {
+    return;
+  }
   workersConfigured = true;
 
   (self as Record<string, unknown>).MonacoEnvironment = {
@@ -75,7 +76,9 @@ const MonacoEditorWrapper = defineComponent({
     onMounted(() => {
       configureWorkers();
 
-      if (!containerRef.value) return;
+      if (!containerRef.value) {
+        return;
+      }
 
       editor = monaco.editor.create(containerRef.value, {
         value: props.value,

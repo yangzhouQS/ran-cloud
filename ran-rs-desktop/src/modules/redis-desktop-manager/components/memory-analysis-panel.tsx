@@ -50,6 +50,17 @@ const MemoryAnalysisPanel = defineComponent({
     const totalMemory = ref(0);
     const durationMs = ref(0);
 
+    // ---- 排序 ----
+    const sortEntries = () => {
+      const sorted = [...entries.value];
+      if (sortOrder.value === "asc") {
+        sorted.sort((a, b) => a.memoryUsage - b.memoryUsage);
+      } else {
+        sorted.sort((a, b) => b.memoryUsage - a.memoryUsage);
+      }
+      entries.value = sorted;
+    };
+
     // ---- 执行内存分析 ----
     const runAnalysis = async () => {
       loading.value = true;
@@ -71,17 +82,6 @@ const MemoryAnalysisPanel = defineComponent({
       } finally {
         loading.value = false;
       }
-    };
-
-    // ---- 排序 ----
-    const sortEntries = () => {
-      const sorted = [...entries.value];
-      if (sortOrder.value === "asc") {
-        sorted.sort((a, b) => a.memoryUsage - b.memoryUsage);
-      } else {
-        sorted.sort((a, b) => b.memoryUsage - a.memoryUsage);
-      }
-      entries.value = sorted;
     };
 
     const toggleSort = () => {

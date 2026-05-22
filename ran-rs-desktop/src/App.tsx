@@ -3,9 +3,9 @@ import { ElMessage } from "element-plus";
 import { computed, defineComponent, ref } from "vue";
 import { getCategoriesByNav, getCategoryTitle } from "./components/category-panel";
 import Layout from "./components/layout";
-import { TelepresencePanel } from "./modules/develop-tools/telepresence";
-import { Json2TsPanel } from "./modules/develop-tools/json2ts";
 import { useCsNamespace } from "./hooks/use-namespace";
+import { Json2TsPanel } from "./modules/develop-tools/json2ts";
+import { TelepresencePanel } from "./modules/develop-tools/telepresence";
 import "./components/layout.less";
 
 /** 检测是否运行在 Tauri 环境中 */

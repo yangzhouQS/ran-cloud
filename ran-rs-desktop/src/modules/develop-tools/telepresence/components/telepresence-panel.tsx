@@ -1,3 +1,4 @@
+import type { LogEntry } from "../types";
 import {
   CircleCheck,
   CircleClose,
@@ -19,7 +20,6 @@ import {
   getStatus,
   quitTelepresence,
 } from "../services/telepresence";
-import type { LogEntry } from "../types";
 import "./telepresence-panel.less";
 
 const TelepresencePanel = defineComponent({

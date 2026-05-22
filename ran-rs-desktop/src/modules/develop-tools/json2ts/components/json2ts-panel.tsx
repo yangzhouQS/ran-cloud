@@ -5,10 +5,10 @@ import { useCsNamespace } from "../../../../hooks/use-namespace";
 import { convertJsonToTs } from "../services/json-to-ts";
 import { defaultConversionOptions } from "../types";
 import JsonInput from "./json-input";
-import "./json2ts-panel.less";
 import OptionsForm from "./options-form";
 import Toolbar from "./toolbar";
 import TsOutput from "./ts-output";
+import "./json2ts-panel.less";
 
 const Json2TsPanel = defineComponent({
   name: "Json2TsPanel",
@@ -39,7 +39,9 @@ const Json2TsPanel = defineComponent({
     };
 
     const handleCopy = async () => {
-      if (!tsOutput.value) return;
+      if (!tsOutput.value) {
+        return;
+      }
       try {
         await navigator.clipboard.writeText(tsOutput.value);
         ElMessage.success("已复制到剪贴板");

@@ -115,12 +115,12 @@ function inferArrayType(
   }
 
   // 推断每个元素的类型
-  const elementTypes = arr.map((item) =>
+  const elementTypes = arr.map(item =>
     inferType(item, fieldName, options, usedNames),
   );
 
   // 过滤掉 undefined（来自空数组推断占位）
-  const filteredTypes = elementTypes.filter((t) => t.kind !== "undefined");
+  const filteredTypes = elementTypes.filter(t => t.kind !== "undefined");
 
   // 去重：按 kind 和结构比较
   const uniqueTypes = deduplicateTypes(filteredTypes.length > 0 ? filteredTypes : elementTypes);
@@ -134,8 +134,8 @@ function inferArrayType(
 
   // 多种类型 → 联合类型数组
   // 对于对象数组，尝试合并相同结构的对象
-  const objectTypes = uniqueTypes.filter((t) => t.kind === "object") as ObjectType[];
-  const nonObjectTypes = uniqueTypes.filter((t) => t.kind !== "object");
+  const objectTypes = uniqueTypes.filter(t => t.kind === "object") as ObjectType[];
+  const nonObjectTypes = uniqueTypes.filter(t => t.kind !== "object");
 
   if (objectTypes.length > 1) {
     // 尝试合并对象类型
@@ -163,7 +163,9 @@ function mergeArrayObjectTypes(
   options: ConversionOptions,
   usedNames: Set<string>,
 ): ObjectType[] {
-  if (objects.length <= 1) return objects;
+  if (objects.length <= 1) {
+    return objects;
+  }
 
   const allKeys = new Set<string>();
   const keyPresence: Record<string, number> = {};
@@ -192,15 +194,15 @@ function mergeArrayObjectTypes(
     }
 
     const uniqueFieldTypes = deduplicateTypes(fieldTypes);
-    const typeNode =
-      uniqueFieldTypes.length === 1
+    const typeNode
+      = uniqueFieldTypes.length === 1
         ? uniqueFieldTypes[0]
         : ({ kind: "union", members: uniqueFieldTypes } as UnionType);
 
-    const hasNull = uniqueFieldTypes.some((t) => t.kind === "null");
-    const nonNullTypes = uniqueFieldTypes.filter((t) => t.kind !== "null");
-    const finalType =
-      nonNullTypes.length === 0
+    const hasNull = uniqueFieldTypes.some(t => t.kind === "null");
+    const nonNullTypes = uniqueFieldTypes.filter(t => t.kind !== "null");
+    const finalType
+      = nonNullTypes.length === 0
         ? ({ kind: "null" } as PrimitiveType)
         : nonNullTypes.length === 1
           ? nonNullTypes[0]
@@ -293,16 +295,16 @@ function formatTypeRef(node: TypeNode): string {
     case "array": {
       const inner = formatTypeRef(node.elementType);
       if (
-        node.elementType.kind === "union" ||
-        node.elementType.kind === "object"
+        node.elementType.kind === "union"
+        || node.elementType.kind === "object"
       ) {
         return `Array<${inner}>`;
       }
       return `${inner}[]`;
     }
     case "union": {
-      const nonNull = node.members.filter((m) => m.kind !== "null" && m.kind !== "undefined");
-      const hasNull = node.members.some((m) => m.kind === "null");
+      const nonNull = node.members.filter(m => m.kind !== "null" && m.kind !== "undefined");
+      const hasNull = node.members.some(m => m.kind === "null");
 
       if (nonNull.length === 0) {
         return "null";
@@ -428,13 +430,13 @@ export function convertJsonToTs(
   const { merged, aliasMap } = mergeIdenticalTypes(objectTypes);
 
   // 应用别名替换
-  const aliasedTypes = merged.map((obj) =>
+  const aliasedTypes = merged.map(obj =>
     applyAliases(obj, aliasMap) as ObjectType,
   );
 
   // 格式化
   const formatter = options.exportStyle === "interface" ? formatInterface : formatTypeAlias;
-  const definitions = aliasedTypes.map((obj) => formatter(obj, options));
+  const definitions = aliasedTypes.map(obj => formatter(obj, options));
 
   const output = formatOutput(definitions, options);
 
