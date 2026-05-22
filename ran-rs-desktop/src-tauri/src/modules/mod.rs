@@ -2,4 +2,5 @@
 // 所有业务模块的统一注册入口
 
 pub mod redis_desktop;
+pub mod sql_studio;
 pub mod telepresence;

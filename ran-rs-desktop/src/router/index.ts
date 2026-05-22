@@ -4,6 +4,7 @@
  * 支持 Tauri 多窗口架构：
  * - 主窗口：#/ → App（三栏布局）
  * - Redis 窗口：#/redis → RedisDesktopManager
+ * - SQL Studio 窗口：#/sql-studio → SqlStudio
  * - 设置窗口：#/settings → SettingsPage
  * - 关于窗口：#/about → AboutPage
  *
@@ -26,6 +27,12 @@ const routes: RouteRecordRaw[] = [
     name: "redis",
     component: () => import("../modules/redis-desktop-manager"),
     meta: { title: "Redis Desktop Manager" },
+  },
+  {
+    path: "/sql-studio",
+    name: "sql-studio",
+    component: () => import("../modules/sql-studio"),
+    meta: { title: "SQL Studio" },
   },
   {
     path: "/settings",

@@ -7,6 +7,7 @@ mod shared;
 use std::sync::Arc;
 use tauri::Manager;
 use modules::redis_desktop::connection::RedisConnectionManager;
+use modules::sql_studio::connection::SqlConnectionManager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -97,12 +98,37 @@ pub fn run() {
             modules::telepresence::telepresence_connect,
             modules::telepresence::telepresence_quit,
             modules::telepresence::telepresence_status,
+            // ===== SQL Studio 连接管理命令 =====
+            modules::sql_studio::connection::commands::sql_connection_create,
+            modules::sql_studio::connection::commands::sql_connection_close,
+            modules::sql_studio::connection::commands::sql_connection_close_all,
+            modules::sql_studio::connection::commands::sql_connection_list,
+            modules::sql_studio::connection::commands::sql_connection_test,
+            modules::sql_studio::connection::commands::sql_connection_save,
+            modules::sql_studio::connection::commands::sql_connection_delete,
+            // ===== SQL Studio 查询命令 =====
+            modules::sql_studio::query::commands::sql_query_execute,
+            // ===== SQL Studio 数据库对象命令 =====
+            modules::sql_studio::connection::commands::sql_database_tree,
+            modules::sql_studio::connection::commands::sql_table_columns,
+            modules::sql_studio::connection::commands::sql_database_version,
+            // ===== SQL Studio 存储命令 =====
+            modules::sql_studio::storage::commands::sql_storage_load_connections,
+            modules::sql_studio::storage::commands::sql_storage_save_connection,
+            modules::sql_studio::storage::commands::sql_storage_delete_connection,
+            modules::sql_studio::storage::commands::sql_storage_save_query_history,
+            modules::sql_studio::storage::commands::sql_storage_load_query_history,
         ])
         .setup(|app| {
             // 初始化 Redis 连接管理器
-            let manager = Arc::new(RedisConnectionManager::new());
-            app.manage(manager);
+            let redis_manager = Arc::new(RedisConnectionManager::new());
+            app.manage(redis_manager);
             log::info!("Redis Desktop 模块已加载（直接命令注册模式）");
+
+            // 初始化 SQL Studio 连接管理器
+            let sql_manager = Arc::new(SqlConnectionManager::new());
+            app.manage(sql_manager);
+            log::info!("SQL Studio 模块已加载");
             Ok(())
         })
         .run(tauri::generate_context!())

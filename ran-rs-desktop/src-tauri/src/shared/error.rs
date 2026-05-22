@@ -38,6 +38,9 @@ pub enum AppError {
 
     #[error("内部错误: {0}")]
     Internal(String),
+
+    #[error("尚未实现: {0}")]
+    NotImplemented(String),
 }
 
 /// 为 Tauri Command 返回值实现 Serialize
