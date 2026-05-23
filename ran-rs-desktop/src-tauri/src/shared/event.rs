@@ -6,7 +6,8 @@
 ///
 /// # 示例
 /// ```
-/// namespaced_event("redis", "connection:status") // "redis:connection:status"
+/// use ran_rs_desktop_lib::shared::event::namespaced_event;
+/// assert_eq!(namespaced_event("redis", "connection:status"), "redis:connection:status");
 /// ```
 pub fn namespaced_event(module: &str, event: &str) -> String {
     format!("{}:{}", module, event)

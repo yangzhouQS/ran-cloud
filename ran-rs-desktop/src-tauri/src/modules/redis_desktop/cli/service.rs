@@ -120,3 +120,99 @@ fn format_redis_value(value: &redis::Value) -> (String, String) {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn format_nil() {
+        let (s, t) = format_redis_value(&redis::Value::Nil);
+        assert_eq!(s, "(nil)");
+        assert_eq!(t, "nil");
+    }
+
+    #[test]
+    fn format_simple_string() {
+        let (s, t) = format_redis_value(&redis::Value::SimpleString("hello".to_string()));
+        assert_eq!(s, "\"hello\"");
+        assert_eq!(t, "string");
+    }
+
+    #[test]
+    fn format_empty_string() {
+        let (s, t) = format_redis_value(&redis::Value::SimpleString(String::new()));
+        assert_eq!(s, "\"\"");
+        assert_eq!(t, "string");
+    }
+
+    #[test]
+    fn format_okay() {
+        let (s, t) = format_redis_value(&redis::Value::Okay);
+        assert_eq!(s, "OK");
+        assert_eq!(t, "status");
+    }
+
+    #[test]
+    fn format_integer() {
+        let (s, t) = format_redis_value(&redis::Value::Int(42));
+        assert_eq!(s, "(integer) 42");
+        assert_eq!(t, "integer");
+    }
+
+    #[test]
+    fn format_bulk_string_text() {
+        let (s, t) = format_redis_value(&redis::Value::BulkString(b"hello".to_vec()));
+        assert_eq!(s, "\"hello\"");
+        assert_eq!(t, "string");
+    }
+
+    #[test]
+    fn format_bulk_string_json() {
+        let (s, t) = format_redis_value(&redis::Value::BulkString(b"{\"a\":1}".to_vec()));
+        assert!(s.contains("\"a\""));
+        assert_eq!(t, "string");
+    }
+
+    #[test]
+    fn format_bulk_string_empty() {
+        let (s, t) = format_redis_value(&redis::Value::BulkString(b"".to_vec()));
+        assert_eq!(s, "\"\"");
+        assert_eq!(t, "string");
+    }
+
+    #[test]
+    fn format_bulk_string_binary() {
+        let (s, t) = format_redis_value(&redis::Value::BulkString(vec![0x00, 0xFF, 0xAB]));
+        assert!(s.contains("00"));
+        assert_eq!(t, "binary");
+    }
+
+    #[test]
+    fn format_empty_array() {
+        let (s, t) = format_redis_value(&redis::Value::Array(vec![]));
+        assert_eq!(s, "(empty array)");
+        assert_eq!(t, "array");
+    }
+
+    #[test]
+    fn format_array_with_items() {
+        let arr = redis::Value::Array(vec![
+            redis::Value::Int(1),
+            redis::Value::SimpleString("ok".to_string()),
+        ]);
+        let (s, t) = format_redis_value(&arr);
+        assert!(s.contains("1)"));
+        assert!(s.contains("2)"));
+        assert_eq!(t, "array");
+    }
+
+    #[test]
+    fn format_bulk_string_non_utf8() {
+        // Non-UTF-8 bulk string should display as hex or lossy string
+        let binary = vec![0xFF, 0xFE, 0x00, 0x01];
+        let (s, t) = format_redis_value(&redis::Value::BulkString(binary));
+        assert_eq!(t, "binary");
+        assert!(!s.is_empty());
+    }
+}

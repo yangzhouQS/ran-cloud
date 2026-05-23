@@ -1,13 +1,13 @@
 // lib.rs — 应用入口
 // 使用直接命令注册模式（非 Plugin），避免 Tauri 2 权限系统复杂性
 
-mod modules;
-mod shared;
+pub mod modules;
+pub mod shared;
 
 use std::sync::Arc;
 use tauri::Manager;
 use modules::redis_desktop::connection::RedisConnectionManager;
-use modules::sql_studio::connection::SqlConnectionManager;
+use modules::redis_desktop::tunnel::SshTunnelManager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -16,6 +16,11 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        // 插件系统自定义协议（plugin://）
+        .register_uri_scheme_protocol(
+            "plugin",
+            modules::sql_studio::plugin::protocol::create_plugin_protocol()
+        )
         // 业务模块 — 直接注册命令（无需 Plugin 权限配置）
         .invoke_handler(tauri::generate_handler![
             // ===== 连接管理命令 =====
@@ -118,17 +123,28 @@ pub fn run() {
             modules::sql_studio::storage::commands::sql_storage_delete_connection,
             modules::sql_studio::storage::commands::sql_storage_save_query_history,
             modules::sql_studio::storage::commands::sql_storage_load_query_history,
+            modules::sql_studio::storage::commands::sql_storage_cleanup_query_history,
+            // ===== SQL Studio 插件系统命令 =====
+            modules::sql_studio::plugin::commands::plugin_list,
+            modules::sql_studio::plugin::commands::plugin_get_manifest,
+            modules::sql_studio::plugin::commands::plugin_enable,
+            modules::sql_studio::plugin::commands::plugin_disable,
+            modules::sql_studio::plugin::commands::plugin_api_call,
         ])
         .setup(|app| {
+            // 初始化共享 SSH 隧道管理器（Redis 和 SQL Studio 共用）
+            let ssh_tunnel_manager = Arc::new(SshTunnelManager::new());
+            app.manage(ssh_tunnel_manager.clone());
+            log::info!("共享 SSH 隧道管理器已初始化");
+
             // 初始化 Redis 连接管理器
             let redis_manager = Arc::new(RedisConnectionManager::new());
             app.manage(redis_manager);
             log::info!("Redis Desktop 模块已加载（直接命令注册模式）");
 
-            // 初始化 SQL Studio 连接管理器
-            let sql_manager = Arc::new(SqlConnectionManager::new());
-            app.manage(sql_manager);
-            log::info!("SQL Studio 模块已加载");
+            // 初始化 SQL Studio 模块（含 SSH 隧道支持）
+            modules::sql_studio::setup_with_tunnel(app, ssh_tunnel_manager)?;
+
             Ok(())
         })
         .run(tauri::generate_context!())

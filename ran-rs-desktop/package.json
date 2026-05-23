@@ -12,7 +12,9 @@
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "lint": "eslint ./src",
-    "lint:fix": "eslint --fix ./src"
+    "lint:fix": "eslint --fix ./src",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
@@ -32,6 +34,7 @@
   },
   "devDependencies": {
     "@cs/js-eslint-config-library": "0.2.7",
+    "@pinia/testing": "^1.0.3",
     "@rsbuild/core": "^2.0.6",
     "@rsbuild/plugin-babel": "^1.1.2",
     "@rsbuild/plugin-less": "^1.6.3",
@@ -39,7 +42,10 @@
     "@rsbuild/plugin-vue-jsx": "^2.0.0",
     "@tauri-apps/cli": "^2.11.1",
     "@types/node": "^25.8.0",
+    "@vue/test-utils": "^2.4.10",
     "eslint": "^10.4.0",
-    "typescript": "5.9.3"
+    "happy-dom": "^20.9.0",
+    "typescript": "5.9.3",
+    "vitest": "^4.1.7"
   }
 }
