@@ -66,7 +66,7 @@ export default defineComponent({
     const inputRef = ref<HTMLInputElement | null>(null);
 
     /** 最大历史记录数 */
-    const MAX_HISTORY = 2000;
+    const _MAX_HISTORY = 2000;
     /** 最大输出行数 */
     const MAX_OUTPUT_LINES = 2000;
 

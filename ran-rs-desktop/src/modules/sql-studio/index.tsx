@@ -12,6 +12,7 @@
  */
 
 import type { SplitviewReadyEvent } from "dockview-vue";
+import type { ConnectionConfig } from "./types";
 import { Orientation, SplitviewVue } from "dockview-vue";
 import { defineComponent, onMounted, ref } from "vue";
 import { useCsNamespace } from "../../hooks/use-namespace";
@@ -20,9 +21,8 @@ import ConnectionList from "./components/ConnectionList";
 import DatabaseTree from "./components/DatabaseTree";
 import QueryEditor from "./components/QueryEditor";
 import ResultTable from "./components/ResultTable";
-import { useSqlStore } from "./stores/sql-store";
 import PluginManagerModal from "./plugin/components/PluginManagerModal";
-import type { ConnectionConfig } from "./types";
+import { useSqlStore } from "./stores/sql-store";
 import "dockview-vue/dist/styles/dockview.css";
 import "./index.less";
 
@@ -81,7 +81,9 @@ const SidebarPanel = defineComponent({
             title={store.error}
             type="error"
             closable
-            onClose={() => { store.error = null; }}
+            onClose={() => {
+              store.error = null;
+            }}
             showIcon
             style={{ margin: "8px" }}
           />
@@ -109,7 +111,9 @@ const SidebarPanel = defineComponent({
           savedConfigs={Array.from(store.configMap.values())}
           onSave={handleSave}
           onTest={handleTestConnection}
-          onClose={() => { showForm.value = false; }}
+          onClose={() => {
+            showForm.value = false;
+          }}
         />
         {/* 插件管理按钮 */}
         <div style={{ padding: "8px", borderTop: "1px solid var(--el-border-color-lighter)" }}>
@@ -117,14 +121,18 @@ const SidebarPanel = defineComponent({
             type="default"
             size="small"
             style={{ width: "100%" }}
-            onClick={() => { showPluginModal.value = true; }}
+            onClick={() => {
+              showPluginModal.value = true;
+            }}
           >
             插件管理
           </el-button>
         </div>
         <PluginManagerModal
           visible={showPluginModal.value}
-          onClose={() => { showPluginModal.value = false; }}
+          onClose={() => {
+            showPluginModal.value = false;
+          }}
         />
       </div>
     );

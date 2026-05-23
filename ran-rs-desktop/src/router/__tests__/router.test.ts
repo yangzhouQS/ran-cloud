@@ -1,7 +1,7 @@
 /**
  * @vitest-environment happy-dom
  */
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 // Mock all lazy-loaded component modules to avoid TSX compilation issues
 vi.mock("../../app", () => ({ default: { name: "AppMock" } }));

@@ -9,7 +9,7 @@ export type PluginAuthor = string | { name: string; url: string };
 export interface PluginView {
   id: string;
   name: string;
-  type: 'shell-tab' | 'base-tab';
+  type: "shell-tab" | "base-tab";
   entry: string;
 }
 

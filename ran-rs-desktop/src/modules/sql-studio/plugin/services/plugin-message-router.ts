@@ -8,11 +8,11 @@
  * 4. 将响应/通知回传到插件 iframe
  */
 
-import { ElNotification, ElMessageBox } from 'element-plus';
-import { open } from '@tauri-apps/plugin-shell';
-import type { PluginApiResponse, PluginNotification } from '../types/api';
-import { isRustApi } from '../types/api';
-import * as pluginCommands from './plugin-commands';
+import type { PluginApiResponse, PluginNotification } from "../types/api";
+import { open } from "@tauri-apps/plugin-shell";
+import { ElMessageBox, ElNotification } from "element-plus";
+import { isRustApi } from "../types/api";
+import * as pluginCommands from "./plugin-commands";
 
 /** iframe 注册信息 */
 interface IframeRegistration {
@@ -35,15 +35,17 @@ class PluginMessageRouter {
 
   /** 启动消息监听 */
   start(): void {
-    if (this.boundHandler) return;
+    if (this.boundHandler) {
+      return;
+    }
     this.boundHandler = this.handleMessage.bind(this);
-    window.addEventListener('message', this.boundHandler);
+    window.addEventListener("message", this.boundHandler);
   }
 
   /** 停止消息监听 */
   stop(): void {
     if (this.boundHandler) {
-      window.removeEventListener('message', this.boundHandler);
+      window.removeEventListener("message", this.boundHandler);
       this.boundHandler = null;
     }
   }
@@ -69,7 +71,7 @@ class PluginMessageRouter {
 
   /** 向指定 iframe 发送消息 */
   postToIframe(iframe: HTMLIFrameElement, data: PluginApiResponse | PluginNotification): void {
-    iframe.contentWindow?.postMessage(data, '*');
+    iframe.contentWindow?.postMessage(data, "*");
   }
 
   /** 向同一插件的所有 iframe 广播通知 */
@@ -84,14 +86,18 @@ class PluginMessageRouter {
   /** 消息处理函数 */
   private async handleMessage(event: MessageEvent): Promise<void> {
     const data = event.data;
-    if (!data || typeof data !== 'object') return;
+    if (!data || typeof data !== "object") {
+      return;
+    }
 
     // 查找发送消息的 iframe
     const registration = this.iframes.get(event.source as MessageEventSource);
-    if (!registration) return;
+    if (!registration) {
+      return;
+    }
 
     // 区分请求和通知
-    if (data.id !== undefined && typeof data.id === 'string') {
+    if (data.id !== undefined && typeof data.id === "string") {
       // 有 id → 请求
       await this.handleRequest(registration, data);
     } else {
@@ -143,41 +149,41 @@ class PluginMessageRouter {
 
     try {
       switch (name) {
-        case 'clipboardReadText': {
+        case "clipboardReadText": {
           result = await navigator.clipboard.readText();
           break;
         }
-        case 'clipboardWriteText': {
-          await navigator.clipboard.writeText(String(args.text ?? ''));
+        case "clipboardWriteText": {
+          await navigator.clipboard.writeText(String(args.text ?? ""));
           result = true;
           break;
         }
-        case 'notyInfo': {
-          ElNotification.info({ message: String(args.message ?? '') });
+        case "notyInfo": {
+          ElNotification.info({ message: String(args.message ?? "") });
           result = true;
           break;
         }
-        case 'notySuccess': {
-          ElNotification.success({ message: String(args.message ?? '') });
+        case "notySuccess": {
+          ElNotification.success({ message: String(args.message ?? "") });
           result = true;
           break;
         }
-        case 'notyError': {
-          ElNotification.error({ message: String(args.message ?? '') });
+        case "notyError": {
+          ElNotification.error({ message: String(args.message ?? "") });
           result = true;
           break;
         }
-        case 'notyWarning': {
-          ElNotification.warning({ message: String(args.message ?? '') });
+        case "notyWarning": {
+          ElNotification.warning({ message: String(args.message ?? "") });
           result = true;
           break;
         }
-        case 'confirm': {
+        case "confirm": {
           try {
             await ElMessageBox.confirm(
-              String(args.message ?? ''),
-              String(args.title ?? '确认'),
-              { confirmButtonText: '确定', cancelButtonText: '取消' },
+              String(args.message ?? ""),
+              String(args.title ?? "确认"),
+              { confirmButtonText: "确定", cancelButtonText: "取消" },
             );
             result = true;
           } catch {
@@ -185,20 +191,20 @@ class PluginMessageRouter {
           }
           break;
         }
-        case 'getViewContext': {
+        case "getViewContext": {
           result = {
             pluginId: reg.pluginId,
             viewId: reg.viewId,
           };
           break;
         }
-        case 'openExternal': {
-          const url = String(args.url ?? args.link ?? '');
-          if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+        case "openExternal": {
+          const url = String(args.url ?? args.link ?? "");
+          if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
             await open(url);
             result = true;
           } else {
-            error = '仅允许打开 http/https 链接';
+            error = "仅允许打开 http/https 链接";
           }
           break;
         }
@@ -224,10 +230,10 @@ class PluginMessageRouter {
     notification: { name: string; args: Record<string, unknown> },
   ): void {
     switch (notification.name) {
-      case 'windowEvent': {
+      case "windowEvent": {
         const { eventType, eventInitOptions } = notification.args;
         // 安全限制：仅允许 CustomEvent，防止任意构造函数调用
-        if (eventType && typeof eventType === 'string') {
+        if (eventType && typeof eventType === "string") {
           try {
             document.dispatchEvent(new CustomEvent(String(eventType), eventInitOptions as EventInit));
           } catch {
@@ -236,14 +242,14 @@ class PluginMessageRouter {
         }
         break;
       }
-      case 'broadcast': {
+      case "broadcast": {
         this.broadcast(reg.pluginId, {
-          name: 'broadcast',
+          name: "broadcast",
           args: { ...notification.args, fromViewId: reg.viewId },
         });
         break;
       }
-      case 'pluginError': {
+      case "pluginError": {
         console.error(`[Plugin ${reg.pluginId}]`, notification.args.message ?? notification.args);
         break;
       }

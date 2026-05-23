@@ -2,63 +2,63 @@
  * SQL Studio 服务层 — 封装 Tauri 命令调用
  */
 
-import { invoke } from '@tauri-apps/api/core';
-import type { ConnectionConfig, ConnectionInfo } from '../types/connection';
-import type { QueryRequest, QueryResult, QueryHistory } from '../types/query';
+import type { ConnectionConfig, ConnectionInfo } from "../types/connection";
+import type { QueryHistory, QueryRequest, QueryResult } from "../types/query";
+import { invoke } from "@tauri-apps/api/core";
 
 /** 创建连接（保存配置并连接） */
 export async function createConnection(config: ConnectionConfig): Promise<string> {
-  return invoke<string>('sql_connection_create', { config });
+  return invoke<string>("sql_connection_create", { config });
 }
 
 /** 断开连接 */
 export async function closeConnection(id: string): Promise<void> {
-  return invoke('sql_connection_close', { id });
+  return invoke("sql_connection_close", { id });
 }
 
 /** 断开所有连接 */
 export async function closeAllConnections(): Promise<void> {
-  return invoke('sql_connection_close_all');
+  return invoke("sql_connection_close_all");
 }
 
 /** 获取连接列表 */
 export async function listConnections(): Promise<ConnectionInfo[]> {
-  return invoke<ConnectionInfo[]>('sql_connection_list');
+  return invoke<ConnectionInfo[]>("sql_connection_list");
 }
 
 /** 测试连接 */
 export async function testConnection(config: ConnectionConfig): Promise<boolean> {
-  return invoke<boolean>('sql_connection_test', { config });
+  return invoke<boolean>("sql_connection_test", { config });
 }
 
 /** 保存连接配置 */
 export async function saveConnection(config: ConnectionConfig): Promise<void> {
-  return invoke('sql_connection_save', { config });
+  return invoke("sql_connection_save", { config });
 }
 
 /** 删除连接配置 */
 export async function deleteConnection(id: string): Promise<void> {
-  return invoke('sql_connection_delete', { id });
+  return invoke("sql_connection_delete", { id });
 }
 
 /** 执行查询 */
 export async function executeQuery(request: QueryRequest): Promise<QueryResult> {
-  return invoke<QueryResult>('sql_query_execute', { request });
+  return invoke<QueryResult>("sql_query_execute", { request });
 }
 
 /** 加载保存的连接配置（完整配置，含密码等） */
 export async function loadSavedConnections(): Promise<ConnectionConfig[]> {
-  return invoke<ConnectionConfig[]>('sql_storage_load_connections');
+  return invoke<ConnectionConfig[]>("sql_storage_load_connections");
 }
 
 /** 保存查询历史 */
 export async function saveQueryHistory(history: QueryHistory): Promise<void> {
-  return invoke('sql_storage_save_query_history', { history });
+  return invoke("sql_storage_save_query_history", { history });
 }
 
 /** 加载查询历史 */
 export async function loadQueryHistory(connectionId: string, limit?: number): Promise<QueryHistory[]> {
-  return invoke<QueryHistory[]>('sql_storage_load_query_history', { connectionId, limit });
+  return invoke<QueryHistory[]>("sql_storage_load_query_history", { connectionId, limit });
 }
 
 // ==================== 数据库对象树命令 ====================
@@ -84,15 +84,15 @@ export interface ColumnInfo {
 
 /** 获取数据库对象树 */
 export async function getDatabaseTree(connectionId: string, schema?: string): Promise<TableInfo[]> {
-  return invoke<TableInfo[]>('sql_database_tree', { connectionId, schema: schema ?? null });
+  return invoke<TableInfo[]>("sql_database_tree", { connectionId, schema: schema ?? null });
 }
 
 /** 获取表列信息 */
 export async function getTableColumns(connectionId: string, table: string, schema?: string): Promise<ColumnInfo[]> {
-  return invoke<ColumnInfo[]>('sql_table_columns', { connectionId, table, schema: schema ?? null });
+  return invoke<ColumnInfo[]>("sql_table_columns", { connectionId, table, schema: schema ?? null });
 }
 
 /** 获取数据库版本 */
 export async function getDatabaseVersion(connectionId: string): Promise<string> {
-  return invoke<string>('sql_database_version', { connectionId });
+  return invoke<string>("sql_database_version", { connectionId });
 }

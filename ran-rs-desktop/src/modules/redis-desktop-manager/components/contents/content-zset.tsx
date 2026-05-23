@@ -184,7 +184,8 @@ const ContentZset = defineComponent({
                 clearable
                 style={{ width: "200px" }}
                 onClear={() => {
-                  currentPage.value = 1; loadData();
+                  currentPage.value = 1;
+                  loadData();
                 }}
                 onKeydown={(e: KeyboardEvent) => {
                   if (e.key === "Enter") {

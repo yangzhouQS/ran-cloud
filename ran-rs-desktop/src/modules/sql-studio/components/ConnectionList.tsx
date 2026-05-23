@@ -9,9 +9,9 @@
 
 import type { PropType } from "vue";
 import type { ConnectionInfo } from "../types";
-import { DATABASE_TYPE_OPTIONS } from "../types";
 import { defineComponent, ref } from "vue";
 import { useCsNamespace } from "../../../hooks/use-namespace";
+import { DATABASE_TYPE_OPTIONS } from "../types";
 
 const ConnectionList = defineComponent({
   name: "SqlConnectionList",
@@ -61,59 +61,66 @@ const ConnectionList = defineComponent({
 
         {/* 连接列表 */}
         <div class={ns.e("list")}>
-          {props.loading ? (
-            <div class={ns.e("loading")}>
-              <el-icon class="is-loading"><i class="el-icon-loading" /></el-icon>
-              <span>加载中...</span>
-            </div>
-          ) : props.connections.length === 0 ? (
-            <div class={ns.e("empty")}>
-              <el-empty description="暂无连接" imageSize={60} />
-            </div>
-          ) : (
-            props.connections.map(conn => (
-              <div
-                key={conn.id}
-                class={[
-                  ns.e("item"),
-                  conn.id === props.activeConnectionId ? "is-active" : "",
-                  conn.status === "connected" ? "is-connected" : "",
-                ]}
-                onClick={() => {
-                  if (conn.status === "connected") {
-                    props.onSelect(conn.id);
-                  } else {
-                    props.onConnect(conn.id);
-                  }
-                }}
-                onContextmenu={(e: Event) => {
-                  e.preventDefault();
-                  contextMenuId.value = conn.id;
-                  contextMenuVisible.value = true;
-                }}
-              >
-                <div class={ns.e("item-indicator")} style={{ backgroundColor: getDbTypeColor(conn.dbType) }} />
-                <div class={ns.e("item-content")}>
-                  <div class={ns.e("item-name")}>{conn.name || "未命名连接"}</div>
-                  <div class={ns.e("item-meta")}>
-                    <span class={ns.e("item-type")}>{getDbTypeLabel(conn.dbType)}</span>
-                    {conn.host && (
-                      <span class={ns.e("item-host")}>
-                        {conn.host}{conn.port ? `:${conn.port}` : ""}
-                      </span>
-                    )}
+          {props.loading
+            ? (
+                <div class={ns.e("loading")}>
+                  <el-icon class="is-loading"><i class="el-icon-loading" /></el-icon>
+                  <span>加载中...</span>
+                </div>
+              )
+            : props.connections.length === 0
+              ? (
+                  <div class={ns.e("empty")}>
+                    <el-empty description="暂无连接" imageSize={60} />
                   </div>
-                </div>
-                <div class={ns.e("item-status")}>
-                  {conn.status === "connected" ? (
-                    <el-tag type="success" size="small" effect="dark">已连接</el-tag>
-                  ) : (
-                    <el-tag type="info" size="small" effect="plain">离线</el-tag>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
+                )
+              : (
+                  props.connections.map(conn => (
+                    <div
+                      key={conn.id}
+                      class={[
+                        ns.e("item"),
+                        conn.id === props.activeConnectionId ? "is-active" : "",
+                        conn.status === "connected" ? "is-connected" : "",
+                      ]}
+                      onClick={() => {
+                        if (conn.status === "connected") {
+                          props.onSelect(conn.id);
+                        } else {
+                          props.onConnect(conn.id);
+                        }
+                      }}
+                      onContextmenu={(e: Event) => {
+                        e.preventDefault();
+                        contextMenuId.value = conn.id;
+                        contextMenuVisible.value = true;
+                      }}
+                    >
+                      <div class={ns.e("item-indicator")} style={{ backgroundColor: getDbTypeColor(conn.dbType) }} />
+                      <div class={ns.e("item-content")}>
+                        <div class={ns.e("item-name")}>{conn.name || "未命名连接"}</div>
+                        <div class={ns.e("item-meta")}>
+                          <span class={ns.e("item-type")}>{getDbTypeLabel(conn.dbType)}</span>
+                          {conn.host && (
+                            <span class={ns.e("item-host")}>
+                              {conn.host}
+                              {conn.port ? `:${conn.port}` : ""}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div class={ns.e("item-status")}>
+                        {conn.status === "connected"
+                          ? (
+                              <el-tag type="success" size="small" effect="dark">已连接</el-tag>
+                            )
+                          : (
+                              <el-tag type="info" size="small" effect="plain">离线</el-tag>
+                            )}
+                      </div>
+                    </div>
+                  ))
+                )}
         </div>
 
         {/* 右键菜单 */}
@@ -121,28 +128,54 @@ const ConnectionList = defineComponent({
           modelValue={contextMenuVisible.value}
           title="操作"
           width={300}
-          onClose={() => { contextMenuVisible.value = false; }}
+          onClose={() => {
+            contextMenuVisible.value = false;
+          }}
           appendToBody
         >
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {(() => {
               const conn = props.connections.find(c => c.id === contextMenuId.value);
-              if (!conn) return null;
+              if (!conn) {
+                return null;
+              }
               return (
                 <>
-                  {conn.status === "connected" ? (
-                    <el-button onClick={() => { props.onDisconnect(conn.id); contextMenuVisible.value = false; }}>
-                      断开连接
-                    </el-button>
-                  ) : (
-                    <el-button type="primary" onClick={() => { props.onConnect(conn.id); contextMenuVisible.value = false; }}>
-                      连接
-                    </el-button>
-                  )}
-                  <el-button onClick={() => { props.onEdit(conn.id); contextMenuVisible.value = false; }}>
+                  {conn.status === "connected"
+                    ? (
+                        <el-button onClick={() => {
+                          props.onDisconnect(conn.id);
+                          contextMenuVisible.value = false;
+                        }}
+                        >
+                          断开连接
+                        </el-button>
+                      )
+                    : (
+                        <el-button
+                          type="primary"
+                          onClick={() => {
+                            props.onConnect(conn.id);
+                            contextMenuVisible.value = false;
+                          }}
+                        >
+                          连接
+                        </el-button>
+                      )}
+                  <el-button onClick={() => {
+                    props.onEdit(conn.id);
+                    contextMenuVisible.value = false;
+                  }}
+                  >
                     编辑
                   </el-button>
-                  <el-button type="danger" onClick={() => { props.onDelete(conn.id); contextMenuVisible.value = false; }}>
+                  <el-button
+                    type="danger"
+                    onClick={() => {
+                      props.onDelete(conn.id);
+                      contextMenuVisible.value = false;
+                    }}
+                  >
                     删除
                   </el-button>
                 </>

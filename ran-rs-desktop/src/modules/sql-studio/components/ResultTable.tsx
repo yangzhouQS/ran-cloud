@@ -9,26 +9,28 @@
 
 import type { PropType } from "vue";
 import type { QueryResult } from "../types";
-import { defineComponent, ref, shallowRef, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { defineComponent, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
 import { useCsNamespace } from "../../../hooks/use-namespace";
 
 /** 导出查询结果为 CSV 字符串 */
 function exportAsCsv(result: QueryResult): string {
   const header = result.columns.map(c => csvEscape(c.name)).join(",");
   const rows = result.rows.map(row =>
-    result.columns.map(col => {
+    result.columns.map((col) => {
       const val = row[col.name];
-      if (val === null || val === undefined) return "NULL";
+      if (val === null || val === undefined) {
+        return "NULL";
+      }
       return csvEscape(String(val));
-    }).join(",")
+    }).join(","),
   );
   return [header, ...rows].join("\n");
 }
 
 /** CSV 字段转义 */
 function csvEscape(value: string): string {
-  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
-    return `"${value.replace(/"/g, '""')}"`;
+  if (value.includes(",") || value.includes("\"") || value.includes("\n")) {
+    return `"${value.replace(/"/g, "\"\"")}"`;
   }
   return value;
 }
@@ -85,7 +87,9 @@ const ResultTable = defineComponent({
 
     /** 初始化/更新表格 */
     const initOrUpdateTable = async () => {
-      if (!containerRef.value) return;
+      if (!containerRef.value) {
+        return;
+      }
 
       // 销毁旧实例
       if (tableInstance.value) {
@@ -93,7 +97,9 @@ const ResultTable = defineComponent({
         tableInstance.value = null;
       }
 
-      if (!props.result || props.result.rows.length === 0) return;
+      if (!props.result || props.result.rows.length === 0) {
+        return;
+      }
 
       try {
         const VTable = await import("@visactor/vtable");
@@ -151,7 +157,9 @@ const ResultTable = defineComponent({
 
     /** 导出为 CSV */
     const handleExportCsv = () => {
-      if (!props.result) return;
+      if (!props.result) {
+        return;
+      }
       const csv = exportAsCsv(props.result);
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
       downloadFile(csv, `query-result-${timestamp}.csv`, "text/csv;charset=utf-8");
@@ -159,7 +167,9 @@ const ResultTable = defineComponent({
 
     /** 导出为 JSON */
     const handleExportJson = () => {
-      if (!props.result) return;
+      if (!props.result) {
+        return;
+      }
       const json = JSON.stringify(props.result.rows, null, 2);
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
       downloadFile(json, `query-result-${timestamp}.json`, "application/json;charset=utf-8");
@@ -188,11 +198,17 @@ const ResultTable = defineComponent({
         {props.result && (
           <div class={ns.e("info")}>
             <span>
-              {props.result.rows.length} 行
+              {props.result.rows.length}
+              {" "}
+              行
               {props.result.affectedRows != null && ` · 影响 ${props.result.affectedRows} 行`}
             </span>
             <div class={ns.e("info-right")}>
-              <span>{props.result.executionTimeMs} ms</span>
+              <span>
+                {props.result.executionTimeMs}
+                {" "}
+                ms
+              </span>
               {props.result.rows.length > 0 && (
                 <>
                   <el-button size="small" link onClick={handleExportCsv}>导出 CSV</el-button>
@@ -217,26 +233,34 @@ const ResultTable = defineComponent({
 
         {/* 表格容器 */}
         <div class={ns.e("container-wrapper")}>
-          {props.loading ? (
-            <div class={ns.e("loading")}>
-              <el-icon class="is-loading"><i class="el-icon-loading" /></el-icon>
-              <span>查询中...</span>
-            </div>
-          ) : props.error && !props.result ? (
-            <div class={ns.e("empty")}>
-              <el-empty description="查询执行出错" imageSize={60} />
-            </div>
-          ) : !props.result ? (
-            <div class={ns.e("empty")}>
-              <el-empty description="执行查询以查看结果" imageSize={80} />
-            </div>
-          ) : props.result.rows.length === 0 ? (
-            <div class={ns.e("empty")}>
-              <el-empty description="查询结果为空" imageSize={60} />
-            </div>
-          ) : (
-            <div ref={containerRef} class={ns.e("container")} />
-          )}
+          {props.loading
+            ? (
+                <div class={ns.e("loading")}>
+                  <el-icon class="is-loading"><i class="el-icon-loading" /></el-icon>
+                  <span>查询中...</span>
+                </div>
+              )
+            : props.error && !props.result
+              ? (
+                  <div class={ns.e("empty")}>
+                    <el-empty description="查询执行出错" imageSize={60} />
+                  </div>
+                )
+              : !props.result
+                  ? (
+                      <div class={ns.e("empty")}>
+                        <el-empty description="执行查询以查看结果" imageSize={80} />
+                      </div>
+                    )
+                  : props.result.rows.length === 0
+                    ? (
+                        <div class={ns.e("empty")}>
+                          <el-empty description="查询结果为空" imageSize={60} />
+                        </div>
+                      )
+                    : (
+                        <div ref={containerRef} class={ns.e("container")} />
+                      )}
         </div>
       </div>
     );

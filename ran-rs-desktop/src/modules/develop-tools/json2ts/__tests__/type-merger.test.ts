@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { computeStructuralHash, mergeIdenticalTypes, applyAliases } from "../services/type-merger";
-import type { ObjectType, TypeNode, FieldDef } from "../types";
+import type { FieldDef, ObjectType, TypeNode } from "../types";
+import { describe, expect, it } from "vitest";
+import { applyAliases, computeStructuralHash, mergeIdenticalTypes } from "../services/type-merger";
 
 function makeField(kind: string, opts?: Partial<FieldDef>): FieldDef {
   const typeNode = { kind } as TypeNode;

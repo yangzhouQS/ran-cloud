@@ -85,7 +85,9 @@ const ConnectionForm = defineComponent({
     watch(
       () => [props.visible, props.connectionId] as const,
       ([visible, connectionId]) => {
-        if (!visible) return;
+        if (!visible) {
+          return;
+        }
         testResult.value = null;
         activeTab.value = "basic";
 
@@ -94,10 +96,16 @@ const ConnectionForm = defineComponent({
           if (existing) {
             Object.assign(form, { ...existing });
             isSqlite.value = existing.dbType === "sqlite";
-            if (existing.ssh) Object.assign(sshForm, { ...existing.ssh });
-            else Object.assign(sshForm, createDefaultSsh());
-            if (existing.ssl) Object.assign(sslForm, { ...existing.ssl });
-            else Object.assign(sslForm, createDefaultSsl());
+            if (existing.ssh) {
+              Object.assign(sshForm, { ...existing.ssh });
+            } else {
+              Object.assign(sshForm, createDefaultSsh());
+            }
+            if (existing.ssl) {
+              Object.assign(sslForm, { ...existing.ssl });
+            } else {
+              Object.assign(sslForm, createDefaultSsl());
+            }
           }
         } else {
           Object.assign(form, createDefaultConfig("postgresql"));
@@ -217,46 +225,48 @@ const ConnectionForm = defineComponent({
                 </el-select>
               </el-form-item>
 
-              {isSqlite.value ? (
-                <el-form-item label="数据库文件" prop="database">
-                  <div style={{ display: "flex", gap: "8px", width: "100%" }}>
-                    <el-input v-model={form.database} placeholder="数据库文件路径" style={{ flex: 1 }} />
-                    <el-button onClick={() => selectFilePath("database", "form")}>浏览</el-button>
-                  </div>
-                </el-form-item>
-              ) : (
-                <>
-                  <el-form-item label="主机地址" prop="host">
-                    <el-input v-model={form.host} placeholder="localhost" />
-                  </el-form-item>
+              {isSqlite.value
+                ? (
+                    <el-form-item label="数据库文件" prop="database">
+                      <div style={{ display: "flex", gap: "8px", width: "100%" }}>
+                        <el-input v-model={form.database} placeholder="数据库文件路径" style={{ flex: 1 }} />
+                        <el-button onClick={() => selectFilePath("database", "form")}>浏览</el-button>
+                      </div>
+                    </el-form-item>
+                  )
+                : (
+                    <>
+                      <el-form-item label="主机地址" prop="host">
+                        <el-input v-model={form.host} placeholder="localhost" />
+                      </el-form-item>
 
-                  <el-form-item label="端口" prop="port">
-                    <el-input-number
-                      v-model={form.port}
-                      min={1}
-                      max={65535}
-                      controls={false}
-                      style={{ width: "100%" }}
-                    />
-                  </el-form-item>
+                      <el-form-item label="端口" prop="port">
+                        <el-input-number
+                          v-model={form.port}
+                          min={1}
+                          max={65535}
+                          controls={false}
+                          style={{ width: "100%" }}
+                        />
+                      </el-form-item>
 
-                  <el-form-item label="用户名">
-                    <el-input v-model={form.user} placeholder="root" />
-                  </el-form-item>
+                      <el-form-item label="用户名">
+                        <el-input v-model={form.user} placeholder="root" />
+                      </el-form-item>
 
-                  <el-form-item label="密码">
-                    <el-input v-model={form.password} type="password" showPassword placeholder="可选" />
-                  </el-form-item>
+                      <el-form-item label="密码">
+                        <el-input v-model={form.password} type="password" showPassword placeholder="可选" />
+                      </el-form-item>
 
-                  <el-form-item label="默认数据库">
-                    <el-input v-model={form.database} placeholder="可选，留空使用默认" />
-                  </el-form-item>
+                      <el-form-item label="默认数据库">
+                        <el-input v-model={form.database} placeholder="可选，留空使用默认" />
+                      </el-form-item>
 
-                  <el-form-item label="连接 URL">
-                    <el-input v-model={form.url} placeholder="可选，手动指定完整 JDBC/连接 URL" />
-                  </el-form-item>
-                </>
-              )}
+                      <el-form-item label="连接 URL">
+                        <el-input v-model={form.url} placeholder="可选，手动指定完整 JDBC/连接 URL" />
+                      </el-form-item>
+                    </>
+                  )}
             </el-tab-pane>
 
             {/* ===== SSL ===== */}

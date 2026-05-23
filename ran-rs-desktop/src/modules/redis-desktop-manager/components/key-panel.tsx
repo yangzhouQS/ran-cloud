@@ -289,6 +289,25 @@ const KeyPanel = defineComponent({
     };
 
     /**
+     * 销毁 VTable 实例
+     */
+    const destroyTable = () => {
+      if (tableInstance) {
+        try {
+          (tableInstance as any).release();
+        } catch {
+          // 忽略销毁时的错误
+        }
+        tableInstance = null;
+      }
+    };
+
+    /** 关闭右键菜单 */
+    const closeContextMenu = () => {
+      contextMenu.value.visible = false;
+    };
+
+    /**
      * 创建 VTable ListTable 实例（树形模式）
      */
     const createTreeTable = () => {
@@ -469,20 +488,6 @@ const KeyPanel = defineComponent({
         bindTableEvents(tableInstance);
       } catch (e) {
         console.error("[KeyPanel] VTable 列表模式创建失败:", e);
-      }
-    };
-
-    /**
-     * 销毁 VTable 实例
-     */
-    const destroyTable = () => {
-      if (tableInstance) {
-        try {
-          (tableInstance as any).release();
-        } catch {
-          // 忽略销毁时的错误
-        }
-        tableInstance = null;
       }
     };
 
@@ -817,11 +822,6 @@ const KeyPanel = defineComponent({
           createListTable();
         }
       });
-    };
-
-    /** 关闭右键菜单 */
-    const closeContextMenu = () => {
-      contextMenu.value.visible = false;
     };
 
     /**

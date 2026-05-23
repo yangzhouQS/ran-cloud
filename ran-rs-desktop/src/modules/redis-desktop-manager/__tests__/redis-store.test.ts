@@ -1,5 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { useRedisStore } from "../stores/redis-store";
 
 // Mock Tauri invoke
 const handlers = new Map<string, (...args: unknown[]) => unknown>();
@@ -10,7 +12,9 @@ function mockCommand(cmd: string, handler: (...args: unknown[]) => unknown) {
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     const handler = handlers.get(cmd);
-    if (!handler) return Promise.reject(new Error(`Unknown command: ${cmd}`));
+    if (!handler) {
+      return Promise.reject(new Error(`Unknown command: ${cmd}`));
+    }
     return Promise.resolve(handler(args));
   },
 }));
@@ -23,8 +27,6 @@ vi.mock("../../../_shared/use-module-bus", () => ({
     emit: vi.fn(),
   }),
 }));
-
-import { useRedisStore } from "../stores/redis-store";
 
 beforeEach(() => {
   setActivePinia(createPinia());
@@ -126,7 +128,7 @@ describe("redis-store - tab management", () => {
     const store = useRedisStore();
     store.connections = [makeConfig()];
     store.openStatusTab("c1", 0); // not closable
-    store.openCliTab("c1", 0);    // closable
+    store.openCliTab("c1", 0); // closable
     store.openSlowLogTab("c1", 0); // closable
     expect(store.tabs).toHaveLength(3);
     const cliTabId = store.tabs[1].id;
@@ -340,7 +342,11 @@ describe("redis-store - disconnect", () => {
     store.keys = [{ key: "k1", keyType: "string", ttl: -1 }];
     store.selectedKey = "k1";
     store.connectionInfos.set("c1", {
-      id: "c1", name: "Test", host: "127.0.0.1", port: 6379, db: 0,
+      id: "c1",
+      name: "Test",
+      host: "127.0.0.1",
+      port: 6379,
+      db: 0,
       status: "connected" as any,
     });
     await store.disconnect("c1");

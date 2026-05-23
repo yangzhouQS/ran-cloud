@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // In-memory command handler registry
 const handlers = new Map<string, (...args: unknown[]) => unknown>();
@@ -12,7 +12,9 @@ function clearMockCommands() {
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     const handler = handlers.get(cmd);
-    if (!handler) return Promise.reject(new Error(`Unknown command: ${cmd}`));
+    if (!handler) {
+      return Promise.reject(new Error(`Unknown command: ${cmd}`));
+    }
     return Promise.resolve(handler(args));
   },
 }));
@@ -43,22 +45,9 @@ const {
   redisDataStringSet,
   redisDataHashPage,
   redisDataHashAdd,
-  redisDataHashUpdate,
-  redisDataHashDelete,
-  redisDataListPage,
-  redisDataListAdd,
-  redisDataListUpdate,
-  redisDataListDelete,
-  redisDataSetPage,
   redisDataSetAdd,
-  redisDataSetDelete,
   redisDataZsetPage,
-  redisDataZsetAdd,
-  redisDataZsetUpdate,
-  redisDataZsetDelete,
-  redisDataStreamPage,
   redisDataStreamAdd,
-  redisDataStreamDelete,
   redisDataStreamGroups,
   redisCliExec,
   redisCliComplete,
@@ -191,7 +180,11 @@ describe("redis-commands - key operations", () => {
   it("redisKeyScanStart wraps params correctly", async () => {
     mockCommand("redis_key_scan_start", (args) => {
       expect(args?.params).toEqual({
-        connectionId: "c1", db: 0, scanId: "s1", pattern: "user:*", count: 100,
+        connectionId: "c1",
+        db: 0,
+        scanId: "s1",
+        pattern: "user:*",
+        count: 100,
       });
     });
     await redisKeyScanStart("c1", 0, "s1", "user:*", 100);
@@ -290,8 +283,11 @@ describe("redis-commands - data operations", () => {
   it("redisDataStreamAdd passes fields and optional id", async () => {
     mockCommand("redis_data_stream_add", (args) => {
       expect(args).toEqual({
-        connectionId: "c1", db: 0, key: "stream",
-        fields: [["f1", "v1"]], id: "0-1",
+        connectionId: "c1",
+        db: 0,
+        key: "stream",
+        fields: [["f1", "v1"]],
+        id: "0-1",
       });
       return "1234567890-0";
     });

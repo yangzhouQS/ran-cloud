@@ -3,15 +3,15 @@
  */
 
 /** 支持的数据库类型 */
-export type DatabaseType = 'postgresql' | 'mysql' | 'mariadb' | 'tidb' | 'sqlite';
+export type DatabaseType = "postgresql" | "mysql" | "mariadb" | "tidb" | "sqlite";
 
 /** 数据库类型选项（用于下拉选择） */
 export const DATABASE_TYPE_OPTIONS: { label: string; value: DatabaseType; defaultPort?: number }[] = [
-  { label: 'PostgreSQL', value: 'postgresql', defaultPort: 5432 },
-  { label: 'MySQL', value: 'mysql', defaultPort: 3306 },
-  { label: 'MariaDB', value: 'mariadb', defaultPort: 3306 },
-  { label: 'TiDB', value: 'tidb', defaultPort: 4000 },
-  { label: 'SQLite', value: 'sqlite' },
+  { label: "PostgreSQL", value: "postgresql", defaultPort: 5432 },
+  { label: "MySQL", value: "mysql", defaultPort: 3306 },
+  { label: "MariaDB", value: "mariadb", defaultPort: 3306 },
+  { label: "TiDB", value: "tidb", defaultPort: 4000 },
+  { label: "SQLite", value: "sqlite" },
 ];
 
 /** SSL 配置 */
@@ -57,7 +57,7 @@ export interface ConnectionInfo {
   id: string;
   name: string;
   dbType: DatabaseType;
-  status: 'connected' | 'disconnected';
+  status: "connected" | "disconnected";
   host?: string;
   port?: number;
   database?: string;
@@ -68,14 +68,14 @@ export function createDefaultConfig(dbType: DatabaseType): ConnectionConfig {
   const opt = DATABASE_TYPE_OPTIONS.find(o => o.value === dbType);
   return {
     id: crypto.randomUUID(),
-    name: '',
+    name: "",
     dbType,
-    host: dbType === 'sqlite' ? undefined : 'localhost',
+    host: dbType === "sqlite" ? undefined : "localhost",
     port: opt?.defaultPort,
-    user: dbType === 'sqlite' ? undefined : 'root',
+    user: dbType === "sqlite" ? undefined : "root",
     password: undefined,
     database: undefined,
     ssl: { enabled: false, rejectUnauthorized: false },
-    ssh: { enabled: false, host: '', port: 22, user: 'root' },
+    ssh: { enabled: false, host: "", port: 22, user: "root" },
   };
 }

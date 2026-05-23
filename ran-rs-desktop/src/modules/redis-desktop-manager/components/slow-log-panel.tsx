@@ -51,6 +51,17 @@ const SlowLogPanel = defineComponent({
     const entries = ref<SlowLogEntry[]>([]);
     const sortOrder = ref<"asc" | "desc">("desc");
 
+    // ---- 排序 ----
+    const sortEntries = () => {
+      const sorted = [...entries.value];
+      if (sortOrder.value === "asc") {
+        sorted.sort((a, b) => a.durationUs - b.durationUs);
+      } else {
+        sorted.sort((a, b) => b.durationUs - a.durationUs);
+      }
+      entries.value = sorted;
+    };
+
     // ---- 获取慢日志 ----
     const fetchSlowLog = async () => {
       loading.value = true;
@@ -63,17 +74,6 @@ const SlowLogPanel = defineComponent({
       } finally {
         loading.value = false;
       }
-    };
-
-    // ---- 排序 ----
-    const sortEntries = () => {
-      const sorted = [...entries.value];
-      if (sortOrder.value === "asc") {
-        sorted.sort((a, b) => a.durationUs - b.durationUs);
-      } else {
-        sorted.sort((a, b) => b.durationUs - a.durationUs);
-      }
-      entries.value = sorted;
     };
 
     const toggleSort = () => {

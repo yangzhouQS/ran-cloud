@@ -1,11 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
+
+import { resolvedTheme, themeMode, useTheme } from "../index";
 
 vi.mock("../../modules/_shared/use-module-bus", () => ({
   useModuleBus: () => ({ on: vi.fn(), off: vi.fn(), emit: vi.fn() }),
 }));
-
-import { useTheme, themeMode, resolvedTheme } from "../index";
 
 beforeEach(() => {
   localStorage.clear();

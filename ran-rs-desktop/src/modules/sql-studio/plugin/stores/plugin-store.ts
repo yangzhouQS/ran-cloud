@@ -2,12 +2,12 @@
  * Plugin Store — 插件系统 Pinia 状态管理
  */
 
-import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
-import type { PluginMetadata } from '../types/manifest';
-import * as pluginCommands from '../services/plugin-commands';
+import type { PluginMetadata } from "../types/manifest";
+import { defineStore } from "pinia";
+import { computed, ref } from "vue";
+import * as pluginCommands from "../services/plugin-commands";
 
-export const usePluginStore = defineStore('sql-plugin', () => {
+export const usePluginStore = defineStore("sql-plugin", () => {
   // ==================== 状态 ====================
 
   /** 所有已发现的插件 */

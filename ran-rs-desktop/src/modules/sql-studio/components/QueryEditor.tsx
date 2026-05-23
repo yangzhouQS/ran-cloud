@@ -9,7 +9,7 @@
 
 import type { PropType } from "vue";
 import type { QueryHistory } from "../types/query";
-import { defineComponent, ref, shallowRef, watch, onMounted, onBeforeUnmount } from "vue";
+import { defineComponent, onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
 import { useCsNamespace } from "../../../hooks/use-namespace";
 
 const QueryEditor = defineComponent({
@@ -28,9 +28,20 @@ const QueryEditor = defineComponent({
     const sqlContent = ref("-- 在此输入 SQL 查询\nSELECT * FROM ");
     const showHistory = ref(false);
 
+    /** 执行 SQL */
+    const handleExecute = async (sql?: string) => {
+      const query = sql ?? sqlContent.value;
+      if (!query.trim()) {
+        return;
+      }
+      await props.onExecute(query.trim());
+    };
+
     /** 初始化 Monaco Editor */
     onMounted(async () => {
-      if (!editorContainerRef.value) return;
+      if (!editorContainerRef.value) {
+        return;
+      }
 
       try {
         const monaco = await import("monaco-editor");
@@ -84,13 +95,6 @@ const QueryEditor = defineComponent({
       editorInstance.value?.dispose();
     });
 
-    /** 执行 SQL */
-    const handleExecute = async (sql?: string) => {
-      const query = sql ?? sqlContent.value;
-      if (!query.trim()) return;
-      await props.onExecute(query.trim());
-    };
-
     /** 清空编辑器 */
     const handleClear = () => {
       editorInstance.value?.setValue("");
@@ -126,9 +130,13 @@ const QueryEditor = defineComponent({
           <div class={ns.e("toolbar-right")}>
             <el-button
               size="small"
-              onClick={() => { showHistory.value = !showHistory.value; }}
+              onClick={() => {
+                showHistory.value = !showHistory.value;
+              }}
             >
-              历史 ({props.queryHistory.length})
+              历史 (
+              {props.queryHistory.length}
+              )
             </el-button>
             <el-button size="small" onClick={handleClear}>
               清空
@@ -148,30 +156,40 @@ const QueryEditor = defineComponent({
         {/* 查询历史面板 */}
         {showHistory.value && (
           <div class={ns.e("history")}>
-            {props.queryHistory.length === 0 ? (
-              <div class={ns.e("history-empty")}>暂无查询历史</div>
-            ) : (
-              props.queryHistory.slice(0, 50).map((item) => (
-                <div
-                  key={item.id}
-                  class={ns.e("history-item")}
-                  onClick={() => useHistory(item.sql)}
-                >
-                  <div class={ns.e("history-sql")}>
-                    {item.sql.length > 120 ? item.sql.slice(0, 120) + "..." : item.sql}
-                  </div>
-                  <div class={ns.e("history-meta")}>
-                    <span>{formatTime(item.executedAt)}</span>
-                    {item.executionTimeMs != null && (
-                      <span>{item.executionTimeMs} ms</span>
-                    )}
-                    {item.rowCount != null && (
-                      <span>{item.rowCount} 行</span>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
+            {props.queryHistory.length === 0
+              ? (
+                  <div class={ns.e("history-empty")}>暂无查询历史</div>
+                )
+              : (
+                  props.queryHistory.slice(0, 50).map(item => (
+                    <div
+                      key={item.id}
+                      class={ns.e("history-item")}
+                      onClick={() => useHistory(item.sql)}
+                    >
+                      <div class={ns.e("history-sql")}>
+                        {item.sql.length > 120 ? `${item.sql.slice(0, 120)}...` : item.sql}
+                      </div>
+                      <div class={ns.e("history-meta")}>
+                        <span>{formatTime(item.executedAt)}</span>
+                        {item.executionTimeMs != null && (
+                          <span>
+                            {item.executionTimeMs}
+                            {" "}
+                            ms
+                          </span>
+                        )}
+                        {item.rowCount != null && (
+                          <span>
+                            {item.rowCount}
+                            {" "}
+                            行
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
           </div>
         )}
 

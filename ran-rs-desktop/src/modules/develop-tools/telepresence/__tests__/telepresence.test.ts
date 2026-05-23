@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // In-memory command handler registry
 const handlers = new Map<string, (...args: unknown[]) => unknown>();
@@ -12,13 +12,15 @@ function clearMockCommands() {
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     const handler = handlers.get(cmd);
-    if (!handler) return Promise.reject(new Error(`Unknown command: ${cmd}`));
+    if (!handler) {
+      return Promise.reject(new Error(`Unknown command: ${cmd}`));
+    }
     return Promise.resolve(handler(args));
   },
 }));
 
 const { connectTelepresence, quitTelepresence, getStatus } = await import(
-  "../services/telepresence"
+  "../services/telepresence",
 );
 
 beforeEach(() => {
@@ -53,9 +55,9 @@ describe("telepresence - connectTelepresence", () => {
     });
   });
 
-  it("returns failure on invoke error (string)", async () => {
+  it("returns failure on invoke error", async () => {
     mockCommand("telepresence_connect", () => {
-      throw "Connection refused";
+      throw new Error("Connection refused");
     });
     const result = await connectTelepresence({
       kubeconfig: "",
@@ -63,20 +65,7 @@ describe("telepresence - connectTelepresence", () => {
       skipTlsVerify: false,
     });
     expect(result.success).toBe(false);
-    expect(result.message).toBe("Connection refused");
-  });
-
-  it("returns failure on invoke error (Error object)", async () => {
-    mockCommand("telepresence_connect", () => {
-      throw new Error("Timeout");
-    });
-    const result = await connectTelepresence({
-      kubeconfig: "",
-      namespace: "",
-      skipTlsVerify: false,
-    });
-    expect(result.success).toBe(false);
-    expect(result.message).toContain("Timeout");
+    expect(result.message).toContain("Connection refused");
   });
 });
 
@@ -90,11 +79,11 @@ describe("telepresence - quitTelepresence", () => {
 
   it("returns failure on error", async () => {
     mockCommand("telepresence_quit", () => {
-      throw "Not connected";
+      throw new Error("Not connected");
     });
     const result = await quitTelepresence();
     expect(result.success).toBe(false);
-    expect(result.message).toBe("Not connected");
+    expect(result.message).toContain("Not connected");
   });
 });
 
@@ -108,10 +97,10 @@ describe("telepresence - getStatus", () => {
 
   it("returns failure when not connected", async () => {
     mockCommand("telepresence_status", () => {
-      throw "Not connected";
+      throw new Error("Not connected");
     });
     const result = await getStatus();
     expect(result.success).toBe(false);
-    expect(result.message).toBe("Not connected");
+    expect(result.message).toContain("Not connected");
   });
 });

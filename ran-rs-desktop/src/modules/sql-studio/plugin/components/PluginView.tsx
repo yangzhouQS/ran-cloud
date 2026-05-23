@@ -5,11 +5,12 @@
  * 通过 postMessage 与插件通信。
  */
 
-import { defineComponent, ref, onMounted, onUnmounted, type PropType } from 'vue';
-import { getPluginMessageRouter } from '../services/plugin-message-router';
+import type { PropType } from "vue";
+import { defineComponent, onMounted, onUnmounted, ref } from "vue";
+import { getPluginMessageRouter } from "../services/plugin-message-router";
 
 const PluginView = defineComponent({
-  name: 'PluginView',
+  name: "PluginView",
 
   props: {
     /** 插件 ID */
@@ -43,7 +44,7 @@ const PluginView = defineComponent({
         router.registerIframe(
           props.pluginId,
           props.viewId,
-          props.connectionId ?? '',
+          props.connectionId ?? "",
           iframeRef.value,
         );
       }
@@ -60,7 +61,7 @@ const PluginView = defineComponent({
         ref={iframeRef}
         src={`plugin://${props.pluginId}/${props.entryPath}`}
         sandbox="allow-scripts allow-same-origin allow-forms"
-        style={{ width: '100%', height: '100%', border: 'none' }}
+        style={{ width: "100%", height: "100%", border: "none" }}
       />
     );
   },

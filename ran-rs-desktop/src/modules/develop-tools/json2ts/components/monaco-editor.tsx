@@ -10,7 +10,7 @@ function configureWorkers(): void {
   }
   workersConfigured = true;
 
-  (self as Record<string, unknown>).MonacoEnvironment = {
+  (globalThis as Record<string, unknown>).MonacoEnvironment = {
     getWorker(_: unknown, label: string): Worker {
       if (label === "json") {
         return new Worker(

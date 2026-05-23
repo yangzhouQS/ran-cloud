@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 beforeEach(() => {
   localStorage.clear();
 });
 
 describe("i18n - configuration", () => {
-  it("SUPPORTED_LOCALES has correct entries", async () => {
+  it("sUPPORTED_LOCALES has correct entries", async () => {
     const { SUPPORTED_LOCALES } = await import("../index");
     expect(SUPPORTED_LOCALES).toHaveLength(2);
     expect(SUPPORTED_LOCALES[0].value).toBe("zh-CN");

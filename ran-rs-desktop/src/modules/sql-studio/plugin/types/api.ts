@@ -24,35 +24,41 @@ export interface PluginNotification {
 }
 
 /** 支持的 API 方法名（Rust 后端处理） */
-export type RustApiMethod =
-  | 'getSchemas'
-  | 'getTables'
-  | 'getColumns'
-  | 'runQuery'
-  | 'getData'
-  | 'setData'
-  | 'getAppInfo'
-  | 'getConnectionInfo';
+export type RustApiMethod
+  = | "getSchemas"
+    | "getTables"
+    | "getColumns"
+    | "runQuery"
+    | "getData"
+    | "setData"
+    | "getAppInfo"
+    | "getConnectionInfo";
 
 /** 支持的 API 方法名（前端处理） */
-export type FrontendApiMethod =
-  | 'clipboardReadText'
-  | 'clipboardWriteText'
-  | 'notyInfo'
-  | 'notySuccess'
-  | 'notyError'
-  | 'notyWarning'
-  | 'confirm'
-  | 'getViewContext'
-  | 'openExternal';
+export type FrontendApiMethod
+  = | "clipboardReadText"
+    | "clipboardWriteText"
+    | "notyInfo"
+    | "notySuccess"
+    | "notyError"
+    | "notyWarning"
+    | "confirm"
+    | "getViewContext"
+    | "openExternal";
 
 /** 所有 API 方法名 */
 export type PluginApiMethod = RustApiMethod | FrontendApiMethod;
 
 /** Rust 后端 API 方法集合 */
 const RUST_API_METHODS: Set<string> = new Set([
-  'getSchemas', 'getTables', 'getColumns', 'runQuery',
-  'getData', 'setData', 'getAppInfo', 'getConnectionInfo',
+  "getSchemas",
+  "getTables",
+  "getColumns",
+  "runQuery",
+  "getData",
+  "setData",
+  "getAppInfo",
+  "getConnectionInfo",
 ]);
 
 /** 判断是否为 Rust 后端处理的 API */

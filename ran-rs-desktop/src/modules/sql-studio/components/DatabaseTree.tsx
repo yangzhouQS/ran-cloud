@@ -87,7 +87,9 @@ const DatabaseTree = defineComponent({
 
     /** 树节点过滤 */
     const filterNode = (value: string, data: TreeNode): boolean => {
-      if (!value) return true;
+      if (!value) {
+        return true;
+      }
       return data.label.toLowerCase().includes(value.toLowerCase());
     };
 
@@ -122,34 +124,36 @@ const DatabaseTree = defineComponent({
         </div>
 
         <div class={ns.e("tree")}>
-          {loading.value ? (
-            <div class={ns.e("loading")}>
-              <el-icon class="is-loading"><i class="el-icon-loading" /></el-icon>
-            </div>
-          ) : (
-            <el-tree
-              ref={treeRef}
-              data={treeData.value}
-              nodeKey="id"
-              lazy
-              load={loadColumnNode}
-              props={{
-                label: "label",
-                children: "children",
-                isLeaf: (data: TreeNode) => data.isLeaf,
-              }}
-              filterNodeMethod={filterNode}
-              emptyText="无数据"
-              v-slots={{
-                default: ({ data }: { data: TreeNode }) => (
-                  <span class={ns.e("tree-node")}>
-                    <span class={ns.e("tree-icon")}>{getIcon(data.type)}</span>
-                    <span class={ns.e("tree-label")}>{data.label}</span>
-                  </span>
-                ),
-              }}
-            />
-          )}
+          {loading.value
+            ? (
+                <div class={ns.e("loading")}>
+                  <el-icon class="is-loading"><i class="el-icon-loading" /></el-icon>
+                </div>
+              )
+            : (
+                <el-tree
+                  ref={treeRef}
+                  data={treeData.value}
+                  nodeKey="id"
+                  lazy
+                  load={loadColumnNode}
+                  props={{
+                    label: "label",
+                    children: "children",
+                    isLeaf: (data: TreeNode) => data.isLeaf,
+                  }}
+                  filterNodeMethod={filterNode}
+                  emptyText="无数据"
+                  v-slots={{
+                    default: ({ data }: { data: TreeNode }) => (
+                      <span class={ns.e("tree-node")}>
+                        <span class={ns.e("tree-icon")}>{getIcon(data.type)}</span>
+                        <span class={ns.e("tree-label")}>{data.label}</span>
+                      </span>
+                    ),
+                  }}
+                />
+              )}
         </div>
       </div>
     );

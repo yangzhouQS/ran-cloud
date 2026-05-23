@@ -4,14 +4,14 @@
  * 集中管理连接状态和查询状态，确保所有面板组件共享同一份数据。
  */
 
-import { defineStore } from 'pinia';
-import { ref, computed, watch } from 'vue';
-import type { ConnectionConfig, ConnectionInfo, DatabaseType } from '../types/connection';
-import type { QueryResult, QueryHistory } from '../types/query';
-import { createDefaultConfig } from '../types/connection';
-import * as sqlService from '../services/sql-commands';
+import type { ConnectionConfig, ConnectionInfo, DatabaseType } from "../types/connection";
+import type { QueryHistory, QueryResult } from "../types/query";
+import { defineStore } from "pinia";
+import { computed, ref, watch } from "vue";
+import * as sqlService from "../services/sql-commands";
+import { createDefaultConfig } from "../types/connection";
 
-export const useSqlStore = defineStore('sql-studio', () => {
+export const useSqlStore = defineStore("sql-studio", () => {
   // ==================== 连接状态 ====================
 
   /** 连接列表（概要信息） */
@@ -47,12 +47,12 @@ export const useSqlStore = defineStore('sql-studio', () => {
 
   /** 当前活跃连接信息 */
   const activeConnection = computed(() =>
-    connections.value.find(c => c.id === activeConnectionId.value) ?? null
+    connections.value.find(c => c.id === activeConnectionId.value) ?? null,
   );
 
   /** 已连接的连接列表 */
   const connectedList = computed(() =>
-    connections.value.filter(c => c.status === 'connected')
+    connections.value.filter(c => c.status === "connected"),
   );
 
   // ==================== 连接 Actions ====================
@@ -172,7 +172,9 @@ export const useSqlStore = defineStore('sql-studio', () => {
 
   /** 执行 SQL 查询 */
   async function executeQuery(sql: string, database?: string) {
-    if (!sql.trim() || !activeConnectionId.value) return;
+    if (!sql.trim() || !activeConnectionId.value) {
+      return;
+    }
 
     executing.value = true;
     queryError.value = null;
@@ -202,7 +204,9 @@ export const useSqlStore = defineStore('sql-studio', () => {
 
   /** 内部方法：保存查询历史 */
   async function _saveQueryHistory(sql: string, database?: string, executionTimeMs?: number, rowCount?: number) {
-    if (!activeConnectionId.value) return;
+    if (!activeConnectionId.value) {
+      return;
+    }
     const history: QueryHistory = {
       id: crypto.randomUUID(),
       connectionId: activeConnectionId.value,
@@ -233,7 +237,9 @@ export const useSqlStore = defineStore('sql-studio', () => {
 
   /** 加载查询历史 */
   async function loadQueryHistory(limit?: number) {
-    if (!activeConnectionId.value) return;
+    if (!activeConnectionId.value) {
+      return;
+    }
     try {
       queryHistory.value = await sqlService.loadQueryHistory(activeConnectionId.value, limit);
     } catch {

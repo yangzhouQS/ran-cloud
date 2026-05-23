@@ -170,145 +170,147 @@ const StatusPanel = defineComponent({
           </div>
         </div>
 
-        {loading.value && !serverStatus.value ? (
-          <div class={ns.e("loading")}>
-            <el-icon class="is-loading"><Loading /></el-icon>
-            <span style="margin-left: 8px;">加载中...</span>
-          </div>
-        ) : (
-          <>
-            {/* 状态卡片行 */}
-            <div class={ns.e("cards")}>
-              {/* 服务器信息 */}
-              <div class={ns.e("card")}>
-                <div class={ns.e("card-header")}>
-                  <el-icon><Monitor /></el-icon>
-                  <span>服务器</span>
+        {loading.value && !serverStatus.value
+          ? (
+              <div class={ns.e("loading")}>
+                <el-icon class="is-loading"><Loading /></el-icon>
+                <span style="margin-left: 8px;">加载中...</span>
+              </div>
+            )
+          : (
+              <>
+                {/* 状态卡片行 */}
+                <div class={ns.e("cards")}>
+                  {/* 服务器信息 */}
+                  <div class={ns.e("card")}>
+                    <div class={ns.e("card-header")}>
+                      <el-icon><Monitor /></el-icon>
+                      <span>服务器</span>
+                    </div>
+                    <div class={ns.e("card-body")}>
+                      <div class={ns.e("item")}>
+                        <span class={ns.e("item-label")}>Redis 版本</span>
+                        <span class={ns.e("item-value")}>{serverStatus.value?.redisVersion ?? "-"}</span>
+                      </div>
+                      <div class={ns.e("item")}>
+                        <span class={ns.e("item-label")}>运行模式</span>
+                        <span class={ns.e("item-value")}>{serverStatus.value?.mode ?? "-"}</span>
+                      </div>
+                      <div class={ns.e("item")}>
+                        <span class={ns.e("item-label")}>运行天数</span>
+                        <span class={ns.e("item-value")}>
+                          {serverStatus.value?.uptimeDays ?? "-"}
+                          {" "}
+                          天
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 内存信息 */}
+                  <div class={ns.e("card")}>
+                    <div class={ns.e("card-header")}>
+                      <el-icon><Cpu /></el-icon>
+                      <span>内存</span>
+                    </div>
+                    <div class={ns.e("card-body")}>
+                      <div class={ns.e("item")}>
+                        <span class={ns.e("item-label")}>已用内存</span>
+                        <span class={ns.e("item-value")}>{humanFileSize(serverStatus.value?.usedMemory ?? 0)}</span>
+                      </div>
+                      <div class={ns.e("item")}>
+                        <span class={ns.e("item-label")}>内存峰值</span>
+                        <span class={ns.e("item-value")}>{humanFileSize(serverStatus.value?.usedMemoryPeak ?? 0)}</span>
+                      </div>
+                      <div class={ns.e("item")}>
+                        <span class={ns.e("item-label")}>命中率</span>
+                        <span class={ns.e("item-value")}>
+                          {serverStatus.value?.hitRate?.toFixed(2) ?? "-"}
+                          %
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 统计信息 */}
+                  <div class={ns.e("card")}>
+                    <div class={ns.e("card-header")}>
+                      <el-icon><DataLine /></el-icon>
+                      <span>统计</span>
+                    </div>
+                    <div class={ns.e("card-body")}>
+                      <div class={ns.e("item")}>
+                        <span class={ns.e("item-label")}>连接客户端</span>
+                        <span class={ns.e("item-value")}>{serverStatus.value?.connectedClients ?? "-"}</span>
+                      </div>
+                      <div class={ns.e("item")}>
+                        <span class={ns.e("item-label")}>每秒操作数</span>
+                        <span class={ns.e("item-value")}>{serverStatus.value?.instantaneousOpsPerSec ?? "-"}</span>
+                      </div>
+                      <div class={ns.e("item")}>
+                        <span class={ns.e("item-label")}>总 Key 数</span>
+                        <span class={ns.e("item-value")}>{serverStatus.value?.totalKeys ?? "-"}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div class={ns.e("card-body")}>
-                  <div class={ns.e("item")}>
-                    <span class={ns.e("item-label")}>Redis 版本</span>
-                    <span class={ns.e("item-value")}>{serverStatus.value?.redisVersion ?? "-"}</span>
+
+                {/* Key 统计表格 */}
+                {databases.value.length > 0 && (
+                  <div class={ns.e("section")}>
+                    <div class={ns.e("section-header")}>
+                      <span>Key 统计</span>
+                    </div>
+                    <el-table
+                      data={databases.value}
+                      stripe
+                      size="small"
+                      style="width: 100%;"
+                    >
+                      <el-table-column prop="db" label="DB" width="100" sortable />
+                      <el-table-column prop="keys" label="Keys" width="150" sortable />
+                      <el-table-column prop="expires" label="Expires" width="150" sortable />
+                      <el-table-column prop="avgTtl" label="Avg TTL" sortable />
+                    </el-table>
                   </div>
-                  <div class={ns.e("item")}>
-                    <span class={ns.e("item-label")}>运行模式</span>
-                    <span class={ns.e("item-value")}>{serverStatus.value?.mode ?? "-"}</span>
-                  </div>
-                  <div class={ns.e("item")}>
-                    <span class={ns.e("item-label")}>运行天数</span>
-                    <span class={ns.e("item-value")}>
-                      {serverStatus.value?.uptimeDays ?? "-"}
+                )}
+
+                {/* 全部 Redis INFO */}
+                <div class={ns.e("section")}>
+                  <div class={ns.e("section-header")}>
+                    <span>
+                      全部 Redis INFO（
+                      {filteredInfo.value.length}
                       {" "}
-                      天
+                      条）
                     </span>
+                    <el-input
+                      modelValue={allInfoFilter.value}
+                      onUpdate:modelValue={(val: string) => {
+                        allInfoFilter.value = val;
+                      }}
+                      size="small"
+                      placeholder="搜索..."
+                      clearable
+                      class={ns.e("filter-input")}
+                      v-slots={{ suffix: () => <el-icon><Search /></el-icon> }}
+                    />
                   </div>
+                  <el-table
+                    data={filteredInfo.value}
+                    stripe
+                    size="small"
+                    style="width: 100%;"
+                    max-height={400}
+                    border
+                  >
+                    <el-table-column prop="section" label="Section" width="130" sortable />
+                    <el-table-column prop="key" label="Key" width="300" sortable />
+                    <el-table-column prop="value" label="Value" show-overflow-tooltip />
+                  </el-table>
                 </div>
-              </div>
-
-              {/* 内存信息 */}
-              <div class={ns.e("card")}>
-                <div class={ns.e("card-header")}>
-                  <el-icon><Cpu /></el-icon>
-                  <span>内存</span>
-                </div>
-                <div class={ns.e("card-body")}>
-                  <div class={ns.e("item")}>
-                    <span class={ns.e("item-label")}>已用内存</span>
-                    <span class={ns.e("item-value")}>{humanFileSize(serverStatus.value?.usedMemory ?? 0)}</span>
-                  </div>
-                  <div class={ns.e("item")}>
-                    <span class={ns.e("item-label")}>内存峰值</span>
-                    <span class={ns.e("item-value")}>{humanFileSize(serverStatus.value?.usedMemoryPeak ?? 0)}</span>
-                  </div>
-                  <div class={ns.e("item")}>
-                    <span class={ns.e("item-label")}>命中率</span>
-                    <span class={ns.e("item-value")}>
-                      {serverStatus.value?.hitRate?.toFixed(2) ?? "-"}
-                      %
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* 统计信息 */}
-              <div class={ns.e("card")}>
-                <div class={ns.e("card-header")}>
-                  <el-icon><DataLine /></el-icon>
-                  <span>统计</span>
-                </div>
-                <div class={ns.e("card-body")}>
-                  <div class={ns.e("item")}>
-                    <span class={ns.e("item-label")}>连接客户端</span>
-                    <span class={ns.e("item-value")}>{serverStatus.value?.connectedClients ?? "-"}</span>
-                  </div>
-                  <div class={ns.e("item")}>
-                    <span class={ns.e("item-label")}>每秒操作数</span>
-                    <span class={ns.e("item-value")}>{serverStatus.value?.instantaneousOpsPerSec ?? "-"}</span>
-                  </div>
-                  <div class={ns.e("item")}>
-                    <span class={ns.e("item-label")}>总 Key 数</span>
-                    <span class={ns.e("item-value")}>{serverStatus.value?.totalKeys ?? "-"}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Key 统计表格 */}
-            {databases.value.length > 0 && (
-              <div class={ns.e("section")}>
-                <div class={ns.e("section-header")}>
-                  <span>Key 统计</span>
-                </div>
-                <el-table
-                  data={databases.value}
-                  stripe
-                  size="small"
-                  style="width: 100%;"
-                >
-                  <el-table-column prop="db" label="DB" width="100" sortable />
-                  <el-table-column prop="keys" label="Keys" width="150" sortable />
-                  <el-table-column prop="expires" label="Expires" width="150" sortable />
-                  <el-table-column prop="avgTtl" label="Avg TTL" sortable />
-                </el-table>
-              </div>
+              </>
             )}
-
-            {/* 全部 Redis INFO */}
-            <div class={ns.e("section")}>
-              <div class={ns.e("section-header")}>
-                <span>
-                  全部 Redis INFO（
-                  {filteredInfo.value.length}
-                  {" "}
-                  条）
-                </span>
-                <el-input
-                  modelValue={allInfoFilter.value}
-                  onUpdate:modelValue={(val: string) => {
-                    allInfoFilter.value = val;
-                  }}
-                  size="small"
-                  placeholder="搜索..."
-                  clearable
-                  class={ns.e("filter-input")}
-                  v-slots={{ suffix: () => <el-icon><Search /></el-icon> }}
-                />
-              </div>
-              <el-table
-                data={filteredInfo.value}
-                stripe
-                size="small"
-                style="width: 100%;"
-                max-height={400}
-                border
-              >
-                <el-table-column prop="section" label="Section" width="130" sortable />
-                <el-table-column prop="key" label="Key" width="300" sortable />
-                <el-table-column prop="value" label="Value" show-overflow-tooltip />
-              </el-table>
-            </div>
-          </>
-        )}
       </div>
     );
   },

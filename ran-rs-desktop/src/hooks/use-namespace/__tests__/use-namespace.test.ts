@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { useCsNamespace, defaultNamespace } from "../index";
+import { describe, expect, it } from "vitest";
+import { defaultNamespace, useCsNamespace } from "../index";
 
 describe("useCsNamespace - basic BEM", () => {
   const ns = useCsNamespace("button");
