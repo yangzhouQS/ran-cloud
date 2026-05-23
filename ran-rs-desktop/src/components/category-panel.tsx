@@ -36,6 +36,11 @@ export const settingsCategories: CategoryItem[] = [
   { key: "k8s-config", label: "K8s 配置", icon: Document, description: "Kubernetes 配置" },
 ];
 
+/** 数据库工具分类 */
+export const databaseCategories: CategoryItem[] = [
+  { key: "sql-studio", label: "SQL Studio", icon: Document, description: "多数据库 SQL 查询工具" },
+];
+
 /** 关于分类 */
 export const aboutCategories: CategoryItem[] = [
   { key: "info", label: "关于应用", icon: Document, description: "版本信息" },
@@ -48,6 +53,8 @@ export function getCategoriesByNav(navKey: string): CategoryItem[] {
       return homeCategories;
     case "k8s":
       return k8sCategories;
+    case "database":
+      return databaseCategories;
     case "settings":
       return settingsCategories;
     case "about":
@@ -64,6 +71,8 @@ export function getCategoryTitle(navKey: string): string {
       return "首页";
     case "k8s":
       return "k8s网络连接工具";
+    case "database":
+      return "数据库工具";
     case "settings":
       return "设置";
     case "about":

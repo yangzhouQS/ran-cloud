@@ -6,6 +6,7 @@ import Layout from "./components/layout";
 import { useCsNamespace } from "./hooks/use-namespace";
 import { Json2TsPanel } from "./modules/develop-tools/json2ts";
 import { TelepresencePanel } from "./modules/develop-tools/telepresence";
+import SqlStudio from "./modules/sql-studio";
 import "./components/layout.less";
 
 /** 检测是否运行在 Tauri 环境中 */
@@ -160,6 +161,8 @@ const App = defineComponent({
             default:
               return <TelepresencePanel />;
           }
+        case "database":
+          return <SqlStudio />;
         case "home":
           return (
             <div class={nsPage.b()}>

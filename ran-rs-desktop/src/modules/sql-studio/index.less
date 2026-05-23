@@ -1,0 +1,465 @@
+/**
+ * @component SqlStudio
+ * @description SQL Studio 主布局样式 — 基于 dockview Splitview 三栏布局
+ * @block ran-sql-studio
+ * @elements __splitview, __sidebar, __editor, __result
+ */
+
+@import (reference) "../../assets/styles/global.less";
+
+// ==================== 主容器 ====================
+
+.ran-sql-studio {
+  height: 100%;
+  display: flex;
+  overflow: hidden;
+  background: #ffffff;
+
+  // ---- Splitview 容器 ----
+  &__splitview {
+    width: 100%;
+    height: 100%;
+  }
+
+  // ---- 面板通用 ----
+  &__sidebar,
+  &__editor,
+  &__result {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  // ---- 左栏：连接列表 + 对象树 ----
+  &__sidebar {
+    border-right: 1px solid @color-border;
+    display: flex;
+    flex-direction: column;
+  }
+
+  // ---- 中栏：SQL 编辑器 ----
+  &__editor {
+    border-right: 1px solid @color-border;
+    display: flex;
+    flex-direction: column;
+  }
+
+  // ---- 右栏：查询结果 ----
+  &__result {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+}
+
+// ==================== 连接列表样式 ====================
+
+.ran-sql-connection-list {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-size: 13px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-bottom: 1px solid @color-border;
+  }
+
+  &__title {
+    font-weight: 600;
+    font-size: 13px;
+    color: #303133;
+  }
+
+  &__list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 0;
+  }
+
+  &__loading,
+  &__empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    color: #909399;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    cursor: pointer;
+    gap: 8px;
+    transition: background 0.15s;
+
+    &:hover {
+      background: #f5f7fa;
+    }
+
+    &.is-active {
+      background: #ecf5ff;
+    }
+
+    &.is-connected {
+      // 已连接状态
+    }
+  }
+
+  &__item-indicator {
+    width: 4px;
+    height: 28px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  &__item-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__item-name {
+    font-size: 13px;
+    color: #303133;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__item-meta {
+    display: flex;
+    gap: 6px;
+    margin-top: 2px;
+    font-size: 11px;
+    color: #909399;
+  }
+
+  &__item-status {
+    flex-shrink: 0;
+  }
+}
+
+// ==================== 数据库对象树样式 ====================
+
+.ran-sql-database-tree {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  border-top: 1px solid @color-border;
+  min-height: 0;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #303133;
+  }
+
+  &__filter {
+    padding: 0 8px 8px;
+  }
+
+  &__tree {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 4px;
+  }
+
+  &__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  &__tree-node {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+  }
+
+  &__tree-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// ==================== 查询编辑器样式 ====================
+
+.ran-sql-query-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    border-bottom: 1px solid @color-border;
+    background: #fafafa;
+    gap: 8px;
+  }
+
+  &__toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__exec-time {
+    font-size: 12px;
+    color: #67c23a;
+    font-weight: 500;
+  }
+
+  &__container {
+    flex: 1;
+    min-height: 200px;
+  }
+
+  // ---- 查询历史面板 ----
+  &__history {
+    max-height: 240px;
+    overflow-y: auto;
+    border-bottom: 1px solid @color-border;
+    background: #fafafa;
+  }
+
+  &__history-empty {
+    padding: 16px;
+    text-align: center;
+    color: #909399;
+    font-size: 13px;
+  }
+
+  &__history-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.15s;
+
+    &:hover {
+      background: #ecf5ff;
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__history-sql {
+    font-size: 12px;
+    font-family: monospace;
+    color: #303133;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__history-meta {
+    display: flex;
+    gap: 12px;
+    margin-top: 4px;
+    font-size: 11px;
+    color: #909399;
+  }
+}
+
+// ==================== 结果表格样式 ====================
+
+.ran-sql-result-table {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  &__info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: #606266;
+    border-bottom: 1px solid @color-border;
+    background: #fafafa;
+  }
+
+  &__info-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__container-wrapper {
+    flex: 1;
+    position: relative;
+    min-height: 0;
+  }
+
+  &__container {
+    width: 100%;
+    height: 100%;
+  }
+
+  &__loading,
+  &__empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #909399;
+  }
+}
+
+// ==================== 连接表单样式 ====================
+
+.ran-sql-connection-form {
+  &__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  &__tabs {
+    margin-top: -12px;
+  }
+}
+
+// ==================== Splitview 样式覆写 ====================
+
+.dv-split-view-container {
+  .dv-view-container {
+    > .dv-sash {
+      &.dv-sash-horizontal,
+      &.dv-sash-vertical {
+        background: transparent;
+        position: relative;
+
+        &::after {
+          content: "";
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 2px;
+          height: 24px;
+          background: #d0d0d0;
+          border-radius: 1px;
+          transition: background 0.2s;
+        }
+
+        &:hover::after {
+          background: @color-primary;
+        }
+      }
+    }
+  }
+}
+
+// ==================== 暗黑主题 ====================
+
+html.dark {
+  .ran-sql-studio {
+    background: #1d1e1f;
+
+    &__sidebar,
+    &__editor {
+      border-right-color: #363637;
+    }
+  }
+
+  .ran-sql-connection-list {
+    &__header {
+      border-bottom-color: #363637;
+    }
+
+    &__title {
+      color: #e5eaf3;
+    }
+
+    &__item {
+      &:hover {
+        background: #2c2c2e;
+      }
+
+      &.is-active {
+        background: #1a3a5c;
+      }
+    }
+
+    &__item-name {
+      color: #e5eaf3;
+    }
+  }
+
+  .ran-sql-database-tree {
+    border-top-color: #363637;
+
+    &__header {
+      color: #e5eaf3;
+    }
+  }
+
+  .ran-sql-query-editor {
+    &__toolbar {
+      border-bottom-color: #363637;
+      background: #252526;
+    }
+
+    &__history {
+      border-bottom-color: #363637;
+      background: #1e1e1e;
+    }
+
+    &__history-item {
+      border-bottom-color: #2c2c2e;
+
+      &:hover {
+        background: #1a3a5c;
+      }
+    }
+
+    &__history-sql {
+      color: #e5eaf3;
+    }
+  }
+
+  .ran-sql-result-table {
+    &__info {
+      border-bottom-color: #363637;
+      background: #252526;
+      color: #a3a6ad;
+    }
+  }
+
+  .dv-split-view-container {
+    .dv-view-container {
+      > .dv-sash {
+        &.dv-sash-horizontal,
+        &.dv-sash-vertical {
+          &::after {
+            background: #4a4a4a;
+          }
+
+          &:hover::after {
+            background: @color-primary;
+          }
+        }
+      }
+    }
+  }
+}
