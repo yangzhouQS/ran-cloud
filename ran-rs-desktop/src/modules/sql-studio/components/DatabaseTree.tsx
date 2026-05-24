@@ -14,7 +14,7 @@
  */
 
 import type { PropType } from "vue";
-import { defineComponent, ref, watch } from "vue";
+import { defineComponent, nextTick, ref, watch } from "vue";
 import { useCsNamespace } from "../../../hooks/use-namespace";
 import * as sqlService from "../services/sql-commands";
 
@@ -69,7 +69,6 @@ const DatabaseTree = defineComponent({
             label: t.name,
             type: (t.tableType?.toUpperCase() === "VIEW" ? "view" : "table") as "table" | "view",
             isLeaf: false,
-            children: [],
           }));
         } else {
           // PostgreSQL/MySQL：先加载数据库/Schema 列表
@@ -80,7 +79,6 @@ const DatabaseTree = defineComponent({
             type: "database" as const,
             isLeaf: false,
             databaseName: db.name,
-            children: [],
           }));
         }
       } catch (e) {
@@ -91,16 +89,24 @@ const DatabaseTree = defineComponent({
       }
     };
 
+    // watch connectionId 变化时重新加载
     watch(() => props.connectionId, loadTree, { immediate: true });
 
-    /** 懒加载子节点 */
-    const loadChildren = async (node: any, resolve: (data: TreeNode[]) => void) => {
+    // watch dbType 变化时也重新加载（解决首次挂载时 dbType 为 null 的问题）
+    watch(() => props.dbType, (newType, oldType) => {
+      if (props.connectionId && newType !== oldType) {
+        loadTree();
+      }
+    });
+
+    /** el-tree load 回调：懒加载子节点 */
+    const handleTreeLoad = async (node: any, resolve: (data: TreeNode[]) => void) => {
       if (!props.connectionId) {
         resolve([]);
         return;
       }
 
-      const nodeData: TreeNode = node.data ?? node;
+      const nodeData: TreeNode | undefined = node.data;
       if (!nodeData) {
         resolve([]);
         return;
@@ -117,7 +123,6 @@ const DatabaseTree = defineComponent({
             type: (t.tableType?.toUpperCase() === "VIEW" ? "view" : "table") as "table" | "view",
             isLeaf: false,
             databaseName: schema,
-            children: [],
           }));
           resolve(children);
         } else if (nodeData.type === "table" || nodeData.type === "view") {
@@ -168,9 +173,11 @@ const DatabaseTree = defineComponent({
       }
     };
 
-    /** 刷新按钮 */
-    const handleRefresh = () => {
-      loadTree();
+    /** 刷新按钮 — 重新加载根节点并清除已缓存的子节点 */
+    const handleRefresh = async () => {
+      treeData.value = [];
+      await nextTick();
+      await loadTree();
     };
 
     return () => (
@@ -224,10 +231,9 @@ const DatabaseTree = defineComponent({
                         data={treeData.value}
                         nodeKey="id"
                         lazy
-                        load={loadChildren}
+                        load={handleTreeLoad}
                         props={{
                           label: "label",
-                          children: "children",
                           isLeaf: (data: TreeNode) => data.isLeaf,
                         }}
                         filterNodeMethod={filterNode}
@@ -241,7 +247,7 @@ const DatabaseTree = defineComponent({
                               {data.type === "database" && (
                                 <span class={ns.e("tree-badge")}>
                                   <el-tag size="small" type="info" effect="plain">
-                                    {data.type === "database" ? "DB" : ""}
+                                    DB
                                   </el-tag>
                                 </span>
                               )}
