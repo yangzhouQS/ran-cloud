@@ -1,276 +1,415 @@
-# SQL 查询编辑器与结果区域布局调整方案
+# 前端模块拆分与多入口打包方案
 
 ## Context
 
-当前 SQL Studio 采用三栏水平 Splitview 布局：左栏(sidebar) | 中栏(editor) | 右栏(result)。这种布局导致编辑器和结果表格水平挤占空间，不符合 SQL 工具的常见使用习惯。
+当前 ran-rs-desktop 采用单入口架构（`entry: { index: "./src/main.ts" }`），所有模块共享一个 HTML 页面，通过 Vue Router hash 模式分发。这导致：
+- `App.tsx` 静态 import 了 SqlStudio、Json2TsPanel、TelepresencePanel，主窗口启动即加载所有业务代码
+- 所有 Tauri 窗口共享同一份 JS bundle，无法按窗口按需加载
+- Layout 组件和 hooks 散落在 `src/` 顶层，架构不清晰
 
-需要改为：左侧 sidebar 保持不变，右侧区域改为上下分割——上方是 SQL 编辑器，下方是带 tab 页签的结果区域（Output / Result），上下区域支持拖拽调整大小。
+目标：每个模块有独立 HTML 入口，Layout 独立为模块，App.tsx 通过路由/动态加载解耦。
 
-## 当前布局 → 目标布局
+## 重组后目录结构
 
 ```
-当前：                         目标：
-┌──────┬───────┬───────┐     ┌──────┬───────────────┐
-│      │       │       │     │      │  QueryEditor  │
-│ Side │ Editor│ Result│     │ Side │               │
-│ bar  │       │       │     │ bar  ├───────────────┤
-│      │       │       │     │      │ [Output|Result]│
-└──────┴───────┴───────┘     └──────┴───────────────┘
+src/
+  main.ts                           → 主窗口入口（简化为调用 createApp + 注册 Router）
+  app.tsx                           → 主窗口组件（去掉直接 import 业务模块，改用路由）
+  env.d.ts                          → 保留
+  router/index.ts                   → 保留，路由表改为懒加载 develop-tools 子模块
+
+  shared/                           → 新建：跨入口共享资源
+    create-app.ts                   → Vue 应用工厂函数（提取自 main.ts）
+    styles/
+      global.less                   ← 从 src/assets/styles/ 迁入
+      dark-theme.css                ← 从 src/assets/styles/ 迁入
+    i18n/
+      index.ts                      ← 从 src/i18n/ 迁入
+      locales/                      ← 从 src/i18n/ 迁入
+    assets/
+      images/                       ← 从 src/assets/images/ 迁入
+    __mocks/
+      tauri.ts                      ← 从 src/__mocks__/ 迁入
+
+  modules/
+    _shared/
+      use-module-bus.ts             → 保留不变
+
+    layout/                         → 新建：Layout 模块
+      components/
+        Layout.tsx                  ← 从 src/components/ 迁入
+        Layout.less                 ← 从 src/components/ 迁入
+        Sidebar.tsx                 ← 从 src/components/ 迁入
+        sidebar.less                ← 从 src/components/ 迁入
+        category-panel.tsx          ← 从 src/components/ 迁入
+        category-panel.less         ← 从 src/components/ 迁入
+      hooks/
+        use-namespace/index.ts      ← 从 src/hooks/ 迁入
+        use-namespace/__tests__/    ← 从 src/hooks/ 迁入
+        use-theme/index.ts          ← 从 src/hooks/ 迁入
+        use-theme/__tests__/        ← 从 src/hooks/ 迁入
+      index.ts                      → 导出 Layout, Sidebar, CategoryPanel, hooks
+
+    redis-desktop-manager/
+      main.ts                       → 新建：Redis 独立入口
+      index.tsx                     → 保留
+      ...（其他不变）
+
+    sql-studio/
+      main.ts                       → 新建：SQL Studio 独立入口
+      index.tsx                     → 保留
+      ...（其他不变）
+
+    develop-tools/
+      json2ts/                      → 保留（仍由主窗口路由加载）
+      telepresence/                 → 保留（仍由主窗口路由加载）
+
+    settings/                       → 新建：从 src/pages/ 拆出
+      main.ts                       → 新建：独立入口
+      settings-page.tsx             ← 从 src/pages/ 迁入
+
+    about/                          → 新建：从 src/pages/ 拆出
+      main.ts                       → 新建：独立入口
+      about-page.tsx                ← 从 src/pages/ 迁入
+
+删除：
+  src/components/                   → 已迁入 modules/layout/components/
+  src/hooks/                        → 已迁入 modules/layout/hooks/
+  src/pages/                        → 已迁入 modules/settings/ + modules/about/
+  src/assets/styles/                → 已迁入 shared/styles/
+  src/assets/images/                → 已迁入 shared/assets/images/
+  src/i18n/                         → 已迁入 shared/i18n/
+  src/__mocks__/                    → 已迁入 shared/__mocks/
+  src/services/                     → 未被使用，直接删除
+  src/root-app.tsx                  → 不再需要
 ```
 
 ## 需要修改/新增的文件
 
-| 文件 | 变更类型 |
-|------|---------|
-| `src/modules/sql-studio/index.tsx` | 重构：嵌套 Splitview 布局 |
-| `src/modules/sql-studio/components/ResultTable.tsx` | 微调：移除错误展示（移至 Output tab） |
-| `src/modules/sql-studio/stores/sql-store.ts` | 微调：添加 `lastExecutedSql` 状态 |
-| `src/modules/sql-studio/index.less` | 修改：更新布局样式和新增 tab 样式 |
-| `src/modules/sql-studio/components/OutputPanel.tsx` | **新增**：Output tab 组件 |
+| 文件 | 操作 | 说明 |
+|------|------|------|
+| `rsbuild.config.ts` | 修改 | 单入口 → 多入口 |
+| `src/shared/create-app.ts` | 新建 | Vue 应用工厂函数 |
+| `src/main.ts` | 修改 | 使用 createApp 工厂 + 注册 Router |
+| `src/app.tsx` | 修改 | 去掉直接 import，改用路由懒加载 |
+| `src/router/index.ts` | 修改 | 路由表简化，develop-tools 懒加载 |
+| `src/modules/layout/**` | 新建/迁入 | Layout 模块 |
+| `src/modules/redis-desktop-manager/main.ts` | 新建 | Redis 独立入口 |
+| `src/modules/sql-studio/main.ts` | 新建 | SQL Studio 独立入口 |
+| `src/modules/settings/main.ts` | 新建 | Settings 独立入口 |
+| `src/modules/about/main.ts` | 新建 | About 独立入口 |
+| `src-tauri/capabilities/default.json` | 修改 | windows 数组添加 sql-studio |
+| `src-tauri/tauri.conf.json` | 修改 | beforeDevCommand 改为 pnpm |
+| **24+ 个组件文件** | 修改 | hooks/styles import 路径批量替换 |
+| **12+ 个 .less 文件** | 修改 | global.less import 路径替换 |
+| `vitest.config.ts` | 修改 | 测试 include 路径不变，无需修改 |
 
 ## 实现步骤
 
-### 步骤 1：Store 添加 lastExecutedSql
+### Phase 1：共享资源迁移
 
-**文件**: `src/modules/sql-studio/stores/sql-store.ts`
+#### 1.1 创建 `src/shared/` 目录并迁入资源
 
-添加一个新的 ref 记录最近执行的 SQL 语句：
+**迁入清单**：
+- `src/assets/styles/global.less` → `src/shared/styles/global.less`
+- `src/assets/styles/dark-theme.css` → `src/shared/styles/dark-theme.css`
+- `src/i18n/` → `src/shared/i18n/`
+- `src/assets/images/` → `src/shared/assets/images/`
+- `src/__mocks__/tauri.ts` → `src/shared/__mocks__/tauri.ts`
+
+**路径替换**：
+- 所有 `.less` 文件中的 `@import (reference) "../../assets/styles/global.less"` 及其变体 → 指向 `src/shared/styles/global.less` 的相对路径
+- `src/main.ts` 中的 `import "./assets/styles/global.less"` → `import "./shared/styles/global.less"`
+- `src/main.ts` 中的 `import "./assets/styles/dark-theme.css"` → `import "./shared/styles/dark-theme.css"`
+- `import i18n from "./i18n"` → `import i18n from "./shared/i18n"`
+- Sidebar.tsx 中的图片 import 路径更新
+
+#### 1.2 创建 `src/shared/create-app.ts`
+
+提取 `src/main.ts` 中的重复引导逻辑：
 
 ```typescript
-/** 最近执行的 SQL */
-const lastExecutedSql = ref<string | null>(null);
-```
+import * as ElementPlusIconsVue from "@element-plus/icons-vue";
+import ElementPlus from "element-plus";
+import { createPinia } from "pinia";
+import { createApp, type Component } from "vue";
+import { setupTheme } from "../modules/layout/hooks/use-theme";
+import i18n from "./i18n";
+import "element-plus/dist/index.css";
+import "element-plus/theme-chalk/dark/css-vars.css";
+import "./styles/global.less";
+import "./styles/dark-theme.css";
 
-在 `executeQuery` 函数开头记录：
-```typescript
-async function executeQuery(sql: string, database?: string) {
-  if (!sql.trim() || !activeConnectionId.value) return;
-  lastExecutedSql.value = sql.trim();
-  // ... 后续逻辑不变
+export function createAndMount(rootComponent: Component, mountId = "#root") {
+  setupTheme();
+  const app = createApp(rootComponent);
+  app.use(createPinia());
+  app.use(i18n);
+  app.use(ElementPlus);
+  for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+    app.component(key, component);
+  }
+  app.mount(mountId);
+  return app;
 }
 ```
 
-在 return 中导出 `lastExecutedSql`。
+#### 1.3 创建 `modules/layout/` 模块
 
-### 步骤 2：新增 OutputPanel 组件
+**迁入文件**（从 `src/components/` 和 `src/hooks/`）：
+- `src/components/Layout.tsx` → `src/modules/layout/components/Layout.tsx`
+- `src/components/layout.less` → `src/modules/layout/components/Layout.less`
+- `src/components/Sidebar.tsx` → `src/modules/layout/components/Sidebar.tsx`
+- `src/components/sidebar.less` → `src/modules/layout/components/sidebar.less`
+- `src/components/category-panel.tsx` → `src/modules/layout/components/category-panel.tsx`
+- `src/components/category-panel.less` → `src/modules/layout/components/category-panel.less`
+- `src/hooks/use-namespace/` → `src/modules/layout/hooks/use-namespace/`
+- `src/hooks/use-theme/` → `src/modules/layout/hooks/use-theme/`
 
-**文件**: `src/modules/sql-studio/components/OutputPanel.tsx`（新建）
+**路径替换（24+ 处 hooks import）**：
 
-Output tab 显示查询执行的元信息，类似控制台/日志面板：
+所有模块中对 `use-namespace` 的 import 需要更新：
 
-**Props**:
-- `executedSql: string | null` — 已执行的 SQL
-- `executionTimeMs: number | null` — 执行耗时
-- `error: string | null` — 错误信息
-- `success: boolean` — 是否成功
-- `loading: boolean` — 是否执行中
+| 当前路径 | 新路径（示例） |
+|---------|--------------|
+| `../../../hooks/use-namespace` (从 sql-studio/components/) | `../../../modules/layout/hooks/use-namespace` |
+| `../../hooks/use-namespace` (从模块根 index.tsx) | `../../modules/layout/hooks/use-namespace` |
+| `../../../../hooks/use-namespace` (从 develop-tools/) | `../../../../modules/layout/hooks/use-namespace` |
 
-**渲染内容**:
-1. **执行中状态**: 显示 "查询执行中..." 加载提示
-2. **无执行记录**: 显示空状态提示
-3. **有执行记录时**，按顺序展示：
-   - 执行状态标签: `<el-tag type="success">成功</el-tag>` 或 `<el-tag type="danger">失败</el-tag>`
-   - 执行时间: `耗时: {n} ms`
-   - 已执行 SQL: 在代码块中回显 SQL（支持折叠长 SQL）
-   - 错误信息（如果失败）: `<el-alert type="error">`
-
-### 步骤 3：重构主布局
-
-**文件**: `src/modules/sql-studio/index.tsx`
-
-**当前结构**（水平三分栏）:
-```tsx
-<SplitviewVue orientation={Orientation.HORIZONTAL}>
-  panels: SidebarPanel, EditorPanel, ResultPanel
-</SplitviewVue>
+**创建 `src/modules/layout/index.ts`**：
+```typescript
+export { default as Layout } from "./components/Layout";
+export { default as Sidebar } from "./components/Sidebar";
+export { default as CategoryPanel, getCategoriesByNav, getCategoryTitle } from "./components/category-panel";
+export { useCsNamespace } from "./hooks/use-namespace";
+export { setupTheme } from "./hooks/use-theme";
 ```
 
-**目标结构**（水平二分栏 + 嵌套垂直分割）:
-```tsx
-<SplitviewVue orientation={Orientation.HORIZONTAL}>
-  panels:
-    1. SidebarPanel (200-400px, default 260px)  // 不变
-    2. MainPanel (min 400px)                    // 新增：包含嵌套分割
-       → 内部渲染 <SplitviewVue orientation={Orientation.VERTICAL}>
-           panels:
-             a. EditorPanel (min 150px, default 400px)
-             b. BottomPanel (min 150px, default 250px)
-                → 内部渲染 el-tabs
-                   - "Output" tab → OutputPanel 组件
-                   - "Result" tab → ResultTable 组件
-</SplitviewVue>
-```
+**Layout 组件内部 import 路径更新**：
+- `Layout.tsx` 中的 `import CategoryPanel from "./category-panel"` 不变（同级目录）
+- `Layout.tsx` 中的 `import Sidebar from "./sidebar"` 不变
+- `Layout.tsx` 中的 `import { useCsNamespace } from "../hooks/use-namespace"` 不变
 
-具体改动：
+**use-theme 对 use-module-bus 的引用更新**：
+- `use-theme/index.ts` 中 `import { ... } from "../../modules/_shared/use-module-bus"` → `import { ... } from "../../_shared/use-module-bus"`（从 `modules/layout/hooks/` 到 `modules/_shared/` 是同级）
 
-1. **删除 `ResultPanel`**，改为 `MainPanel` 和 `BottomPanel`
+### Phase 2：多入口配置
 
-2. **`MainPanel`** — 新组件，包含嵌套的垂直 Splitview：
-```tsx
-const MainPanel = defineComponent({
-  name: "SqlMainPanel",
-  setup() {
-    const onReady = (event: SplitviewReadyEvent) => {
-      event.api.addPanel({ id: "editor", component: "EditorPanel", minimumSize: 150, size: 400 });
-      event.api.addPanel({ id: "bottom", component: "BottomPanel", minimumSize: 150, size: 250 });
-    };
-    return () => (
-      <SplitviewVue
-        components={{ EditorPanel, BottomPanel }}
-        orientation={Orientation.VERTICAL}
-        onReady={onReady}
-      />
-    );
+#### 2.1 修改 `rsbuild.config.ts`
+
+```typescript
+export default defineConfig({
+  plugins: [pluginBabel({ include: /\.(jsx|tsx)$/ }), pluginVue(), pluginVueJsx(), pluginLess()],
+  source: {
+    entry: {
+      index: "./src/main.ts",
+      redis: "./src/modules/redis-desktop-manager/main.ts",
+      "sql-studio": "./src/modules/sql-studio/main.ts",
+      settings: "./src/modules/settings/main.ts",
+      about: "./src/modules/about/main.ts",
+    },
   },
+  server: { port: 4421, strictPort: false },
+  html: { title: "Ran RS Desktop", template: "./index.html" },
+  output: { distPath: { root: "dist" }, assetPrefix: "/" },
+  tools: {
+    rspack: {
+      output: { globalObject: "self" },
+      // splitChunks: Rsbuild 2.x 默认已合理配置，先验证默认行为
+    },
+  },
+  dev: { client: { overlay: false } },
 });
 ```
 
-3. **`BottomPanel`** — 新组件，包含 el-tabs：
+Rsbuild 多入口会自动为每个 entry 生成同名 HTML（`index.html`、`redis.html`、`sql-studio.html`、`settings.html`、`about.html`），并注入对应 script。当前 `index.html` 中的 ResizeObserver 内联脚本会被所有入口共享，符合预期。
+
+#### 2.2 创建各模块入口文件
+
+**`src/modules/redis-desktop-manager/main.ts`**：
+```typescript
+import { createAndMount } from "../../shared/create-app";
+import RedisDesktopManager from "./index";
+createAndMount(RedisDesktopManager);
+```
+
+**`src/modules/sql-studio/main.ts`**：
+```typescript
+import { createAndMount } from "../../shared/create-app";
+import SqlStudio from "./index";
+createAndMount(SqlStudio);
+```
+
+**`src/modules/settings/main.ts`**：
+```typescript
+import { createAndMount } from "../../shared/create-app";
+import SettingsPage from "./settings-page";
+createAndMount(SettingsPage);
+```
+
+**`src/modules/about/main.ts`**：
+```typescript
+import { createAndMount } from "../../shared/create-app";
+import AboutPage from "./about-page";
+createAndMount(AboutPage);
+```
+
+**注意**：各模块的 `main.ts` 不注册 Router，不需要。只有主窗口入口需要 Router。
+
+### Phase 3：App.tsx 解耦与路由改造
+
+#### 3.1 简化 `src/main.ts`
+
+```typescript
+import router from "./router";
+import { createAndMount } from "./shared/create-app";
+import App from "./app";
+
+const app = createAndMount(App);
+app.use(router);
+```
+
+#### 3.2 改造 `src/app.tsx`
+
+**删除直接 import**：
+```typescript
+// 删除这些：
+// import SqlStudio from "./modules/sql-studio";
+// import { Json2TsPanel } from "./modules/develop-tools/json2ts";
+// import { TelepresencePanel } from "./modules/develop-tools/telepresence";
+// import { getCategoriesByNav, getCategoryTitle } from "./components/category-panel";
+// import Layout from "./components/layout";
+// import { useCsNamespace } from "./hooks/use-namespace";
+// import "./components/layout.less";
+```
+
+**新增路由化 import**：
+```typescript
+import Layout from "./modules/layout/components/Layout";
+import { getCategoriesByNav, getCategoryTitle } from "./modules/layout/components/category-panel";
+import { useCsNamespace } from "./modules/layout/hooks/use-namespace";
+import "./modules/layout/components/layout.less";
+```
+
+**`renderMainContent` 改为 `<router-view>`**：
 ```tsx
-const BottomPanel = defineComponent({
-  name: "SqlBottomPanel",
-  setup() {
-    const store = useSqlStore();
-    const activeTab = ref("output");
+// 在 Layout 的 main slot 中使用 router-view
+return () => (
+  <Layout ...>
+    <router-view />
+  </Layout>
+);
+```
 
-    // 查询成功后自动切换到 Result tab
-    watch(() => store.currentResult, (result) => {
-      if (result) activeTab.value = "result";
-    });
-    // 查询失败后自动切换到 Output tab
-    watch(() => store.queryError, (error) => {
-      if (error) activeTab.value = "output";
-    });
+**`buildWindowUrl` 改为 `buildModuleUrl`**：
+```typescript
+function buildModuleUrl(entryName: string): string {
+  // 开发模式：http://localhost:4421/redis.html
+  // 生产模式：Tauri 使用相对路径，自动解析为 tauri://localhost/redis.html
+  const isDev = !("__TAURI_INTERNALS__" in window) || window.location.protocol.startsWith("http");
+  if (isDev) {
+    const base = window.location.origin + window.location.pathname.replace(/[^/]*$/, "");
+    return `${base}${entryName}.html`;
+  }
+  return `${entryName}.html`;
+}
+```
 
-    return () => (
-      <div class="ran-sql-studio__bottom">
-        <el-tabs v-model={activeTab.value} class="ran-sql-bottom-tabs">
-          <el-tab-pane label="Output" name="output">
-            <OutputPanel
-              executedSql={store.lastExecutedSql}
-              executionTimeMs={store.currentResult?.executionTimeMs ?? null}
-              error={store.queryError}
-              success={!store.queryError && !!store.currentResult}
-              loading={store.executing}
-            />
-          </el-tab-pane>
-          <el-tab-pane label="Result" name="result">
-            <ResultTable
-              result={store.currentResult}
-              error={store.queryError}
-              loading={store.executing}
-            />
-          </el-tab-pane>
-        </el-tabs>
-      </div>
-    );
+**handleNavSelect 更新**：
+- Redis 点击 → `buildModuleUrl("redis")` 打开新窗口
+- Database 点击 → `router.push("/database/sql-studio")` 或 `buildModuleUrl("sql-studio")` 打开新窗口
+- K8s/Home → 通过路由切换
+
+**handleToolClick 更新**：
+- Settings → `buildModuleUrl("settings")` 打开新窗口
+- About → `buildModuleUrl("about")` 打开新窗口
+
+#### 3.3 更新路由表
+
+```typescript
+const routes: RouteRecordRaw[] = [
+  {
+    path: "/",
+    component: () => import("../app"),  // 主布局
+    children: [
+      { path: "", name: "home", component: () => import("../modules/develop-tools/telepresence") },
+      { path: "k8s/telepresence", name: "telepresence", component: () => import("../modules/develop-tools/telepresence") },
+      { path: "k8s/json2ts", name: "json2ts", component: () => import("../modules/develop-tools/json2ts") },
+      { path: "database/sql-studio", name: "sql-studio-embed", component: () => import("../modules/sql-studio") },
+    ],
   },
-});
+];
 ```
 
-4. **外层 `onReady`** — 从 3 个面板改为 2 个：
-```tsx
-const onReady = (event: SplitviewReadyEvent) => {
-  event.api.addPanel({ id: "sidebar", component: "SidebarPanel", minimumSize: 200, maximumSize: 400, size: 260 });
-  event.api.addPanel({ id: "main", component: "MainPanel", minimumSize: 400 });
-};
-```
+### Phase 4：Tauri 配置更新
 
-5. **组件注册** — 更新外层 components map：
-```tsx
-components={{ SidebarPanel, MainPanel }}
-```
+#### 4.1 `src-tauri/tauri.conf.json`
 
-### 步骤 4：微调 ResultTable
-
-**文件**: `src/modules/sql-studio/components/ResultTable.tsx`
-
-ResultTable 当前已包含错误提示（`el-alert`）和加载状态。在 tab 模式下，这些状态会与 Output tab 内容重叠。做以下调整：
-
-1. **保留**：信息栏（行数、执行时间、导出按钮）、加载状态、空结果提示
-2. **保留**：错误时的 `el-empty` 状态
-3. **移除**：错误 `el-alert`（已移至 OutputPanel 展示，避免重复）
-
-即删除 ResultTable 中的这段：
-```tsx
-{props.error && !props.loading && (
-  <el-alert title="查询执行失败" description={props.error} ... />
-)}
-```
-
-### 步骤 5：样式更新
-
-**文件**: `src/modules/sql-studio/index.less`
-
-1. **更新 `&__sidebar`** — 保持不变
-2. **删除** `&__editor` 和 `&__result` 的独立样式（不再作为外层面板）
-3. **新增 `&__bottom`** — 底部面板容器：
-```less
-.ran-sql-studio__bottom {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-```
-
-4. **新增底部 tab 样式** — 控制 el-tabs 在底部面板中的表现：
-```less
-.ran-sql-bottom-tabs {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-
-  .el-tabs__content {
-    flex: 1;
-    overflow: auto;
-  }
-  .el-tabs__header {
-    margin-bottom: 0;
-    padding: 0 8px;
+```json
+{
+  "build": {
+    "beforeDevCommand": "pnpm run dev",
+    "devUrl": "http://localhost:4421",
+    "beforeBuildCommand": "pnpm run build",
+    "frontendDist": "../dist"
   }
 }
 ```
 
-5. **OutputPanel 样式** — 在 index.less 中添加 `.ran-sql-output` block：
-```less
-.ran-sql-output {
-  padding: 12px;
-  font-size: 13px;
-  line-height: 1.6;
+注意 `beforeDevCommand` 从 `npm run dev` 改为 `pnpm run dev`。主窗口默认加载 `/`（即 `index.html`），无需额外配置。
 
-  &__status { ... }
-  &__sql {
-    background: #f5f7fa;
-    border-radius: 4px;
-    padding: 8px 12px;
-    font-family: monospace;
-    white-space: pre-wrap;
-    word-break: break-all;
-    max-height: 120px;
-    overflow-y: auto;
-  }
-  &__time { ... }
+#### 4.2 `src-tauri/capabilities/default.json`
+
+```json
+{
+  "windows": ["main", "settings", "about", "redis", "sql-studio"]
 }
 ```
 
-6. **更新 dark theme** — 为新增样式添加暗色规则
+添加 `"sql-studio"` 窗口标签。
 
-## 边界情况处理
+### Phase 5：清理废弃文件
 
-- **首次加载无结果**：Output tab 显示 "执行查询以查看输出"，Result tab 显示现有空状态
-- **执行中**：Output tab 显示加载提示，Result tab 保持之前结果
-- **查询成功**：自动切换到 Result tab
-- **查询失败**：自动切换到 Output tab 显示错误
-- **长 SQL 显示**：OutputPanel 中的 SQL 代码块设置 max-height，超出滚动
+删除以下已迁移的原始文件/目录：
+- `src/components/` 目录
+- `src/hooks/` 目录
+- `src/pages/` 目录
+- `src/assets/styles/` 目录
+- `src/assets/images/` 目录
+- `src/i18n/` 目录
+- `src/__mocks__/` 目录
+- `src/services/` 目录（未被使用）
+- `src/root-app.tsx`
+
+## 路径替换汇总
+
+影响面最大的改动是 hooks 和 styles 的路径变更：
+
+| 类型 | 受影响文件数 | 变更说明 |
+|------|------------|---------|
+| `use-namespace` import | 24 处 | `../hooks/use-namespace` → `../modules/layout/hooks/use-namespace`（各层级不同） |
+| `use-theme` import | 1 处 | 仅 `main.ts`（现已在 create-app.ts 中） |
+| `global.less` @import | 12 处 | `../../assets/styles/global.less` → `../../shared/styles/global.less`（各层级不同） |
+| Layout/Sidebar import | 2 处 | `app.tsx` 和 `Layout.tsx` 内部 |
+| `dark-theme.css` import | 1 处 | `main.ts`（现已在 create-app.ts 中） |
+| Element Plus CSS import | 1 处 | `main.ts`（现已在 create-app.ts 中） |
+| 测试 mock import | 2 处 | `src/__mocks__/tauri.ts` → `src/shared/__mocks__/tauri.ts` |
 
 ## 验证方式
 
-1. **编译检查**：`cd ran-rs-desktop && pnpm run typecheck`
-2. **功能测试**：
-   - 页面加载后应显示左 sidebar + 右侧上下分割布局
-   - 编辑器和底部结果区域之间应有可拖拽分隔条
-   - 底部区域应显示 Output / Result 两个 tab
-   - 执行 SQL 后应自动切换到 Result tab 显示结果
-   - 执行失败的 SQL 应自动切换到 Output tab 显示错误
-   - Output tab 应显示执行状态、时间、SQL 回显
-   - sidebar 宽度仍可拖拽调整
+### 编译验证
+1. `pnpm run typecheck` — TypeScript 无错误
+2. `pnpm run build` — Rsbuild 构建成功，产出 5 个 HTML 文件
+3. `pnpm run test` — 所有 vitest 测试通过
+
+### 开发模式验证
+4. `pnpm run dev` 启动后：
+   - `http://localhost:4421/` → 主窗口 Layout 正常渲染
+   - `http://localhost:4421/redis.html` → Redis Desktop Manager 正常渲染
+   - `http://localhost:4421/sql-studio.html` → SQL Studio 正常渲染
+   - `http://localhost:4421/settings.html` → 设置页正常渲染
+   - `http://localhost:4421/about.html` → 关于页正常渲染
+
+### Tauri 集成验证
+5. `pnpm run tauri:dev` — 主窗口正常，导航打开各独立窗口正常
+6. `pnpm run tauri:build` — 生产打包成功
