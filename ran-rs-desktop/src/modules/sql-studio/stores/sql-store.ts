@@ -43,6 +43,9 @@ export const useSqlStore = defineStore("sql-studio", () => {
   /** 查询历史 */
   const queryHistory = ref<QueryHistory[]>([]);
 
+  /** 当前连接的 SQL 草稿内容 */
+  const draftSql = ref<string>("");
+
   // ==================== 连接 Computed ====================
 
   /** 当前活跃连接信息 */
@@ -157,6 +160,8 @@ export const useSqlStore = defineStore("sql-studio", () => {
   async function deleteConnection(id: string) {
     try {
       await sqlService.deleteConnection(id);
+      // 清理草稿文件
+      sqlService.deleteDraftSql(id).catch(() => {});
       configMap.value.delete(id);
       await refreshConnections();
       if (activeConnectionId.value === id) {
@@ -247,12 +252,41 @@ export const useSqlStore = defineStore("sql-studio", () => {
     }
   }
 
-  // 切换活跃连接时自动加载查询历史
+  /** 加载 SQL 草稿 */
+  async function loadDraftSqlAction() {
+    if (!activeConnectionId.value) {
+      draftSql.value = "";
+      return;
+    }
+    try {
+      const content = await sqlService.loadDraftSql(activeConnectionId.value);
+      draftSql.value = content ?? "";
+    } catch {
+      draftSql.value = "";
+    }
+  }
+
+  /** 保存 SQL 草稿 */
+  async function saveDraftSqlAction(sql: string) {
+    if (!activeConnectionId.value) {
+      return;
+    }
+    draftSql.value = sql;
+    try {
+      await sqlService.saveDraftSql(activeConnectionId.value, sql);
+    } catch {
+      // 保存草稿失败不影响主流程
+    }
+  }
+
+  // 切换活跃连接时自动加载查询历史和草稿
   watch(activeConnectionId, (newId) => {
     if (newId) {
       loadQueryHistory();
+      loadDraftSqlAction();
     } else {
       queryHistory.value = [];
+      draftSql.value = "";
     }
   });
 
@@ -280,5 +314,9 @@ export const useSqlStore = defineStore("sql-studio", () => {
     executeQuery,
     clearResult,
     loadQueryHistory,
+    // 草稿
+    draftSql,
+    loadDraftSqlAction,
+    saveDraftSqlAction,
   };
 });

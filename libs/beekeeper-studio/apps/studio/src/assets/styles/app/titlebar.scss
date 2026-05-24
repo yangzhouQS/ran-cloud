@@ -1,0 +1,148 @@
+$titlebar-actions-height:   30px;
+
+.titlebar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $titlebar-bg;
+  padding: 0 $gutter-h;
+  margin: 0;
+  min-height: 1.6rem;
+  z-index: 100;
+  -webkit-app-region: drag;
+  .titlebar-icon {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    display: flex;
+    -webkit-app-region: no-drag;
+    // width: 120px;
+    img {
+      height: 30px;
+      width: 32px;
+      padding: $gutter-h 0;
+      -webkit-app-region: drag;
+    }
+    .flyout-nav {
+      z-index: 1;
+      -webkit-app-region: no-drag;
+      li > a, .menu-item {
+        -webkit-app-region: no-drag;
+      }
+    }
+  }
+  x-menubar {
+    margin: -11px 0;
+  }
+  .titlebar-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    color: $text-light;
+    font-size: 0.85rem;
+    line-height: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    > span {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+  &.fullscreen .titlebar-title {
+    -webkit-app-region: no-drag;
+  }
+  .titlebar-actions {
+    margin-left: auto;
+    -webkit-app-region: no-drag;
+    &, .window-controls-container {
+      display: flex;
+    }
+    button {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      border-radius: 0;
+      color: $text-light;
+      margin: 0;
+      z-index: 10;
+      box-shadow: none;
+      &:hover {
+        color: $text-dark;
+      }
+      &:focus {
+        background: transparent;
+      }
+    }
+    .titlebar-actions-extra {
+      display: flex;
+      gap: 0.5rem;
+      margin-right: 0.75rem;
+      & > button {
+        height: auto;
+        align-self: center;
+        padding: 0;
+        i {
+          font-size: 1.35rem;
+        }
+      }
+    }
+    .window-controls-container  {
+      button {
+        padding: 0 0.75rem;
+        height: $titlebar-actions-height;
+      }
+    }
+    #maximize {
+      i {
+        font-size: 16px;
+      }
+      .maximized {
+        transform: rotate(180deg);
+      }
+      &:hover {
+        background: $brand-info;
+      }
+    }
+    #quit {
+      &:hover {
+        background: $brand-danger;
+      }
+    }
+  }
+
+  // If Windows
+  &.windows {
+    justify-content: space-between;
+    .titlebar-icon {
+      position: relative;
+      top: initial;
+      left: initial;
+      bottom: initial;
+    }
+  }
+}
+
+.titlebar-reveal {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100vw;
+  height: 1px;
+  z-index: 999;
+}
+
+.titlebar-wrapper {
+  padding-bottom: $gutter-h;
+  background-color: var(--bks-titleBar-activeBackground);
+  color: var(--bks-titleBar-activeForeground);
+  & .titlebar.windows.fullscreen {
+    display: none;
+    -webkit-app-region: no-drag;
+  }
+  &:hover .titlebar.windows.fullscreen {
+    display: flex;
+  }
+}

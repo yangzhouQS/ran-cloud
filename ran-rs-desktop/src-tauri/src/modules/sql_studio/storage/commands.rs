@@ -62,3 +62,31 @@ pub async fn sql_storage_cleanup_query_history(
 ) -> Result<u64, AppError> {
     storage.cleanup_query_history(keep_count.unwrap_or(1000))
 }
+
+/// 保存 SQL 草稿
+#[tauri::command]
+pub async fn sql_storage_save_draft(
+    storage: State<'_, Arc<StorageService>>,
+    connection_id: String,
+    sql: String,
+) -> Result<(), AppError> {
+    storage.save_draft_sql(&connection_id, &sql)
+}
+
+/// 加载 SQL 草稿
+#[tauri::command]
+pub async fn sql_storage_load_draft(
+    storage: State<'_, Arc<StorageService>>,
+    connection_id: String,
+) -> Result<Option<String>, AppError> {
+    storage.load_draft_sql(&connection_id)
+}
+
+/// 删除 SQL 草稿
+#[tauri::command]
+pub async fn sql_storage_delete_draft(
+    storage: State<'_, Arc<StorageService>>,
+    connection_id: String,
+) -> Result<(), AppError> {
+    storage.delete_draft_sql(&connection_id)
+}

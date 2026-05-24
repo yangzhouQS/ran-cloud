@@ -9,8 +9,10 @@
 
 import type { PropType } from "vue";
 import type { QueryHistory } from "../types/query";
-import { defineComponent, onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
+import { defineComponent, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
 import { useCsNamespace } from "../../../hooks/use-namespace";
+
+const DEFAULT_SQL = "-- 在此输入 SQL 查询\nSELECT 1;";
 
 const QueryEditor = defineComponent({
   name: "SqlQueryEditor",
@@ -19,13 +21,15 @@ const QueryEditor = defineComponent({
     database: { type: String as PropType<string | null>, default: null },
     executing: { type: Boolean, default: false },
     queryHistory: { type: Array as PropType<QueryHistory[]>, default: () => [] },
+    draftContent: { type: String, default: "" },
     onExecute: { type: Function as PropType<(sql: string) => Promise<void>>, required: true },
+    onDraftChange: { type: Function as PropType<(sql: string) => void>, default: undefined },
   },
   setup(props) {
     const ns = useCsNamespace("sql-query-editor");
     const editorContainerRef = ref<HTMLElement | null>(null);
     const editorInstance = shallowRef<any>(null);
-    const sqlContent = ref("-- 在此输入 SQL 查询\nSELECT * FROM ");
+    const sqlContent = ref(props.draftContent || DEFAULT_SQL);
     const showHistory = ref(false);
 
     /** 执行 SQL */
@@ -84,7 +88,9 @@ const QueryEditor = defineComponent({
 
         // 同步编辑器内容
         editor.onDidChangeModelContent(() => {
-          sqlContent.value = editor.getValue();
+          const value = editor.getValue();
+          sqlContent.value = value;
+          props.onDraftChange?.(value);
         });
       } catch (e) {
         console.error("Monaco Editor 初始化失败:", e);
@@ -93,6 +99,17 @@ const QueryEditor = defineComponent({
 
     onBeforeUnmount(() => {
       editorInstance.value?.dispose();
+    });
+
+    // 监听 draftContent 变化（连接切换时更新编辑器内容）
+    watch(() => props.draftContent, (newDraft) => {
+      if (newDraft !== undefined && editorInstance.value) {
+        const content = newDraft || DEFAULT_SQL;
+        // 只在内容不同时更新，避免光标跳动
+        if (editorInstance.value.getValue() !== content) {
+          editorInstance.value.setValue(content);
+        }
+      }
     });
 
     /** 清空编辑器 */

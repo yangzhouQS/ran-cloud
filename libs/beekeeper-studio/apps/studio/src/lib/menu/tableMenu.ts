@@ -1,0 +1,423 @@
+import {
+  CellComponent,
+  ColumnComponent,
+  MenuObject,
+  RangeComponent,
+  Tabulator,
+} from "tabulator-tables";
+import { markdownTable } from "markdown-table";
+import { ElectronPlugin } from "@/lib/NativeWrapper";
+import Papa from "papaparse";
+import { stringifyRangeData, rowHeaderField, isNumericDataType } from "@/common/utils";
+import { escapeHtml } from "@shared/lib/tabulator";
+import _ from "lodash";
+// ?? not sure about this but :shrug:
+import Vue from "vue";
+
+type ColumnMenuItem = MenuObject<ColumnComponent>;
+type RangeData = Record<string, any>[];
+interface ExtractedData {
+  data: RangeData;
+  sources: RangeComponent[];
+}
+
+export const sortAscending: ColumnMenuItem = {
+  label: createMenuItem("Sort ascending"),
+  action: (_, column) => column.getTable().setSort(column.getField(), "asc"),
+};
+
+export const sortDescending: ColumnMenuItem = {
+  label: createMenuItem("Sort descending"),
+  action: (_, column) => column.getTable().setSort(column.getField(), "desc"),
+};
+
+export const hideColumn: ColumnMenuItem = {
+  label: createMenuItem("Hide column"),
+  action: (_, column) => column.hide(),
+};
+
+export const resizeAllColumnsToMatch: ColumnMenuItem = {
+  label: createMenuItem("Resize all columns to match"),
+  action: (_, column) => {
+    try {
+      column.getTable().blockRedraw();
+      const columns = column.getTable().getColumns();
+      columns.forEach((col) => {
+        if (col.getField() !== rowHeaderField) {
+          col.setWidth(column.getWidth());
+        }
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      column.getTable().restoreRedraw();
+    }
+  },
+};
+
+export const resizeAllColumnsToFitContent: ColumnMenuItem = {
+  label: createMenuItem("Resize all columns to fit content"),
+  action: (_, column) => resizeAllColumnsToFitContentAction(column.getTable()),
+};
+
+export const resizeAllColumnsToFixedWidth: ColumnMenuItem = {
+  label: createMenuItem("Resize all columns to fixed width"),
+  action: (_, column) => {
+    try {
+      column.getTable().blockRedraw();
+      const columns = column.getTable().getColumns();
+      columns.forEach((col) => {
+        if (col.getField() !== rowHeaderField) {
+          col.setWidth(200);
+        }
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      column.getTable().restoreRedraw();
+    }
+  },
+};
+
+export function resizeAllColumnsToFitContentAction(table: Tabulator) {
+  try {
+    const columns = table.getColumns();
+    columns.forEach((col) => {
+      if (col.getField() !== rowHeaderField) {
+        col.setWidth(true);
+      }
+    });
+  } catch (error) {
+    console.error(error);
+  } finally {
+    table.restoreRedraw();
+  }
+}
+
+export const commonColumnMenu = [
+  sortAscending,
+  sortDescending,
+  { separator: true },
+  resizeAllColumnsToMatch,
+  resizeAllColumnsToFitContent,
+  resizeAllColumnsToFixedWidth,
+];
+
+export function createMenuItem(label: string, shortcut = "", ultimate = false) {
+  label = `<x-label>${escapeHtml(label)}</x-label>`;
+  if (shortcut) shortcut = `<x-shortcut value="${escapeHtml(shortcut)}" />`;
+  const ultimateIcon = ultimate ? `<i class="material-icons menu-icon">stars</i>` : '';
+  return `<x-menuitem>${label}${shortcut}${ultimateIcon}</x-menuitem>`;
+}
+
+export async function copyRanges(options: {
+  ranges: RangeComponent[];
+  type: "plain" | "tsv" | "json" | "markdown" | "columnName" | "asIn";
+}): Promise<void>;
+export async function copyRanges(options: {
+  ranges: RangeComponent[];
+  type: "sql";
+  table: string;
+  schema?: string;
+}): Promise<void>;
+export async function copyRanges(options: {
+  ranges: RangeComponent[];
+  type: "plain" | "tsv" | "json" | "markdown" | "sql" | "columnName" | "asIn";
+  table?: string;
+  schema?: string;
+}) {
+  let text = "";
+
+  const extractedData = extractRanges(options.ranges);
+  const rangeData = extractedData.data;
+  const stringifiedRangeData = stringifyRangeData(rangeData);
+
+  switch (options.type) {
+    case "plain": {
+      if (countCellsFromData(rangeData) === 1) {
+        const key = Object.keys(stringifiedRangeData[0])[0];
+        text = stringifiedRangeData[0][key];
+      } else {
+        text = Papa.unparse(stringifiedRangeData, {
+          header: false,
+          delimiter: "\t",
+          quotes: false,
+          escapeFormulae: false,
+        });
+      }
+      break;
+    }
+    case "tsv":
+      text = Papa.unparse(stringifiedRangeData, {
+        header: false,
+        delimiter: "\t",
+        quotes: true,
+        escapeFormulae: true,
+      });
+      break;
+    case "json":
+      text = JSON.stringify(rangeData);
+      break;
+    case "markdown": {
+      const headers = Object.keys(stringifiedRangeData[0]);
+      text = markdownTable([
+        headers,
+        ...stringifiedRangeData.map((item) => Object.values(item)),
+      ]);
+      break;
+    }
+    case "asIn": {
+      const [colDataType] = Object.keys(rangeData[0])
+      const columns = await Vue.prototype.$util.send("conn/listTableColumns", {
+        table: options.table,
+        schema: options.schema
+      });
+      const dataType = columns.find(c => c.columnName === colDataType)?.dataType
+      const isNumericType = isNumericDataType(dataType)
+      const textArr = rangeData.map(rd => {
+        const [data] = Object.values(rd)
+        return isNumericType ? data : `'${data}'`
+      })
+      text = `(\n${textArr.join(',\n')}\n)`
+      break
+    }
+    case "sql":
+      text = await Vue.prototype.$util.send("conn/getInsertQuery", {
+        tableInsert: {
+          table: options.table,
+          schema: options.schema,
+          data: rangeData,
+        },
+      });
+      break;
+    case "columnName":
+      text = Object.keys(extractedData.data[0]).join(" ");
+      break;
+  }
+  ElectronPlugin.clipboard.writeText(text);
+  extractedData.sources.forEach((range) => {
+    (range.getElement() as HTMLElement).classList.add("copied");
+  });
+}
+
+function extractRanges(ranges: RangeComponent[]): ExtractedData {
+  if (ranges.length === 0) return;
+
+  if (ranges.length === 1) {
+    const rangeData = ranges[0].getData() as RangeData;
+    // Replace column identifiers with column titles
+    const columns = ranges[0].getColumns();
+    const mappedData = mapColumnIdsToTitles(rangeData, columns);
+
+    return {
+      data: mappedData,
+      sources: [ranges[0]],
+    };
+  }
+
+  let sameColumns = true;
+  let sameRows = true;
+  const firstCols = ranges[0].getColumns();
+  const firstRows = ranges[0].getRows();
+
+  for (let i = 1; i < ranges.length; i++) {
+    if (!_.isMatch(firstCols, ranges[i].getColumns())) {
+      sameColumns = false;
+    }
+
+    if (!_.isMatch(firstRows, ranges[i].getRows())) {
+      sameRows = false;
+    }
+
+    if (!sameColumns && !sameRows) break;
+  }
+
+  if (sameColumns) {
+    const allData = ranges.reduce((data, range) => data.concat(range.getData()), []);
+    // Replace column identifiers with column titles
+    const columns = ranges[0].getColumns();
+    const mappedData = mapColumnIdsToTitles(allData, columns);
+
+    return {
+      data: mappedData,
+      sources: ranges,
+    };
+  }
+
+  if (sameRows) {
+    const sorted = _.sortBy(ranges, (range) => range.getLeftEdge());
+    const rows = sorted[0].getData() as RangeData;
+    for (let i = 1; i < sorted.length; i++) {
+      const data = sorted[i].getData() as RangeData;
+      for (let j = 0; j < data.length; j++) {
+        _.forEach(data[j], (value, key) => {
+          rows[j][key] = value;
+        });
+      }
+    }
+
+    // Replace column identifiers with column titles
+    const allColumns = sorted.reduce((cols, range) => cols.concat(range.getColumns()), []);
+    const uniqueColumns = _.uniqBy(allColumns, col => col.getField());
+    const mappedData = mapColumnIdsToTitles(rows, uniqueColumns);
+
+    return {
+      data: mappedData,
+      sources: ranges,
+    };
+  }
+
+  const source = _.first(ranges);
+  const rangeData = source.getData() as RangeData;
+
+  // Replace column identifiers with column titles
+  const columns = source.getColumns();
+  const mappedData = mapColumnIdsToTitles(rangeData, columns);
+
+  return {
+    data: mappedData,
+    sources: [source],
+  };
+}
+
+function countCellsFromData(data: RangeData) {
+  return data.reduce((acc, row) => acc + Object.keys(row).length, 0);
+}
+
+export function pasteRange(range: RangeComponent) {
+  const text = ElectronPlugin.clipboard.readText();
+  if (!text) return;
+
+  const parsedText = Papa.parse(text, {
+    header: false,
+    delimiter: "\t",
+  });
+
+  if (parsedText.errors.length > 0) {
+    const cell = range.getCells()[0][0];
+    setCellValue(cell, text);
+  } else {
+    const table = range.getRows()[0].getTable();
+    const rows = table.getRows("active").slice(range.getTopEdge());
+    const columns = table
+      .getColumns(false)
+      .filter((col) => col.isVisible())
+      .slice(range.getLeftEdge());
+    const cells: CellComponent[][] = rows.map((row) => {
+      const arr = [];
+      row.getCells().forEach((cell) => {
+        if (columns.includes(cell.getColumn())) {
+          arr.push(cell);
+        }
+      });
+      return arr;
+    });
+
+    parsedText.data.forEach((row: string[], rowIdx) => {
+      row.forEach((text, colIdx) => {
+        const cell = cells[rowIdx]?.[colIdx];
+        if (!cell) return;
+        setCellValue(cell, text);
+      });
+    });
+  }
+}
+
+export function setCellValue(cell: CellComponent, value: string) {
+  const editableFunc = cell.getColumn().getDefinition().editable;
+  const editable =
+    typeof editableFunc === "function" ? editableFunc(cell) : editableFunc;
+  if (editable) cell.setValue(value);
+}
+
+// Helper function to map column IDs to column titles
+function mapColumnIdsToTitles(data: RangeData, columns: ColumnComponent[]): RangeData {
+  if (!data || !data.length || !columns || !columns.length) return data;
+
+  const colIdToTitleMap = new Map();
+  columns.forEach(col => {
+    const field = col.getField();
+    if (field === rowHeaderField) return; // Skip row header
+    const title = col.getDefinition().title;
+    if (title) colIdToTitleMap.set(field, title);
+  });
+
+  return data.map(row => {
+    const newRow = {};
+    Object.entries(row).forEach(([key, value]) => {
+      const newKey = colIdToTitleMap.get(key) || key;
+      newRow[newKey] = value;
+    });
+    return newRow;
+  });
+}
+
+export function copyActionsMenu(options: {
+  ranges: RangeComponent[];
+  table?: string;
+  schema?: string;
+}) {
+  const { ranges, table, schema } = options;
+  const columnCount = ranges[0].getColumns().length
+  const copyActions = [
+    {
+      label: createMenuItem("Copy", "Control+C"),
+      action: () => copyRanges({ ranges, type: "plain" }),
+    },
+    {
+      label: createMenuItem("Copy Column Name"),
+      action: () => copyRanges({ ranges, type: "columnName" }),
+    },
+    {
+      label: createMenuItem("Copy as TSV for Excel"),
+      action: () => copyRanges({ ranges, type: "tsv" }),
+    },
+    {
+      label: createMenuItem("Copy as JSON"),
+      action: () => copyRanges({ ranges, type: "json" }),
+    },
+    {
+      label: createMenuItem("Copy as Markdown"),
+      action: () => copyRanges({ ranges, type: "markdown" }),
+    },
+    {
+      label: createMenuItem("Copy as SQL"),
+      action: () =>
+        copyRanges({
+          ranges,
+          type: "sql",
+          table,
+          schema,
+        }),
+    },
+  ];
+
+  if (columnCount === 1) {
+    copyActions.push({
+      label: createMenuItem("Copy for IN statement"),
+      action: () => copyRanges({ ranges, type: "asIn", table, schema }),
+    })
+  }
+
+  return copyActions
+}
+
+export function copyCellMenu(_e: any, cell: CellComponent) {
+  const value = cell.getValue();
+  const text = value == null ? "" : String(value);
+  return [
+    {
+      label: createMenuItem("Copy"),
+      action: () => ElectronPlugin.clipboard.writeText(text),
+    },
+  ];
+}
+
+export function pasteActionsMenu(range: RangeComponent) {
+  return [
+    {
+      label: createMenuItem("Paste", "Control+V"),
+      action: () => pasteRange(range),
+    },
+  ];
+}

@@ -14,6 +14,7 @@ use super::super::connection::models::ConnectionConfig;
 /// 使用 rusqlite 管理一个 SQLite 文件用于持久化
 pub struct StorageService {
     conn: Mutex<Connection>,
+    data_dir: PathBuf,
 }
 
 impl StorageService {
@@ -55,6 +56,7 @@ impl StorageService {
 
         Ok(Self {
             conn: Mutex::new(conn),
+            data_dir,
         })
     }
 
@@ -187,5 +189,48 @@ impl StorageService {
         ).map_err(|e| AppError::Storage(format!("清理查询历史失败: {}", e)))?;
 
         Ok(affected as u64)
+    }
+
+    // ========== SQL 草稿文件持久化 ==========
+
+    /// 保存 SQL 草稿到文件
+    /// 路径: {data_dir}/sql_drafts/{connection_id}/draft.sql
+    pub fn save_draft_sql(&self, connection_id: &str, sql: &str) -> Result<(), AppError> {
+        let draft_dir = self.data_dir.join("sql_drafts").join(connection_id);
+        std::fs::create_dir_all(&draft_dir)
+            .map_err(|e| AppError::Storage(format!("创建草稿目录失败: {}", e)))?;
+
+        let draft_path = draft_dir.join("draft.sql");
+        std::fs::write(&draft_path, sql)
+            .map_err(|e| AppError::Storage(format!("保存草稿文件失败: {}", e)))?;
+
+        Ok(())
+    }
+
+    /// 加载 SQL 草稿文件
+    /// 文件不存在时返回 None
+    pub fn load_draft_sql(&self, connection_id: &str) -> Result<Option<String>, AppError> {
+        let draft_path = self.data_dir.join("sql_drafts").join(connection_id).join("draft.sql");
+
+        if !draft_path.exists() {
+            return Ok(None);
+        }
+
+        let content = std::fs::read_to_string(&draft_path)
+            .map_err(|e| AppError::Storage(format!("读取草稿文件失败: {}", e)))?;
+
+        Ok(Some(content))
+    }
+
+    /// 删除连接的草稿目录
+    pub fn delete_draft_sql(&self, connection_id: &str) -> Result<(), AppError> {
+        let draft_dir = self.data_dir.join("sql_drafts").join(connection_id);
+
+        if draft_dir.exists() {
+            std::fs::remove_dir_all(&draft_dir)
+                .map_err(|e| AppError::Storage(format!("删除草稿目录失败: {}", e)))?;
+        }
+
+        Ok(())
     }
 }

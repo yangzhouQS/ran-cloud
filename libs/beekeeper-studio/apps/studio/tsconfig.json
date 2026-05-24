@@ -1,0 +1,40 @@
+{
+  "extends": "../../tsconfig.base.json",
+ "vueCompilerOptions": {
+    "target": 2.7
+  },
+  "compilerOptions": {
+    "rootDirs": [
+      "src", "src-commercial", "tests"
+    ],
+    "target": "es2018",
+    "module": "esnext",
+    "outDir": "dist",
+    "baseUrl": ".",
+    "types": [
+      "jest"
+    ],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@commercial/*": ["./src-commercial/*"],
+      "@tests/*": ["./tests/*"],
+      "@bksLogger": ["./src/lib/log/bksLogger.ts"],
+      "@beekeeperstudio/ui-kit": ["../ui-kit/dist"],
+      "@beekeeperstudio/ui-kit/*": ["../ui-kit/dist/*"]
+    },
+    "lib": [
+      "esnext",
+      "dom",
+      "dom.iterable",
+      "scripthost"
+    ]
+  },
+
+  "exclude": [
+    "node_modules", "dist", "dist_electron"
+  ],
+  "sourceMapPathOverrides": {
+    "src/*": "${webRoot}/apps/studio/src/*"
+  }
+}

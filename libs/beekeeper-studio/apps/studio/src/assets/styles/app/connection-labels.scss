@@ -1,0 +1,87 @@
+@use "sass:list";
+$color-defaults: (
+  red:          $brand-danger,
+  orange:       $brand-warning,
+  yellow:       $brand-primary,
+  green:        $brand-success,
+  blue:         $brand-info,
+  purple:       $brand-purple,
+  pink:         $brand-pink,
+);
+
+@each $key, $val in $color-defaults {
+  .connection-label-color-#{'#{$key}'} {
+    --connection-label-color: #{list.nth($val, 1)};
+  }
+}
+
+.connection-label {
+  display: inline-flex;
+  background-color: transparent;
+  height: 30px;
+  min-width: 3px;
+  width: 3px;
+  border-radius: 3px;
+  margin-right: $gutter-w * 0.85;
+  background-color: rgba($theme-base, 0.08);
+
+  @each $key, $val in $color-defaults {
+    &.connection-label-color-#{'#{$key}'} {
+      background-color: list.nth($val, 1);
+      &:checked {
+        background-color: list.nth($val, 1);
+      }
+    }
+  }
+}
+.connection-button {
+  @each $key, $val in $color-defaults {
+    &.#{'#{$key}'} {
+      background-color: rgba(list.nth($val, 1), 1);
+    }
+  }
+}
+
+.statusbar {
+  @each $key, $val in $color-defaults {
+    &.#{'#{$key}'} {
+      background-color: rgba(list.nth($val, 1), 0.85);
+    }
+  }
+  &.query-meta {
+    @each $key, $val in $color-defaults {
+      &.#{'#{$key}'} {
+        background-color: rgba(list.nth($val, 1), 0.85);
+      }
+    }
+  }
+  &.editing, &.failure {
+    @each $key, $val in $color-defaults {
+      &.#{'#{$key}'} {
+        background-color: rgba(list.nth($val, 1), 0.8);
+      }
+    }
+  }
+}
+
+input[type="radio"].connection-label {
+  box-shadow: none;
+  margin: 0 0 0 ($gutter-h * 0.75);
+  border-radius: 50%;
+  &:checked {
+    outline: 2px solid $text-dark;
+    outline-offset: -2px;
+  }
+  &:focus {
+    outline-offset: -2px !important; // using !important because the browser style does. why browser...
+  }
+  &.connection-label-color-default {
+    outline: 1px solid rgba($theme-base, 0.2);
+    outline-offset: -1px;
+    &:checked {
+      background-color: transparent;
+      outline-width: 2px;
+      outline-offset: -2px;
+    }
+  }
+}

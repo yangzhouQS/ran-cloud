@@ -124,6 +124,9 @@ pub fn run() {
             modules::sql_studio::storage::commands::sql_storage_save_query_history,
             modules::sql_studio::storage::commands::sql_storage_load_query_history,
             modules::sql_studio::storage::commands::sql_storage_cleanup_query_history,
+            modules::sql_studio::storage::commands::sql_storage_save_draft,
+            modules::sql_studio::storage::commands::sql_storage_load_draft,
+            modules::sql_studio::storage::commands::sql_storage_delete_draft,
             // ===== SQL Studio 插件系统命令 =====
             modules::sql_studio::plugin::commands::plugin_list,
             modules::sql_studio::plugin::commands::plugin_get_manifest,

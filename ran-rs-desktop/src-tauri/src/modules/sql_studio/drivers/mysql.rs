@@ -172,24 +172,31 @@ impl BasicDatabaseClient for MysqlClient {
         let conn = guard.as_mut().ok_or_else(|| AppError::Connection(format!("{} 未连接", self.db_type_label)))?;
         let max_rows = limit.unwrap_or(1000) as usize;
 
-        let trimmed = sql.trim().to_uppercase();
-        let is_select = trimmed.starts_with("SELECT")
-            || trimmed.starts_with("SHOW")
-            || trimmed.starts_with("DESCRIBE")
-            || trimmed.starts_with("EXPLAIN")
-            || trimmed.starts_with("WITH");
+        // 提取最后一条有效语句（SQL GUI 工具标准行为）
+        let clean_sql = sql.trim().trim_end_matches(';').trim();
+        let last_stmt = match clean_sql.rfind(';') {
+            Some(pos) => {
+                let last = clean_sql[pos + 1..].trim();
+                if last.is_empty() { clean_sql } else { last }
+            }
+            None => clean_sql,
+        };
+        let trimmed_upper = last_stmt.trim().to_uppercase();
+        let is_select = trimmed_upper.starts_with("SELECT")
+            || trimmed_upper.starts_with("SHOW")
+            || trimmed_upper.starts_with("DESCRIBE")
+            || trimmed_upper.starts_with("EXPLAIN")
+            || trimmed_upper.starts_with("WITH");
 
         if is_select {
-            // 安全地追加 LIMIT：去掉末尾分号和空白
             // 仅在原 SQL 没有 LIMIT 子句时追加
-            let clean_sql = sql.trim().trim_end_matches(';').trim();
-            let has_limit = trimmed.rsplit("LIMIT ").next().map_or(false, |s| {
+            let has_limit = trimmed_upper.rsplit("LIMIT ").next().map_or(false, |s| {
                 s.chars().next().map_or(false, |c| c.is_ascii_digit())
             });
             let limited_sql = if has_limit {
-                clean_sql.to_string()
+                last_stmt.to_string()
             } else {
-                format!("{} LIMIT {}", clean_sql, max_rows)
+                format!("{} LIMIT {}", last_stmt, max_rows)
             };
             let mut result = conn.query_iter(limited_sql).await
                 .map_err(|e| AppError::Connection(format!("SQL 执行失败: {}", e)))?;
@@ -251,7 +258,7 @@ impl BasicDatabaseClient for MysqlClient {
                 "affectedRows": null,
             }))
         } else {
-            let result = conn.query_iter(sql).await
+            let result = conn.query_iter(last_stmt).await
                 .map_err(|e| AppError::Connection(format!("SQL 执行失败: {}", e)))?;
             let affected = result.affected_rows();
 

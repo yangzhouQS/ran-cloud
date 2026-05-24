@@ -15,6 +15,7 @@ import type { SplitviewReadyEvent } from "dockview-vue";
 import type { ConnectionConfig } from "./types";
 import { Orientation, SplitviewVue } from "dockview-vue";
 import { defineComponent, onMounted, ref } from "vue";
+import { useDebounceFn } from "@vueuse/core";
 import { useCsNamespace } from "../../hooks/use-namespace";
 import ConnectionForm from "./components/ConnectionForm";
 import ConnectionList from "./components/ConnectionList";
@@ -149,13 +150,24 @@ const EditorPanel = defineComponent({
       await store.executeQuery(sql);
     };
 
+    // 防抖保存草稿（500ms）
+    const debouncedSave = useDebounceFn((sql: string) => {
+      store.saveDraftSqlAction(sql);
+    }, 500);
+
+    const handleDraftChange = (sql: string) => {
+      debouncedSave(sql);
+    };
+
     return () => (
       <div class="ran-sql-studio__editor">
         <QueryEditor
           connectionId={store.activeConnectionId}
           executing={store.executing}
           queryHistory={store.queryHistory}
+          draftContent={store.draftSql}
           onExecute={handleExecute}
+          onDraftChange={handleDraftChange}
         />
       </div>
     );

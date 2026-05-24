@@ -96,3 +96,20 @@ export async function getTableColumns(connectionId: string, table: string, schem
 export async function getDatabaseVersion(connectionId: string): Promise<string> {
   return invoke<string>("sql_database_version", { connectionId });
 }
+
+// ==================== SQL 草稿持久化命令 ====================
+
+/** 保存 SQL 草稿 */
+export async function saveDraftSql(connectionId: string, sql: string): Promise<void> {
+  return invoke("sql_storage_save_draft", { connectionId, sql });
+}
+
+/** 加载 SQL 草稿 */
+export async function loadDraftSql(connectionId: string): Promise<string | null> {
+  return invoke<string | null>("sql_storage_load_draft", { connectionId });
+}
+
+/** 删除 SQL 草稿 */
+export async function deleteDraftSql(connectionId: string): Promise<void> {
+  return invoke("sql_storage_delete_draft", { connectionId });
+}
