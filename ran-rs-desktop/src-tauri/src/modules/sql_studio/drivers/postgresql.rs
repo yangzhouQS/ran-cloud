@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use tokio_postgres::Client as PgClient;
 
 use crate::shared::error::AppError;
-use super::basic_database_client::{BasicDatabaseClient, ColumnInfo, SupportedFeatures, TableInfo};
+use super::basic_database_client::{BasicDatabaseClient, ColumnInfo, DatabaseInfo, SupportedFeatures, TableInfo};
 use super::super::connection::models::ConnectionConfig;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -285,5 +285,28 @@ impl BasicDatabaseClient for PostgresqlClient {
             .map_err(|e| AppError::Connection(format!("PostgreSQL 版本查询失败: {}", e)))?
             .get(0);
         Ok(version)
+    }
+
+    async fn list_databases(&self) -> Result<Vec<DatabaseInfo>, AppError> {
+        let guard = self.client.lock().await;
+        let client = guard.as_ref().ok_or_else(|| AppError::Connection("PostgreSQL 未连接".to_string()))?;
+
+        // 查询用户可访问的 schema（排除系统 schema）
+        let rows = client.query(
+            "SELECT schema_name FROM information_schema.schemata \
+             WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast') \
+             ORDER BY schema_name",
+            &[],
+        ).await.map_err(|e| AppError::Connection(format!("PostgreSQL 查询 schema 列表失败: {}", e)))?;
+
+        let schemas = rows.iter().map(|row| {
+            let name: String = row.get(0);
+            DatabaseInfo {
+                name,
+                kind: "schema".to_string(),
+            }
+        }).collect();
+
+        Ok(schemas)
     }
 }

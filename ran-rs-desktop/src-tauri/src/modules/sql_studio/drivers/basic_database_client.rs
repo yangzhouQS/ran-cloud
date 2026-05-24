@@ -8,6 +8,16 @@ use serde::{Deserialize, Serialize};
 use crate::shared::error::AppError;
 use super::super::connection::models::ConnectionConfig;
 
+/// 数据库/Schema 信息
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DatabaseInfo {
+    /// 数据库/Schema 名称
+    pub name: String,
+    /// 类型标识："database" | "schema" | "main"
+    pub kind: String,
+}
+
 /// 表信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -94,4 +104,10 @@ pub trait BasicDatabaseClient: Send + Sync {
 
     /// 获取版本信息
     async fn version(&self) -> Result<String, AppError>;
+
+    /// 列出所有可访问的数据库/Schema
+    /// PostgreSQL: 返回 schema 列表
+    /// MySQL/MariaDB/TiDB: 返回 database 列表
+    /// SQLite: 返回单个 "main"
+    async fn list_databases(&self) -> Result<Vec<DatabaseInfo>, AppError>;
 }

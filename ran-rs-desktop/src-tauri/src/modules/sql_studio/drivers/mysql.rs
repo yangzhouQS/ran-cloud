@@ -6,7 +6,7 @@ use mysql_async::prelude::*;
 use mysql_async::{Conn, Opts, OptsBuilder, SslOpts, ClientIdentity};
 
 use crate::shared::error::AppError;
-use super::basic_database_client::{BasicDatabaseClient, ColumnInfo, SupportedFeatures, TableInfo};
+use super::basic_database_client::{BasicDatabaseClient, ColumnInfo, DatabaseInfo, SupportedFeatures, TableInfo};
 use super::super::connection::models::{ConnectionConfig, DatabaseType};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -117,18 +117,24 @@ impl BasicDatabaseClient for MysqlClient {
         }
     }
 
-    async fn list_tables(&self, _schema: Option<&str>) -> Result<Vec<TableInfo>, AppError> {
+    async fn list_tables(&self, schema: Option<&str>) -> Result<Vec<TableInfo>, AppError> {
         let mut guard = self.conn.lock().await;
         let conn = guard.as_mut().ok_or_else(|| AppError::Connection(format!("{} 未连接", self.db_type_label)))?;
 
-        let sql = "SELECT TABLE_NAME, TABLE_TYPE FROM information_schema.tables WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME";
-        let result: Vec<(String, String)> = conn.query(sql).await
+        let sql = match schema {
+            Some(s) => format!(
+                "SELECT TABLE_NAME, TABLE_TYPE FROM information_schema.tables WHERE TABLE_SCHEMA = '{}' ORDER BY TABLE_NAME",
+                s.replace('\'', "''")
+            ),
+            None => "SELECT TABLE_NAME, TABLE_TYPE FROM information_schema.tables WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME".to_string(),
+        };
+        let result: Vec<(String, String)> = conn.query(&*sql).await
             .map_err(|e| AppError::Connection(format!("查询表列表失败: {}", e)))?;
 
         let tables = result.into_iter().map(|(name, table_type)| {
             TableInfo {
                 name,
-                schema: None,
+                schema: schema.map(String::from),
                 table_type,
                 row_count: None,
                 comment: None,
@@ -138,16 +144,20 @@ impl BasicDatabaseClient for MysqlClient {
         Ok(tables)
     }
 
-    async fn list_columns(&self, table: &str, _schema: Option<&str>) -> Result<Vec<ColumnInfo>, AppError> {
+    async fn list_columns(&self, table: &str, schema: Option<&str>) -> Result<Vec<ColumnInfo>, AppError> {
         let mut guard = self.conn.lock().await;
         let conn = guard.as_mut().ok_or_else(|| AppError::Connection(format!("{} 未连接", self.db_type_label)))?;
 
-        // 使用字符串拼接（information_schema 不支持参数绑定）
+        let schema_filter = match schema {
+            Some(s) => format!("TABLE_SCHEMA = '{}'", s.replace('\'', "''")),
+            None => "TABLE_SCHEMA = DATABASE()".to_string(),
+        };
         let sql = format!(
             "SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT, COLUMN_KEY \
              FROM information_schema.columns \
-             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{}' \
+             WHERE {} AND TABLE_NAME = '{}' \
              ORDER BY ORDINAL_POSITION",
+            schema_filter,
             table.replace('\'', "''")
         );
         let cols: Vec<(String, String, String, Option<String>, String)> = conn.query(sql).await
@@ -278,5 +288,25 @@ impl BasicDatabaseClient for MysqlClient {
             .map_err(|e| AppError::Connection(format!("版本查询失败: {}", e)))?
             .unwrap_or_default();
         Ok(format!("{} {}", self.db_type_label, version))
+    }
+
+    async fn list_databases(&self) -> Result<Vec<DatabaseInfo>, AppError> {
+        let mut guard = self.conn.lock().await;
+        let conn = guard.as_mut().ok_or_else(|| AppError::Connection(format!("{} 未连接", self.db_type_label)))?;
+
+        let result: Vec<String> = conn.query("SHOW DATABASES").await
+            .map_err(|e| AppError::Connection(format!("查询数据库列表失败: {}", e)))?;
+
+        // 过滤掉系统数据库
+        let system_dbs = ["information_schema", "mysql", "performance_schema", "sys"];
+        let databases = result.into_iter()
+            .filter(|name| !system_dbs.contains(&name.to_lowercase().as_str()))
+            .map(|name| DatabaseInfo {
+                name,
+                kind: "database".to_string(),
+            })
+            .collect();
+
+        Ok(databases)
     }
 }

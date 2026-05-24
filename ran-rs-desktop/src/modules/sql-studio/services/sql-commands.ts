@@ -63,6 +63,12 @@ export async function loadQueryHistory(connectionId: string, limit?: number): Pr
 
 // ==================== 数据库对象树命令 ====================
 
+/** 数据库/Schema 信息 */
+export interface DatabaseInfo {
+  name: string;
+  kind: "database" | "schema" | "main";
+}
+
 /** 表信息 */
 export interface TableInfo {
   name: string;
@@ -80,6 +86,11 @@ export interface ColumnInfo {
   defaultValue: string | null;
   isPrimaryKey: boolean;
   comment: string | null;
+}
+
+/** 获取数据库/Schema 列表 */
+export async function getDatabaseList(connectionId: string): Promise<DatabaseInfo[]> {
+  return invoke<DatabaseInfo[]>("sql_database_list", { connectionId });
 }
 
 /** 获取数据库对象树 */

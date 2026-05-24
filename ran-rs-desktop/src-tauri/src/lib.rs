@@ -117,6 +117,7 @@ pub fn run() {
             modules::sql_studio::connection::commands::sql_database_tree,
             modules::sql_studio::connection::commands::sql_table_columns,
             modules::sql_studio::connection::commands::sql_database_version,
+            modules::sql_studio::connection::commands::sql_database_list,
             // ===== SQL Studio 存储命令 =====
             modules::sql_studio::storage::commands::sql_storage_load_connections,
             modules::sql_studio::storage::commands::sql_storage_save_connection,

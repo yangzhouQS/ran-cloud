@@ -103,6 +103,7 @@ const SidebarPanel = defineComponent({
         {store.activeConnectionId && (
           <DatabaseTree
             connectionId={store.activeConnectionId}
+            dbType={store.activeConnection?.dbType ?? null}
             onSelectTable={() => {}}
           />
         )}

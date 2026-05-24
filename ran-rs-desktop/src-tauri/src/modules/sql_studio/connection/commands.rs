@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tauri::State;
 
 use crate::shared::error::AppError;
-use crate::modules::sql_studio::drivers::basic_database_client::{TableInfo, ColumnInfo};
+use crate::modules::sql_studio::drivers::basic_database_client::{DatabaseInfo, TableInfo, ColumnInfo};
 use crate::modules::sql_studio::storage::service::StorageService;
 use super::models::{ConnectionConfig, ConnectionInfo};
 use super::service::SqlConnectionManager;
@@ -123,4 +123,15 @@ pub async fn sql_database_version(
     let holder = manager.get_connection(&connection_id)
         .ok_or_else(|| AppError::Connection(format!("连接不存在或未连接: {}", connection_id)))?;
     holder.client.version().await
+}
+
+/// 获取数据库/Schema 列表
+#[tauri::command]
+pub async fn sql_database_list(
+    manager: State<'_, Arc<SqlConnectionManager>>,
+    connection_id: String,
+) -> Result<Vec<DatabaseInfo>, AppError> {
+    let holder = manager.get_connection(&connection_id)
+        .ok_or_else(|| AppError::Connection(format!("连接不存在或未连接: {}", connection_id)))?;
+    holder.client.list_databases().await
 }

@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use rusqlite::Connection as SqliteConnection;
 
 use crate::shared::error::AppError;
-use super::basic_database_client::{BasicDatabaseClient, ColumnInfo, SupportedFeatures, TableInfo};
+use super::basic_database_client::{BasicDatabaseClient, ColumnInfo, DatabaseInfo, SupportedFeatures, TableInfo};
 use super::super::connection::models::ConnectionConfig;
 
 /// SQLite 驱动实现
@@ -192,5 +192,13 @@ impl BasicDatabaseClient for SqliteClient {
         let version: String = conn.query_row("SELECT sqlite_version()", [], |row| row.get(0))
             .map_err(|e| AppError::Connection(format!("SQLite 版本查询失败: {}", e)))?;
         Ok(format!("SQLite {}", version))
+    }
+
+    async fn list_databases(&self) -> Result<Vec<DatabaseInfo>, AppError> {
+        // SQLite 只有一个主数据库，返回 "main"
+        Ok(vec![DatabaseInfo {
+            name: "main".to_string(),
+            kind: "main".to_string(),
+        }])
     }
 }
