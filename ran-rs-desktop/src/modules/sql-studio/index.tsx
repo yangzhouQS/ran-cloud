@@ -100,13 +100,12 @@ const SidebarPanel = defineComponent({
           onEdit={handleEdit}
           onDelete={handleDelete}
         />
-        {store.activeConnectionId && (
-          <DatabaseTree
-            connectionId={store.activeConnectionId}
-            dbType={store.activeConnection?.dbType ?? null}
-            onSelectTable={() => {}}
-          />
-        )}
+        <DatabaseTree
+          key={store.activeConnectionId}
+          connectionId={store.activeConnectionId}
+          dbType={store.activeConnection?.dbType ?? null}
+          onSelectTable={() => {}}
+        />
         <ConnectionForm
           visible={showForm.value}
           connectionId={editingId.value}

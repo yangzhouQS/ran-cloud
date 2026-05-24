@@ -14,7 +14,7 @@
  */
 
 import type { PropType } from "vue";
-import { defineComponent, nextTick, ref, watch } from "vue";
+import { defineComponent, ref, watch } from "vue";
 import { useCsNamespace } from "../../../hooks/use-namespace";
 import * as sqlService from "../services/sql-commands";
 
@@ -26,10 +26,8 @@ interface TreeNode {
   type: "database" | "table" | "view" | "column";
   /** 是否叶子节点 */
   isLeaf: boolean;
-  /** 关联的数据库名（用于查询表列表） */
+  /** 关联的数据库名（用于查询表/列列表） */
   databaseName?: string;
-  /** 子节点 */
-  children?: TreeNode[];
 }
 
 const DatabaseTree = defineComponent({
@@ -99,7 +97,7 @@ const DatabaseTree = defineComponent({
       }
     });
 
-    /** el-tree load 回调：懒加载子节点 */
+    /** 展开节点时懒加载子节点（通过 el-tree lazy+load 机制） */
     const handleTreeLoad = async (node: any, resolve: (data: TreeNode[]) => void) => {
       if (!props.connectionId) {
         resolve([]);
@@ -114,7 +112,6 @@ const DatabaseTree = defineComponent({
 
       try {
         if (nodeData.type === "database") {
-          // 展开数据库节点 → 加载表列表
           const schema = nodeData.databaseName;
           const tables = await sqlService.getDatabaseTree(props.connectionId, schema);
           const children: TreeNode[] = tables.map(t => ({
@@ -126,7 +123,6 @@ const DatabaseTree = defineComponent({
           }));
           resolve(children);
         } else if (nodeData.type === "table" || nodeData.type === "view") {
-          // 展开表节点 → 加载列信息
           const tableName = nodeData.label;
           const schema = isSqlite.value ? undefined : nodeData.databaseName;
           const columns = await sqlService.getTableColumns(
@@ -173,11 +169,9 @@ const DatabaseTree = defineComponent({
       }
     };
 
-    /** 刷新按钮 — 重新加载根节点并清除已缓存的子节点 */
-    const handleRefresh = async () => {
-      treeData.value = [];
-      await nextTick();
-      await loadTree();
+    /** 刷新按钮 — 重新加载根节点 */
+    const handleRefresh = () => {
+      loadTree();
     };
 
     return () => (
