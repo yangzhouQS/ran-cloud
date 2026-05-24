@@ -35,3 +35,5 @@ yarn-error.log*
 pnpm-debug.log*
 pnpm-lock.yaml
 
+# Beekeeper Studio (已迁移到 ran-rs-desktop，不再跟踪)
+libs/beekeeper-studio/
