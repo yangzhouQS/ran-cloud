@@ -25,7 +25,7 @@ import {
 } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { computed, defineComponent, ref } from "vue";
-import { useCsNamespace } from "../../../hooks/use-namespace";
+import { useCsNamespace } from "../../layout/hooks/use-namespace";
 import { useRedisStore } from "../stores/redis-store";
 import { ConnectionStatus } from "../types";
 import ConnectionForm from "./connection-form";

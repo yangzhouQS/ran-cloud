@@ -14,7 +14,7 @@ import {
 } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { computed, defineComponent, reactive, ref } from "vue";
-import { useCsNamespace } from "../../../../hooks/use-namespace";
+import { useCsNamespace } from "../../../layout/hooks/use-namespace";
 import {
   connectTelepresence,
   getStatus,

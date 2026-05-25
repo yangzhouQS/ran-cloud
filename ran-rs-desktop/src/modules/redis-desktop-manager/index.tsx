@@ -13,7 +13,7 @@ import type { SplitviewReadyEvent } from "dockview-vue";
 import { listen } from "@tauri-apps/api/event";
 import { DockviewVue, Orientation, SplitviewVue, themeVisualStudio } from "dockview-vue";
 import { defineComponent, onMounted, onUnmounted, ref, watch } from "vue";
-import { useCsNamespace } from "../../hooks/use-namespace";
+import { useCsNamespace } from "../layout/hooks/use-namespace";
 import CliTerminal from "./components/cli-terminal";
 import CommandLogPanel from "./components/command-log-panel";
 import ConnectionSidebar from "./components/connection-sidebar";

@@ -1,21 +1,25 @@
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { ElMessage } from "element-plus";
 import { computed, defineComponent, ref } from "vue";
-import { getCategoriesByNav, getCategoryTitle } from "./components/category-panel";
-import Layout from "./components/layout";
-import { useCsNamespace } from "./hooks/use-namespace";
 import { Json2TsPanel } from "./modules/develop-tools/json2ts";
 import { TelepresencePanel } from "./modules/develop-tools/telepresence";
+import { getCategoriesByNav, getCategoryTitle } from "./modules/layout/components/category-panel";
+import Layout from "./modules/layout/components/Layout";
+import { useCsNamespace } from "./modules/layout/hooks/use-namespace";
 import SqlStudio from "./modules/sql-studio";
-import "./components/layout.less";
+import "./modules/layout/components/layout.less";
 
 /** 检测是否运行在 Tauri 环境中 */
 const isTauri = () => "__TAURI_INTERNALS__" in window;
 
-/** 构建新窗口的 URL（基于当前页面地址，替换 hash 部分） */
-function buildWindowUrl(hash: string) {
-  const base = window.location.href.split("#")[0];
-  return `${base}#${hash}`;
+/**
+ * 构建模块 URL（基于独立 HTML 页面）
+ * 在 dev 环境下使用 /模块名.html，在 Tauri 生产环境中使用相对路径
+ */
+function buildModuleUrl(moduleName: string) {
+  const base = window.location.origin + window.location.pathname;
+  const basePath = base.substring(0, base.lastIndexOf("/") + 1);
+  return `${basePath}${moduleName}.html`;
 }
 
 const App = defineComponent({
@@ -37,7 +41,7 @@ const App = defineComponent({
     /** 打开 Redis Desktop Manager 独立窗口 */
     const openRedisWindow = async () => {
       if (!isTauri()) {
-        window.open(buildWindowUrl("/redis"), "_blank");
+        window.open(buildModuleUrl("redis"), "_blank");
         return;
       }
 
@@ -55,7 +59,7 @@ const App = defineComponent({
         }
 
         const webview = new WebviewWindow(windowLabel, {
-          url: buildWindowUrl("/redis"),
+          url: buildModuleUrl("redis"),
           title: "Redis Desktop Manager - Ran RS Desktop",
           width: 1200,
           height: 800,
@@ -95,11 +99,9 @@ const App = defineComponent({
 
     /** 底部工具栏点击：创建独立 OS 级窗口 */
     const handleToolClick = async (key: string) => {
-      console.log(`key = ${key}`);
       // 非 Tauri 环境（纯浏览器开发模式）降级为新标签页打开
       if (!isTauri()) {
-        const hash = key === "settings" ? "/settings" : "/about";
-        window.open(buildWindowUrl(hash), "_blank");
+        window.open(buildModuleUrl(key), "_blank");
         return;
       }
 
@@ -112,7 +114,6 @@ const App = defineComponent({
           try {
             await existingWin.setFocus();
           } catch (err2) {
-            // 聚焦失败，忽略
             console.log(err2);
           }
           return;
@@ -120,14 +121,14 @@ const App = defineComponent({
 
         const windowConfig = key === "settings"
           ? {
-              url: buildWindowUrl("/settings"),
+              url: buildModuleUrl("settings"),
               title: "设置 - Ran RS Desktop",
               width: 600,
               height: 500,
               resizable: true,
             }
           : {
-              url: buildWindowUrl("/about"),
+              url: buildModuleUrl("about"),
               title: "关于 - Ran RS Desktop",
               width: 420,
               height: 480,

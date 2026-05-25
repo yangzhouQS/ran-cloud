@@ -13,7 +13,7 @@
 import { Delete, Refresh } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { computed, defineComponent, onMounted, onUnmounted, ref } from "vue";
-import { useCsNamespace } from "../../../hooks/use-namespace";
+import { useCsNamespace } from "../../layout/hooks/use-namespace";
 import { useRedisStore } from "../stores/redis-store";
 import "./command-log-panel.less";
 

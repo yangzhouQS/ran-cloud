@@ -14,7 +14,7 @@ import type { StreamEntry, StreamGroupInfo, StreamPageParams } from "../../types
 import { Delete, InfoFilled, Plus } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { defineComponent, ref, watch } from "vue";
-import { useCsNamespace } from "../../../../hooks/use-namespace";
+import { useCsNamespace } from "../../../layout/hooks/use-namespace";
 import {
   redisDataStreamAdd,
   redisDataStreamDelete,

@@ -13,7 +13,11 @@ export default defineConfig({
   ],
   source: {
     entry: {
-      index: "./src/main.ts",
+      "index": "./src/main.ts",
+      "redis": "./src/modules/redis-desktop-manager/main.ts",
+      "sql-studio": "./src/modules/sql-studio/main.ts",
+      "settings": "./src/modules/settings/main.ts",
+      "about": "./src/modules/about/main.ts",
     },
   },
   server: {

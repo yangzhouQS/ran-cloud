@@ -7,8 +7,8 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("../../app", () => ({ default: { name: "AppMock" } }));
 vi.mock("../../modules/redis-desktop-manager", () => ({ default: { name: "RedisMock" } }));
 vi.mock("../../modules/sql-studio", () => ({ default: { name: "SqlStudioMock" } }));
-vi.mock("../../pages/settings-page", () => ({ default: { name: "SettingsMock" } }));
-vi.mock("../../pages/about-page", () => ({ default: { name: "AboutMock" } }));
+vi.mock("../../modules/settings/settings-page", () => ({ default: { name: "SettingsMock" } }));
+vi.mock("../../modules/about/about-page", () => ({ default: { name: "AboutMock" } }));
 
 describe("router - route definitions", () => {
   it("defines all 5 routes", async () => {

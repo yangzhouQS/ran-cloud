@@ -10,7 +10,7 @@
 import type { PropType } from "vue";
 import type { ConnectionInfo } from "../types";
 import { defineComponent, ref } from "vue";
-import { useCsNamespace } from "../../../hooks/use-namespace";
+import { useCsNamespace } from "../../layout/hooks/use-namespace";
 import { DATABASE_TYPE_OPTIONS } from "../types";
 
 const ConnectionList = defineComponent({

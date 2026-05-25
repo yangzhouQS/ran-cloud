@@ -1,7 +1,8 @@
+import type { Component } from "vue";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import ElementPlus from "element-plus";
 import { createPinia } from "pinia";
-import { createApp, type Component } from "vue";
+import { createApp } from "vue";
 import { setupTheme } from "../modules/layout/hooks/use-theme";
 import i18n from "./i18n";
 import "element-plus/dist/index.css";

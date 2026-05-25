@@ -34,7 +34,7 @@ import { listen } from "@tauri-apps/api/event";
 import { ListTable } from "@visactor/vtable";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { computed, defineComponent, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
-import { useCsNamespace } from "../../../hooks/use-namespace";
+import { useCsNamespace } from "../../layout/hooks/use-namespace";
 import { useRedisStore } from "../stores/redis-store";
 import "./key-panel.less";
 

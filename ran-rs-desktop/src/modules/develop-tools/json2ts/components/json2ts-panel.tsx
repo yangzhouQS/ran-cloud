@@ -1,7 +1,7 @@
 import { DocumentCopy } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import { defineComponent, reactive, ref } from "vue";
-import { useCsNamespace } from "../../../../hooks/use-namespace";
+import { useCsNamespace } from "../../../layout/hooks/use-namespace";
 import { convertJsonToTs } from "../services/json-to-ts";
 import { defaultConversionOptions } from "../types";
 import JsonInput from "./json-input";

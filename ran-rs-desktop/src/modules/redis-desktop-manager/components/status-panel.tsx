@@ -16,7 +16,7 @@
 import type { DatabaseInfo, ServerStatus } from "../types/key-data";
 import { Cpu, DataLine, Loading, Monitor, Search } from "@element-plus/icons-vue";
 import { computed, defineComponent, onMounted, onUnmounted, ref } from "vue";
-import { useCsNamespace } from "../../../hooks/use-namespace";
+import { useCsNamespace } from "../../layout/hooks/use-namespace";
 import { redisToolServerInfo, redisToolServerStatus } from "../services/redis-commands";
 import "./status-panel.less";
 

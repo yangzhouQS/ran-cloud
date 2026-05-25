@@ -14,7 +14,7 @@
 
 import type { MemoryAnalysisEntry, MemoryAnalysisResult } from "../types/key-data";
 import { defineComponent, onMounted, ref } from "vue";
-import { useCsNamespace } from "../../../hooks/use-namespace";
+import { useCsNamespace } from "../../layout/hooks/use-namespace";
 import { redisToolMemoryAnalysis } from "../services/redis-commands";
 import "./memory-analysis-panel.less";
 

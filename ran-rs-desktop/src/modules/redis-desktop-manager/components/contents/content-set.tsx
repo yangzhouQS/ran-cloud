@@ -13,7 +13,7 @@ import type { SetMember, SetPageParams } from "../../types";
 import { Delete, Plus, Search } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { defineComponent, ref, watch } from "vue";
-import { useCsNamespace } from "../../../../hooks/use-namespace";
+import { useCsNamespace } from "../../../layout/hooks/use-namespace";
 import { redisDataSetAdd, redisDataSetDelete, redisDataSetPage } from "../../services/redis-commands";
 import { useRedisStore } from "../../stores/redis-store";
 

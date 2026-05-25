@@ -10,7 +10,7 @@
 import type { PropType } from "vue";
 import type { ConnectionConfig, SentinelConfig, SshTunnelConfig, TlsConfig } from "../types";
 import { computed, defineComponent, reactive, ref, watch } from "vue";
-import { useCsNamespace } from "../../../hooks/use-namespace";
+import { useCsNamespace } from "../../layout/hooks/use-namespace";
 
 /** 创建默认连接配置 */
 function createDefaultConfig(): ConnectionConfig {

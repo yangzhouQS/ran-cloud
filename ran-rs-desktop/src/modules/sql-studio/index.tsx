@@ -13,10 +13,10 @@
 
 import type { SplitviewReadyEvent } from "dockview-vue";
 import type { ConnectionConfig } from "./types";
+import { useDebounceFn } from "@vueuse/core";
 import { Orientation, SplitviewVue } from "dockview-vue";
 import { defineComponent, onMounted, ref } from "vue";
-import { useDebounceFn } from "@vueuse/core";
-import { useCsNamespace } from "../../hooks/use-namespace";
+import { useCsNamespace } from "../layout/hooks/use-namespace";
 import ConnectionForm from "./components/ConnectionForm";
 import ConnectionList from "./components/ConnectionList";
 import DatabaseTree from "./components/DatabaseTree";

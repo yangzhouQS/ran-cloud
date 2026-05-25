@@ -12,7 +12,7 @@
 import { CopyDocument, Delete, Edit, RefreshRight, Timer } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { computed, defineComponent, ref, watch } from "vue";
-import { useCsNamespace } from "../../../hooks/use-namespace";
+import { useCsNamespace } from "../../layout/hooks/use-namespace";
 import { useRedisStore } from "../stores/redis-store";
 import ContentHash from "./contents/content-hash";
 import ContentList from "./contents/content-list";

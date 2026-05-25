@@ -10,7 +10,7 @@
 import type { PropType } from "vue";
 import type { QueryResult } from "../types";
 import { defineComponent, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
-import { useCsNamespace } from "../../../hooks/use-namespace";
+import { useCsNamespace } from "../../layout/hooks/use-namespace";
 
 /** 导出查询结果为 CSV 字符串 */
 function exportAsCsv(result: QueryResult): string {

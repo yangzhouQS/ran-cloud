@@ -13,7 +13,7 @@
 
 import type { CliExecResult } from "../types";
 import { computed, defineComponent, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
-import { useCsNamespace } from "../../../hooks/use-namespace";
+import { useCsNamespace } from "../../layout/hooks/use-namespace";
 import {
   redisCliComplete,
   redisCliExec,

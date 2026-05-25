@@ -10,7 +10,7 @@
 import type { PropType } from "vue";
 import type { QueryHistory } from "../types/query";
 import { defineComponent, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
-import { useCsNamespace } from "../../../hooks/use-namespace";
+import { useCsNamespace } from "../../layout/hooks/use-namespace";
 
 const DEFAULT_SQL = "-- 在此输入 SQL 查询\nSELECT 1;";
 

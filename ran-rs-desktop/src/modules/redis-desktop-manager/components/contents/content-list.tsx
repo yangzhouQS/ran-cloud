@@ -14,7 +14,7 @@ import type { ListEntry, ListPageParams } from "../../types";
 import { Delete, Edit, Plus } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { defineComponent, ref, watch } from "vue";
-import { useCsNamespace } from "../../../../hooks/use-namespace";
+import { useCsNamespace } from "../../../layout/hooks/use-namespace";
 import { redisDataListAdd, redisDataListDelete, redisDataListPage, redisDataListUpdate } from "../../services/redis-commands";
 import { useRedisStore } from "../../stores/redis-store";
 

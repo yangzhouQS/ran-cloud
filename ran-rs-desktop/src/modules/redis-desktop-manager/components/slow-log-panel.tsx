@@ -13,7 +13,7 @@
 
 import type { SlowLogEntry } from "../types/key-data";
 import { defineComponent, onMounted, ref } from "vue";
-import { useCsNamespace } from "../../../hooks/use-namespace";
+import { useCsNamespace } from "../../layout/hooks/use-namespace";
 import { redisToolSlowLog } from "../services/redis-commands";
 import "./slow-log-panel.less";
 

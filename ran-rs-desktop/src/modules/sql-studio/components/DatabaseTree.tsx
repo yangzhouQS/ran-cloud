@@ -18,7 +18,7 @@
 
 import type { PropType } from "vue";
 import { defineComponent, ref, watch } from "vue";
-import { useCsNamespace } from "../../../hooks/use-namespace";
+import { useCsNamespace } from "../../layout/hooks/use-namespace";
 import * as sqlService from "../services/sql-commands";
 
 /** 树节点数据 */

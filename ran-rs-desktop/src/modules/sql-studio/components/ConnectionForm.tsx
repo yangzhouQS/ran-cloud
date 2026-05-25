@@ -11,7 +11,7 @@
 import type { PropType } from "vue";
 import type { ConnectionConfig, DatabaseType, SshTunnelConfig, SslConfig } from "../types";
 import { defineComponent, reactive, ref, watch } from "vue";
-import { useCsNamespace } from "../../../hooks/use-namespace";
+import { useCsNamespace } from "../../layout/hooks/use-namespace";
 import { createDefaultConfig, DATABASE_TYPE_OPTIONS } from "../types";
 
 /** 创建默认 SSH 隧道配置 */
