@@ -1,0 +1,108 @@
+/**
+ * @component CategoryPanel
+ * @description 二级分类列表面板 — 固定宽度 200px，白色背景，展示当前导航模块下的功能分类项
+ * @block ran-category
+ * @elements __title, __list, __item, __item-icon, __item-content, __item-label, __item-desc
+ * @modifiers is-active（分类项选中状态）
+ */
+
+@import (reference) "../../../shared/styles/global.less";
+
+.ran-category {
+  width: 200px;
+  min-width: 200px;
+  height: 100vh;
+  background: #ffffff;
+  border-right: 1px solid @color-border;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  // ---- 分类标题 ----
+  &__title {
+    padding: 16px 20px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: @color-text-secondary;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  // ---- 分类列表容器 ----
+  &__list {
+    flex: 1;
+    padding: 4px 8px;
+    overflow-y: auto;
+  }
+
+  // ---- 分类项 ----
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 2px;
+
+    &:hover {
+      background: @color-bg;
+    }
+
+    // 选中状态
+    &.is-active {
+      background: @color-primary-lighter;
+
+      .ran-category__item-icon {
+        color: @color-primary;
+      }
+
+      .ran-category__item-label {
+        color: @color-text-primary;
+        font-weight: 500;
+      }
+    }
+  }
+
+  // ---- 分类项图标 ----
+  &__item-icon {
+    color: @color-text-secondary;
+    flex-shrink: 0;
+  }
+
+  // ---- 分类项文本内容区 ----
+  &__item-content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  // ---- 分类项名称 ----
+  &__item-label {
+    font-size: 14px;
+    color: @color-text-regular;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  // ---- 分类项描述 ----
+  &__item-desc {
+    font-size: 11px;
+    color: @color-text-placeholder;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// ==================== 响应式适配 ====================
+
+@media (max-width: 768px) {
+  .ran-category {
+    width: 160px;
+    min-width: 160px;
+  }
+}
