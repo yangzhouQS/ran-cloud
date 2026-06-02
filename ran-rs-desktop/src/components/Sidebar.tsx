@@ -6,6 +6,7 @@ import {
   Monitor,
   Setting,
   SetUp,
+  Van,
 } from "@element-plus/icons-vue";
 import { defineComponent } from "vue";
 import iconRedis from "../assets/images/icon-redis.jpeg";
@@ -34,6 +35,7 @@ export const navItems: NavItem[] = [
   { key: "k8s", label: "开发工具", icon: SetUp },
   { key: "redis", label: "Redis", iconSrc: iconRedis },
   { key: "database", label: "数据库", icon: Coin },
+  { key: "claw-manager", label: "Claw管理", icon: Van },
 ];
 
 /** 底部工具项 */

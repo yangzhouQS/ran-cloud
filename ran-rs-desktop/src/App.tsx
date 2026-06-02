@@ -4,6 +4,7 @@ import { computed, defineComponent, ref } from "vue";
 import { getCategoriesByNav, getCategoryTitle } from "./components/category-panel";
 import Layout from "./components/layout";
 import { useCsNamespace } from "./hooks/use-namespace";
+import ClawManager from "./modules/claw-manager";
 import { Json2TsPanel } from "./modules/develop-tools/json2ts";
 import { TelepresencePanel } from "./modules/develop-tools/telepresence";
 import SqlStudio from "./modules/sql-studio";
@@ -163,6 +164,8 @@ const App = defineComponent({
           }
         case "database":
           return <SqlStudio />;
+        case "claw-manager":
+          return <ClawManager />;
         case "home":
           return (
             <div class={nsPage.b()}>

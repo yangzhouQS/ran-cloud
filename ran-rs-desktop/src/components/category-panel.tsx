@@ -4,6 +4,7 @@ import {
   Document,
   DocumentCopy,
   Grid,
+  Monitor,
   Setting,
 } from "@element-plus/icons-vue";
 import { defineComponent } from "vue";
@@ -46,6 +47,11 @@ export const aboutCategories: CategoryItem[] = [
   { key: "info", label: "关于应用", icon: Document, description: "版本信息" },
 ];
 
+/** OpenClaw 管理分类 */
+export const clawManagerCategories: CategoryItem[] = [
+  { key: "claw-instances", label: "实例管理", icon: Monitor, description: "OpenClaw 实例启动、停止、配置" },
+];
+
 /** 根据主导航 key 获取分类列表 */
 export function getCategoriesByNav(navKey: string): CategoryItem[] {
   switch (navKey) {
@@ -55,6 +61,8 @@ export function getCategoriesByNav(navKey: string): CategoryItem[] {
       return k8sCategories;
     case "database":
       return databaseCategories;
+    case "claw-manager":
+      return clawManagerCategories;
     case "settings":
       return settingsCategories;
     case "about":
@@ -73,6 +81,8 @@ export function getCategoryTitle(navKey: string): string {
       return "k8s网络连接工具";
     case "database":
       return "数据库工具";
+    case "claw-manager":
+      return "OpenClaw 管理";
     case "settings":
       return "设置";
     case "about":

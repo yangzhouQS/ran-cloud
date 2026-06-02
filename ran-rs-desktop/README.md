@@ -114,4 +114,14 @@ MIT
 请提供详细的可行性报告，包括技术挑战、解决方案建议和实施时间估算。
 
 
+# 2026-6-2 20:26:31
+请在 H:\2026code\project\ran-cloud\ran-rs-desktop\src\modules 目录下添加 claw-manager 管理模块，具体要求如下：
+1. 模块名称：claw-manager
+2. 模块功能：提供对 OpenClaw 的管理功能，包括启动、停止、配置等操作。
+3. 模块要求：
+   - 使用 Rust 编写，确保模块的性能和安全性。
+   - 提供详细的文档，说明模块的使用方法和配置项。
+   - 模块代码提交到 H:\2026code\project\ran-cloud\ran-rs-desktop\src\modules 目录下。
+   - 在sidebar添加入口，方便用户快速访问。不用独立弹出面板，直接访问模块下的页面即可
+
 
