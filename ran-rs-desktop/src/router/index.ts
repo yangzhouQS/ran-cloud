@@ -19,7 +19,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/",
     name: "home",
-    component: () => import("../app"),
+    component: () => import("../App"),
     meta: { title: "Ran RS Desktop" },
   },
   {
