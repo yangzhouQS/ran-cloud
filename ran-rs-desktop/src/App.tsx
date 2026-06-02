@@ -165,7 +165,7 @@ const App = defineComponent({
         case "database":
           return <SqlStudio />;
         case "claw-manager":
-          return <ClawManager />;
+          return <ClawManager activeCategory={activeCategory.value} />;
         case "home":
           return (
             <div class={nsPage.b()}>

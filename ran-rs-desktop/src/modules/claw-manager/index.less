@@ -1,0 +1,402 @@
+/**
+ * @component ClawManager
+ * @description OpenClaw 管理模块样式 — 网关管理、系统配置、健康检查与维护三个子页面
+ * @block ran-claw-manager, ran-claw-gateway, ran-claw-config, ran-claw-maintenance
+ * @elements __header, __title, __subtitle, __content,
+ *           __status-card, __status-indicator, __status-dot, __status-text, __status-info,
+ *           __actions, __action-list, __action-card, __action-icon, __action-info,
+ *           __action-name, __action-cmd, __action-desc,
+ *           __version-card, __version-header, __version-title, __version-content,
+ *           __config-actions,
+ *           __log-section, __log-header, __log-title, __log-list, __log-item,
+ *           __log-cmd, __log-time, __log-output, __log-empty
+ * @modifiers is-running, is-stopped, is-error, is-danger
+ */
+
+@import (reference) "../../assets/styles/global.less";
+
+// ==================== 主容器 ====================
+
+.ran-claw-manager {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  // ---- 页面头部 ----
+  &__header {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid @color-border-light;
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: @color-text-primary;
+    margin: 0 0 4px;
+  }
+
+  &__subtitle {
+    font-size: 13px;
+    color: @color-text-secondary;
+  }
+
+  // ---- 内容区域 ----
+  &__content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px 20px;
+  }
+}
+
+// ==================== 通用日志样式（三个子页面共用） ====================
+
+// ---- 日志区块 ----
+.log-section-styles() {
+  &__log-section {
+    margin-top: 20px;
+    background: #fff;
+    border: 1px solid @color-border-light;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  &__log-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid @color-border-light;
+    background: #fafafa;
+  }
+
+  &__log-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: @color-text-primary;
+  }
+
+  &__log-list {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  &__log-empty {
+    padding: 24px;
+    text-align: center;
+    color: @color-text-placeholder;
+    font-size: 13px;
+  }
+
+  &__log-item {
+    padding: 10px 16px;
+    border-bottom: 1px solid @color-border-light;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &.is-error {
+      background: rgba(245, 108, 108, 0.04);
+    }
+  }
+
+  &__log-cmd {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 13px;
+      color: @color-primary;
+      background: @color-primary-lighter;
+      padding: 1px 6px;
+      border-radius: 3px;
+    }
+  }
+
+  &__log-time {
+    font-size: 12px;
+    color: @color-text-placeholder;
+    flex-shrink: 0;
+  }
+
+  &__log-output {
+    margin: 0;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: @color-text-regular;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  // ---- 日志中的可点击 URL ----
+  &__log-url {
+    margin-top: 6px;
+    padding: 6px 12px;
+    background: @color-primary-lighter;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+
+    .el-link {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 14px;
+      font-weight: 600;
+    }
+  }
+}
+
+// ==================== 网关管理子页面 ====================
+
+.ran-claw-gateway {
+  // ---- 状态卡片 ----
+  &__status-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fff;
+    border: 1px solid @color-border-light;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+
+    &.is-running {
+      border-left: 3px solid @color-success;
+    }
+
+    &.is-stopped {
+      border-left: 3px solid @color-text-placeholder;
+    }
+
+    &.is-error {
+      border-left: 3px solid @color-danger;
+    }
+  }
+
+  &__status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: @color-text-placeholder;
+
+    .is-running & {
+      background: @color-success;
+      box-shadow: 0 0 6px rgba(103, 194, 58, 0.4);
+    }
+
+    .is-error & {
+      background: @color-danger;
+      box-shadow: 0 0 6px rgba(245, 108, 108, 0.4);
+    }
+  }
+
+  &__status-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: @color-text-primary;
+  }
+
+  &__status-info {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: @color-text-secondary;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
+  // ---- 操作按钮 ----
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  // 日志样式
+  .log-section-styles();
+}
+
+// ==================== 系统配置子页面 ====================
+
+.ran-claw-config {
+  // ---- 版本卡片 ----
+  &__version-card {
+    background: #fff;
+    border: 1px solid @color-border-light;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+
+  &__version-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  &__version-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: @color-text-primary;
+  }
+
+  &__version-content {
+    padding: 8px 12px;
+    background: #f8f9fb;
+    border-radius: 4px;
+
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 14px;
+      color: @color-text-primary;
+    }
+  }
+
+  // ---- 配置操作卡片 ----
+  &__config-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  // 日志样式
+  .log-section-styles();
+}
+
+// ==================== 健康检查与维护子页面 ====================
+
+.ran-claw-maintenance {
+  // ---- 操作列表 ----
+  &__action-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  // ---- 操作卡片 ----
+  &__action-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #fff;
+    border: 1px solid @color-border-light;
+    border-radius: 8px;
+    padding: 16px 20px;
+    transition: box-shadow 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    &.is-danger {
+      border-color: rgba(245, 108, 108, 0.3);
+      background: rgba(245, 108, 108, 0.02);
+    }
+  }
+
+  &__action-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f5f7fa;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  &__action-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__action-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: @color-text-primary;
+  }
+
+  &__action-cmd {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 12px;
+    color: @color-primary;
+    background: @color-primary-lighter;
+    padding: 1px 6px;
+    border-radius: 3px;
+    display: inline-block;
+    width: fit-content;
+  }
+
+  &__action-desc {
+    font-size: 12px;
+    color: @color-text-secondary;
+  }
+
+  // 日志样式
+  .log-section-styles();
+}
+
+// ==================== 通用操作卡片（系统配置复用） ====================
+
+.ran-claw-config,
+.ran-claw-maintenance {
+  &__action-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #fff;
+    border: 1px solid @color-border-light;
+    border-radius: 8px;
+    padding: 16px 20px;
+    transition: box-shadow 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+  }
+
+  &__action-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__action-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: @color-text-primary;
+  }
+
+  &__action-cmd {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 12px;
+    color: @color-primary;
+    background: @color-primary-lighter;
+    padding: 1px 6px;
+    border-radius: 3px;
+    display: inline-block;
+    width: fit-content;
+  }
+
+  &__action-desc {
+    font-size: 12px;
+    color: @color-text-secondary;
+  }
+}
