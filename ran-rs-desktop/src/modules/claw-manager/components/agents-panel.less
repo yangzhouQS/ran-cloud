@@ -1,0 +1,178 @@
+/**
+ * @component AgentsPanel
+ * @description 智能体管理面板样式 — Agent CRUD、启用/禁用、调用测试
+ * @block ran-claw-agents
+ * @elements __section-title, __search-row, __agent-list, __agent-card,
+ *           __create-form, __call-form, __detail-prompt
+ */
+
+@import (reference) "../../../assets/styles/global.less";
+
+.ran-claw-agents {
+  // ---- 区块标题 ----
+  &__section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 20px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: @color-text-primary;
+
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+
+  // ---- 搜索行 ----
+  &__search-row {
+    margin-bottom: 12px;
+  }
+
+  &__search-input {
+    width: 100%;
+  }
+
+  // ---- 智能体列表 ----
+  &__agent-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__empty,
+  &__loading {
+    padding: 24px;
+    text-align: center;
+    color: #909399;
+    font-size: 13px;
+  }
+
+  // ---- 智能体卡片 ----
+  &__agent-card {
+    padding: 12px 16px;
+    border: 1px solid @color-border-light;
+    border-radius: 8px;
+    background: #ffffff;
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
+
+    &:hover {
+      border-color: @color-primary;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.08);
+    }
+  }
+
+  &__agent-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  &__agent-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: @color-text-primary;
+  }
+
+  &__agent-status {
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  &__agent-desc {
+    font-size: 12px;
+    color: #909399;
+    margin-bottom: 6px;
+  }
+
+  &__agent-meta {
+    margin-bottom: 8px;
+  }
+
+  &__agent-skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  &__agent-actions {
+    display: flex;
+    gap: 4px;
+    padding-top: 8px;
+    border-top: 1px solid @color-border-light;
+  }
+
+  // ---- 创建表单 ----
+  &__create-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__form-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  &__form-input {
+    flex: 1;
+  }
+
+  &__form-textarea {
+    margin-top: 0;
+  }
+
+  // ---- 调用测试表单 ----
+  &__call-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__call-select {
+    width: 200px;
+    min-width: 160px;
+  }
+
+  // ---- 详情对话框 ----
+  &__detail-prompt {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 8px;
+    background: #f8f9fb;
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+}
+
+// ==================== 暗黑主题 ====================
+
+html.dark {
+  .ran-claw-agents {
+    &__agent-card {
+      background: #252526;
+      border-color: #363637;
+
+      &:hover {
+        border-color: @color-primary;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.12);
+      }
+    }
+
+    &__agent-actions {
+      border-top-color: #363637;
+    }
+
+    &__detail-prompt {
+      background: #1d1e1f;
+    }
+  }
+}

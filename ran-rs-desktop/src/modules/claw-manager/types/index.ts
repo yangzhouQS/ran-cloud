@@ -52,3 +52,24 @@ export interface ConfigPreset {
   /** 修改后是否需要重启网关 */
   requireRestart: boolean;
 }
+
+// ==================== 智能体管理 ====================
+
+/** 智能体状态 */
+export type AgentStatus = "enabled" | "disabled" | "error";
+
+/** 智能体信息 */
+export interface AgentInfo {
+  /** 智能体名称 */
+  name: string;
+  /** 运行状态 */
+  status: AgentStatus;
+  /** 系统提示词 */
+  systemPrompt?: string;
+  /** 工作目录 */
+  workspaceRoot?: string;
+  /** 绑定的技能列表 */
+  skills?: string[];
+  /** 描述信息 */
+  description?: string;
+}

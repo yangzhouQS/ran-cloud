@@ -1,8 +1,9 @@
 /**
  * Claw Manager 主入口
  *
- * OpenClaw 管理模块，按功能分为三个子页面：
+ * OpenClaw 管理模块，按功能分为四个子页面：
  * - 网关管理：gateway start/stop/restart/status、dashboard、tui
+ * - 智能体管理：agents create/list/info/edit/remove/enable/disable/call
  * - 系统配置：version、onboard、configure
  * - 健康检查与维护：doctor、fix、update、reset、backup
  *
@@ -13,6 +14,7 @@
 
 import { defineComponent } from "vue";
 import { useCsNamespace } from "../../hooks/use-namespace";
+import AgentsPanel from "./components/agents-panel";
 import ConfigPanel from "./components/config-panel";
 import GatewayPanel from "./components/gateway-panel";
 import MaintenancePanel from "./components/maintenance-panel";
@@ -34,12 +36,13 @@ const ClawManager = defineComponent({
         {/* 页面头部 */}
         <div class={ns.e("header")}>
           <h2 class={ns.e("title")}>OpenClaw 管理器</h2>
-          <span class={ns.e("subtitle")}>管理 OpenClaw 网关、配置与维护</span>
+          <span class={ns.e("subtitle")}>管理 OpenClaw 网关、智能体、配置与维护</span>
         </div>
 
         {/* 子页面内容 */}
         <div class={ns.e("content")}>
           {props.activeCategory === "claw-gateway" && <GatewayPanel />}
+          {props.activeCategory === "claw-agents" && <AgentsPanel />}
           {props.activeCategory === "claw-config" && <ConfigPanel />}
           {props.activeCategory === "claw-maintenance" && <MaintenancePanel />}
         </div>
