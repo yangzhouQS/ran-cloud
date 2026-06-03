@@ -7,7 +7,7 @@
  * @block ran-category
  */
 
-import type { Component, PropType } from "vue";
+import type { DefineComponent, PropType } from "vue";
 import { defineComponent } from "vue";
 import { useCsNamespace } from "../hooks/use-namespace";
 import "./category-panel.less";
@@ -16,7 +16,7 @@ import "./category-panel.less";
 export interface CategoryItem {
   key: string;
   label: string;
-  icon: Component;
+  icon: DefineComponent;
   description?: string;
 }
 
