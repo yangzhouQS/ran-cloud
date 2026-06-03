@@ -73,3 +73,30 @@ export interface AgentInfo {
   /** 描述信息 */
   description?: string;
 }
+
+// ==================== 技能管理 ====================
+
+/** 技能启用状态 */
+export type SkillStatus = "enabled" | "disabled" | "error";
+
+/** 技能信息 */
+export interface SkillInfo {
+  /** 技能名称 */
+  name: string;
+  /** 运行状态 */
+  status: SkillStatus;
+  /** 技能版本 */
+  version?: string;
+  /** 技能描述 */
+  description?: string;
+  /** 触发规则 */
+  triggerRules?: string[];
+  /** 来源（本地 / 市场安装） */
+  source?: "local" | "market";
+  /** 安装包地址 */
+  packageUrl?: string;
+  /** 是否有语法错误（skills check 结果） */
+  hasError?: boolean;
+  /** 语法错误详情 */
+  errorMessage?: string;
+}

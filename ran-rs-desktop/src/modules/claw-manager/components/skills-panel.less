@@ -1,0 +1,208 @@
+/**
+ * @component SkillsPanel
+ * @description 技能管理面板样式 — 技能列表、语法校验、安装、详情
+ * @block ran-claw-skills
+ * @elements __section-title, __search-row, __skill-list, __skill-card,
+ *           __check-section, __install-form, __detail-dialog
+ */
+
+@import (reference) "../../../assets/styles/global.less";
+
+.ran-claw-skills {
+  // ---- 区块标题 ----
+  &__section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 20px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: @color-text-primary;
+
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+
+  // ---- 搜索行 ----
+  &__search-row {
+    margin-bottom: 12px;
+  }
+
+  &__search-input {
+    width: 100%;
+  }
+
+  // ---- 技能列表 ----
+  &__skill-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__empty,
+  &__loading {
+    padding: 24px;
+    text-align: center;
+    color: #909399;
+    font-size: 13px;
+  }
+
+  // ---- 技能卡片 ----
+  &__skill-card {
+    padding: 12px 16px;
+    border: 1px solid @color-border-light;
+    border-radius: 8px;
+    background: #ffffff;
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
+
+    &:hover {
+      border-color: @color-primary;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.08);
+    }
+  }
+
+  &__skill-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  &__skill-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: @color-text-primary;
+  }
+
+  &__skill-badges {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__skill-status {
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  &__skill-desc {
+    font-size: 12px;
+    color: #909399;
+    margin-bottom: 6px;
+  }
+
+  &__skill-error {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 6px;
+    padding: 4px 8px;
+    background: #fef0f0;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #f56c6c;
+  }
+
+  &__skill-meta {
+    margin-bottom: 8px;
+  }
+
+  &__skill-triggers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  &__skill-actions {
+    display: flex;
+    gap: 4px;
+    padding-top: 8px;
+    border-top: 1px solid @color-border-light;
+  }
+
+  // ---- 语法校验区块 ----
+  &__check-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__check-results {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    background: #fafafa;
+    border-radius: 6px;
+    border: 1px solid @color-border-light;
+  }
+
+  &__check-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  &__check-name {
+    font-weight: 600;
+    min-width: 120px;
+  }
+
+  &__check-msg {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // ---- 安装表单 ----
+  &__install-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__form-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  &__form-input {
+    flex: 1;
+  }
+}
+
+// ==================== 暗黑主题 ====================
+
+html.dark {
+  .ran-claw-skills {
+    &__skill-card {
+      background: #252526;
+      border-color: #363637;
+
+      &:hover {
+        border-color: @color-primary;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.12);
+      }
+    }
+
+    &__skill-error {
+      background: #2d1f1f;
+    }
+
+    &__skill-actions {
+      border-top-color: #363637;
+    }
+
+    &__check-results {
+      background: #1d1e1f;
+      border-color: #363637;
+    }
+  }
+}
