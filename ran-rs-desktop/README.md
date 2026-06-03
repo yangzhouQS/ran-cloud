@@ -131,3 +131,10 @@ MIT
 
 
 请自行规划分类管理，添加这些指令的操作界面
+
+当前前端模块 `claw-manager` 所有执行的指令都是通过前端定时器模拟执行状态返回的，没有真实的执行指令，现在需要完成一下功能：
+添加模块：H:\2026code\project\ran-cloud\ran-rs-desktop\src-tauri\src\modules
+这个目录下规划一个 `claw_manager` 模块，将前端执行的这些指令发送至rust端真实执行，返回执行的结果输出
+
+
+
