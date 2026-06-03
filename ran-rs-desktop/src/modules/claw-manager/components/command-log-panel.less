@@ -9,7 +9,7 @@
 @import (reference) "../../../assets/styles/global.less";
 
 .ran-claw-command-log {
-  margin-top: 20px;
+  margin-top: 24px;
   background: #fff;
   border: 1px solid @color-border-light;
   border-radius: 8px;
@@ -38,7 +38,7 @@
   }
 
   &__empty {
-    padding: 24px;
+    padding: 20px;
     text-align: center;
     color: @color-text-placeholder;
     font-size: 13px;
@@ -46,7 +46,7 @@
 
   // ---- 日志条目 ----
   &__item {
-    padding: 10px 16px;
+    padding: 12px 16px;
     border-bottom: 1px solid @color-border-light;
 
     &:last-child {
@@ -62,14 +62,14 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 
     code {
       font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
       font-size: 13px;
       color: @color-primary;
       background: @color-primary-lighter;
-      padding: 1px 6px;
+      padding: 2px 8px;
       border-radius: 3px;
     }
   }
@@ -82,17 +82,20 @@
 
   &__output {
     margin: 0;
+    padding: 8px 12px;
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     font-size: 13px;
-    line-height: 1.6;
+    line-height: 1.5;
     color: @color-text-regular;
     white-space: pre-wrap;
-    word-break: break-all;
+    word-break: break-word;
+    background: #f8f9fb;
+    border-radius: 4px;
   }
 
   // ---- 日志中的可点击 URL ----
   &__url {
-    margin-top: 6px;
+    margin-top: 8px;
     padding: 6px 12px;
     background: @color-primary-lighter;
     border-radius: 4px;
