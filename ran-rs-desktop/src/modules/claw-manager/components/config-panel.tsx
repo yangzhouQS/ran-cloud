@@ -140,8 +140,6 @@ const ConfigPanel = defineComponent({
     /** 打开配置文件夹 */
     const openConfigPath = () => execCommand(
       "openclaw config path",
-      `✓ 配置文件路径: ${configPath.value}（已在文件管理器中打开）`,
-      600,
     );
 
     /** 加载所有配置项 */
@@ -175,8 +173,6 @@ const ConfigPanel = defineComponent({
       }
       execCommand(
         `openclaw config get ${queryForm.getKey.trim()}`,
-        `配置项: ${queryForm.getKey.trim()} → 当前值: ${(configEntries.value.find(e => e.key === queryForm.getKey.trim()))?.value ?? "(未设置)"}`,
-        500,
       );
     };
 
@@ -190,19 +186,19 @@ const ConfigPanel = defineComponent({
       const restartFlag = queryForm.setRestart ? " --restart" : "";
       execCommand(
         `openclaw config set ${key} ${value}${restartFlag}`,
-        `✓ 配置已更新: ${key} = ${value}${queryForm.setRestart ? "（网关将自动重启）" : ""}`,
-        1000,
-      ).then(() => {
-        // 更新本地缓存
-        const existing = configEntries.value.find(e => e.key === key);
-        if (existing) {
-          existing.value = value;
-        } else {
-          configEntries.value.push({ key, value, requireRestart: queryForm.setRestart });
-        }
-        // 同步快速设置表单
-        if (PRESET_KEYS.includes(key)) {
-          quickForm[key] = value;
+      ).then((result) => {
+        if (result.success) {
+          // 更新本地缓存
+          const existing = configEntries.value.find(e => e.key === key);
+          if (existing) {
+            existing.value = value;
+          } else {
+            configEntries.value.push({ key, value, requireRestart: queryForm.setRestart });
+          }
+          // 同步快速设置表单
+          if (PRESET_KEYS.includes(key)) {
+            quickForm[key] = value;
+          }
         }
       });
     };
@@ -216,12 +212,12 @@ const ConfigPanel = defineComponent({
       const restartFlag = preset.requireRestart ? " --restart" : "";
       execCommand(
         `openclaw config set ${preset.key} ${value}${restartFlag}`,
-        `✓ 配置已更新: ${preset.key} = ${value}${preset.requireRestart ? "（网关将自动重启）" : ""}`,
-        1000,
-      ).then(() => {
-        const existing = configEntries.value.find(e => e.key === preset.key);
-        if (existing) {
-          existing.value = value;
+      ).then((result) => {
+        if (result.success) {
+          const existing = configEntries.value.find(e => e.key === preset.key);
+          if (existing) {
+            existing.value = value;
+          }
         }
       });
     };
@@ -230,12 +226,12 @@ const ConfigPanel = defineComponent({
     const unsetConfig = (key: string) => {
       execCommand(
         `openclaw config unset ${key}`,
-        `✓ 配置项已删除: ${key}`,
-        600,
-      ).then(() => {
-        configEntries.value = configEntries.value.filter(e => e.key !== key);
-        if (PRESET_KEYS.includes(key)) {
-          quickForm[key] = "";
+      ).then((result) => {
+        if (result.success) {
+          configEntries.value = configEntries.value.filter(e => e.key !== key);
+          if (PRESET_KEYS.includes(key)) {
+            quickForm[key] = "";
+          }
         }
       });
     };
@@ -243,8 +239,6 @@ const ConfigPanel = defineComponent({
     /** 校验配置 */
     const validateConfig = () => execCommand(
       "openclaw config validate",
-      "✓ 配置校验通过: openclaw.json 结构完整，所有必填项已设置",
-      800,
     );
 
     onMounted(() => {

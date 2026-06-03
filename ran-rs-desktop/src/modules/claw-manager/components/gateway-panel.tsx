@@ -43,55 +43,49 @@ const GatewayPanel = defineComponent({
     /** 启动网关 */
     const startGateway = () => execCommand(
       "openclaw gateway start",
-      `✓ 网关已启动，监听端口 ${gatewayPort.value}\n\nDashboard 地址:`,
-      1500,
-      dashboardUrl(),
-    ).then(() => {
-      gatewayStatus.value = "running";
-      gatewayUptime.value = 0;
+      { url: dashboardUrl() },
+    ).then((result) => {
+      if (result.success) {
+        gatewayStatus.value = "running";
+        gatewayUptime.value = 0;
+      }
     });
 
     /** 停止网关 */
     const stopGateway = () => execCommand(
       "openclaw gateway stop",
-      "✓ 网关已停止",
-      800,
-    ).then(() => {
-      gatewayStatus.value = "stopped";
-      gatewayUptime.value = 0;
+    ).then((result) => {
+      if (result.success) {
+        gatewayStatus.value = "stopped";
+        gatewayUptime.value = 0;
+      }
     });
 
     /** 重启网关 */
     const restartGateway = () => execCommand(
       "openclaw gateway restart",
-      `✓ 网关已重启，监听端口 ${gatewayPort.value}\n\nDashboard 地址:`,
-      2000,
-      dashboardUrl(),
-    ).then(() => {
-      gatewayStatus.value = "running";
-      gatewayUptime.value = 0;
+      { url: dashboardUrl() },
+    ).then((result) => {
+      if (result.success) {
+        gatewayStatus.value = "running";
+        gatewayUptime.value = 0;
+      }
     });
 
     /** 查看网关状态 */
     const checkStatus = () => execCommand(
       "openclaw gateway status",
-      `网关状态: ${gatewayStatus.value}\n端口: ${gatewayPort.value}\n运行时间: ${gatewayUptime.value}s\n版本: v${gatewayVersion.value}`,
-      500,
     );
 
     /** 打开 Dashboard */
     const openDashboard = () => execCommand(
       "openclaw dashboard",
-      "✓ 已在浏览器中打开 Web 管理面板\n\n本地访问地址:",
-      800,
-      dashboardUrl(),
+      { url: dashboardUrl() },
     );
 
     /** 打开 TUI */
     const openTui = () => execCommand(
       "openclaw tui",
-      "✓ 已启动终端字符图形控制台",
-      600,
     );
 
     onMounted(() => {

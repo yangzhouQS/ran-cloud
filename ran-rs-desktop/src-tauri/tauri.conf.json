@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Telepresence 快速连接工具 - Ran RS Desktop",
+        "title": "开发一体化工具 - Desktop",
         "width": 1024,
         "height": 768,
         "minWidth": 800,

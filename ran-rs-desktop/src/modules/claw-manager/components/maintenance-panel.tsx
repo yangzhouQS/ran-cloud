@@ -35,22 +35,16 @@ const MaintenancePanel = defineComponent({
     /** 环境自检 */
     const runDoctor = () => execCommand(
       "openclaw doctor",
-      "✓ 环境自检完成\n  [✓] 依赖检查: 全部就绪\n  [✓] 配置文件: 有效\n  [✓] 模型连通: 正常\n  [✓] 网关端口: 可用",
-      2000,
     );
 
     /** 自动修复 */
     const runFix = () => execCommand(
       "openclaw doctor --fix",
-      "✓ 自动修复完成\n  [✓] 配置权限已修复\n  [✓] 缺失依赖已安装\n  [✓] 模型连接已恢复",
-      3000,
     );
 
     /** 升级 */
     const runUpdate = () => execCommand(
       "openclaw update",
-      "✓ 升级检查完成\n  当前版本: v1.0.0\n  最新版本: v1.0.0\n  已是最新版本",
-      2000,
     );
 
     /** 重置配置 */
@@ -63,8 +57,6 @@ const MaintenancePanel = defineComponent({
         );
         execCommand(
           "openclaw reset",
-          "✓ 配置已重置\n  所有 agent、技能、配置已清空\n  请重新运行 openclaw onboard 初始化",
-          1500,
         );
       } catch {
         // 用户取消
@@ -74,8 +66,6 @@ const MaintenancePanel = defineComponent({
     /** 创建备份 */
     const runBackup = () => execCommand(
       "openclaw backup create",
-      "✓ 备份已创建\n  备份文件: openclaw-backup-20260602.tar.gz\n  包含: agent + 技能 + 配置",
-      2000,
     );
 
     return () => (

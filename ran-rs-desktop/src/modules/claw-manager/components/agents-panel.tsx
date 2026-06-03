@@ -143,31 +143,29 @@ const AgentsPanel = defineComponent({
         ElMessage.warning("请输入智能体名称");
         return;
       }
-      await execCommand(
+      const result = await execCommand(
         `openclaw agents create ${createForm.name.trim()}`,
-        `✓ 智能体 "${createForm.name.trim()}" 已创建`,
-        800,
       );
-      agents.value.push({
-        name: createForm.name.trim(),
-        status: "enabled",
-        systemPrompt: createForm.systemPrompt || undefined,
-        workspaceRoot: createForm.workspaceRoot || undefined,
-        skills: createForm.skills ? createForm.skills.split(",").map(s => s.trim()) : [],
-        description: "",
-      });
-      createForm.name = "";
-      createForm.systemPrompt = "";
-      createForm.workspaceRoot = "";
-      createForm.skills = "";
+      if (result.success) {
+        agents.value.push({
+          name: createForm.name.trim(),
+          status: "enabled",
+          systemPrompt: createForm.systemPrompt || undefined,
+          workspaceRoot: createForm.workspaceRoot || undefined,
+          skills: createForm.skills ? createForm.skills.split(",").map(s => s.trim()) : [],
+          description: "",
+        });
+        createForm.name = "";
+        createForm.systemPrompt = "";
+        createForm.workspaceRoot = "";
+        createForm.skills = "";
+      }
     };
 
     /** 查看智能体详情 */
     const handleInfo = async (agent: AgentInfo) => {
       await execCommand(
         `openclaw agents info ${agent.name}`,
-        `✓ 已获取 ${agent.name} 详情`,
-        500,
       );
       detailAgent.value = agent;
       detailVisible.value = true;
@@ -186,17 +184,17 @@ const AgentsPanel = defineComponent({
       if (!editForm.name) {
         return;
       }
-      await execCommand(
+      const result = await execCommand(
         `openclaw agents edit ${editForm.name}`,
-        `✓ 智能体 "${editForm.name}" 已更新`,
-        800,
       );
-      const agent = agents.value.find(a => a.name === editForm.name);
-      if (agent) {
-        agent.systemPrompt = editForm.systemPrompt || undefined;
-        agent.skills = editForm.skills ? editForm.skills.split(",").map(s => s.trim()) : [];
+      if (result.success) {
+        const agent = agents.value.find(a => a.name === editForm.name);
+        if (agent) {
+          agent.systemPrompt = editForm.systemPrompt || undefined;
+          agent.skills = editForm.skills ? editForm.skills.split(",").map(s => s.trim()) : [];
+        }
+        editVisible.value = false;
       }
-      editVisible.value = false;
     };
 
     /** 删除智能体 */
@@ -207,12 +205,12 @@ const AgentsPanel = defineComponent({
           "删除确认",
           { confirmButtonText: "确定", cancelButtonText: "取消", type: "warning" },
         );
-        await execCommand(
+        const result = await execCommand(
           `openclaw agents remove ${agent.name}`,
-          `✓ 智能体 "${agent.name}" 已删除`,
-          600,
         );
-        agents.value = agents.value.filter(a => a.name !== agent.name);
+        if (result.success) {
+          agents.value = agents.value.filter(a => a.name !== agent.name);
+        }
       } catch {
         // 取消
       }
@@ -222,12 +220,12 @@ const AgentsPanel = defineComponent({
     const handleToggle = async (agent: AgentInfo) => {
       const action = agent.status === "enabled" ? "disable" : "enable";
       const newStatus = agent.status === "enabled" ? "disabled" : "enabled";
-      await execCommand(
+      const result = await execCommand(
         `openclaw agents ${action} ${agent.name}`,
-        `✓ 智能体 "${agent.name}" 已${newStatus === "enabled" ? "启用" : "禁用"}`,
-        500,
       );
-      agent.status = newStatus;
+      if (result.success) {
+        agent.status = newStatus;
+      }
     };
 
     /** 调用智能体测试 */
@@ -242,8 +240,6 @@ const AgentsPanel = defineComponent({
       }
       await execCommand(
         `openclaw agents call ${callForm.agentName.trim()} --content "${callForm.content.trim()}"`,
-        `✓ 已调用 ${callForm.agentName.trim()}，等待响应...`,
-        1500,
       );
     };
 

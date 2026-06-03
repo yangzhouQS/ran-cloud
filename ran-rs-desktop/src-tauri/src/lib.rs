@@ -98,6 +98,9 @@ pub fn run() {
             modules::telepresence::telepresence_connect,
             modules::telepresence::telepresence_quit,
             modules::telepresence::telepresence_status,
+            // ===== Claw Manager 命令 =====
+            modules::claw_manager::commands::claw_execute_command,
+            modules::claw_manager::commands::claw_check_cli,
         ])
         .setup(|app| {
             // 初始化共享 SSH 隧道管理器（Redis 模块使用）

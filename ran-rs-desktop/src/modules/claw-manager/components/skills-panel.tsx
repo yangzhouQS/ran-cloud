@@ -138,8 +138,6 @@ const SkillsPanel = defineComponent({
     const handleInfo = async (skill: SkillInfo) => {
       await execCommand(
         `openclaw skills info ${skill.name}`,
-        `✓ 已获取 ${skill.name} 详情`,
-        500,
       );
       detailSkill.value = skill;
       detailVisible.value = true;
@@ -149,20 +147,18 @@ const SkillsPanel = defineComponent({
     const handleToggle = async (skill: SkillInfo) => {
       const action = skill.status === "enabled" ? "disable" : "enable";
       const newStatus = skill.status === "enabled" ? "disabled" : "enabled";
-      await execCommand(
+      const result = await execCommand(
         `openclaw skills ${action} ${skill.name}`,
-        `✓ 技能 "${skill.name}" 已${newStatus === "enabled" ? "启用" : "禁用"}`,
-        500,
       );
-      skill.status = newStatus;
+      if (result.success) {
+        skill.status = newStatus;
+      }
     };
 
     /** 校验所有技能 */
     const handleCheck = async () => {
       await execCommand(
         "openclaw skills check",
-        "✓ 技能语法校验完成",
-        1200,
       );
       // 模拟校验结果
       checkResults.value = skills.value.map(s => ({
@@ -179,22 +175,22 @@ const SkillsPanel = defineComponent({
         return;
       }
       const url = formState.installUrl.trim();
-      await execCommand(
+      const result = await execCommand(
         `openclaw skills install ${url}`,
-        `✓ 技能已从 ${url} 安装成功`,
-        1500,
       );
-      // 模拟添加新技能
-      const name = url.split("/").pop()?.replace(".tar.gz", "") ?? "new-skill";
-      skills.value.push({
-        name,
-        status: "enabled",
-        version: "0.1.0",
-        description: "新安装的技能",
-        source: "market",
-        packageUrl: url,
-      });
-      formState.installUrl = "";
+      if (result.success) {
+        // 模拟添加新技能
+        const name = url.split("/").pop()?.replace(".tar.gz", "") ?? "new-skill";
+        skills.value.push({
+          name,
+          status: "enabled",
+          version: "0.1.0",
+          description: "新安装的技能",
+          source: "market",
+          packageUrl: url,
+        });
+        formState.installUrl = "";
+      }
     };
 
     /** 卸载技能 */
@@ -205,12 +201,12 @@ const SkillsPanel = defineComponent({
           "卸载确认",
           { confirmButtonText: "确定", cancelButtonText: "取消", type: "warning" },
         );
-        await execCommand(
+        const result = await execCommand(
           `openclaw skills remove ${skill.name}`,
-          `✓ 技能 "${skill.name}" 已卸载`,
-          600,
         );
-        skills.value = skills.value.filter(s => s.name !== skill.name);
+        if (result.success) {
+          skills.value = skills.value.filter(s => s.name !== skill.name);
+        }
       } catch {
         // 取消
       }

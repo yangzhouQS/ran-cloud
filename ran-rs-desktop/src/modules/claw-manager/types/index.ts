@@ -4,11 +4,44 @@
 /** 网关运行状态 */
 export type GatewayStatus = "running" | "stopped" | "error";
 
-/** 命令执行结果 */
+/** 命令执行结果 — 对应 Rust CommandResult */
 export interface CommandResult {
+  /** 是否执行成功（exit code == 0） */
   success: boolean;
+  /** 标准输出 */
+  stdout: string;
+  /** 标准错误 */
+  stderr: string;
+  /** 退出码（null 表示进程被信号终止） */
+  exitCode: number | null;
+  /** 合并后的输出（stdout + stderr） */
   output: string;
-  timestamp: string;
+  /** 执行耗时（毫秒） */
+  durationMs: number;
+}
+
+/** 命令执行选项 */
+export interface ClawExecOptions {
+  /** 工作目录 */
+  cwd?: string;
+  /** 环境变量 */
+  env?: Record<string, string>;
+  /** 超时时间（秒），默认 30 */
+  timeoutSecs?: number;
+  /** 可选的可点击 URL（如 Dashboard 地址） */
+  url?: string;
+}
+
+/** CLI 工具信息 — 对应 Rust ClawCliInfo */
+export interface ClawCliInfo {
+  /** CLI 是否可用 */
+  available: boolean;
+  /** CLI 版本号 */
+  version: string | null;
+  /** CLI 可执行文件路径 */
+  path: string | null;
+  /** 错误信息（不可用时） */
+  error: string | null;
 }
 
 /** 命令日志条目 */
