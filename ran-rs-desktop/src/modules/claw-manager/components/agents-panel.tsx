@@ -57,8 +57,10 @@ const AgentsPanel = defineComponent({
     const agents = ref<AgentInfo[]>([]);
     const loadingAgents = ref(false);
 
-    // ---- 搜索过滤 ----
-    const searchKeyword = ref("");
+    // ---- 搜索过滤（使用 reactive 避免 IDE 自动移除 ref .value） ----
+    const searchState = reactive({
+      keyword: "",
+    });
 
     // ---- 创建智能体表单 ----
     const createForm = reactive({
@@ -125,10 +127,10 @@ const AgentsPanel = defineComponent({
 
     /** 过滤后的智能体列表 */
     const filteredAgents = () => {
-      if (!searchKeyword.value) {
+      if (!searchState.keyword) {
         return agents.value;
       }
-      const keyword = searchKeyword.value.toLowerCase();
+      const keyword = searchState.keyword.toLowerCase();
       return agents.value.filter(a =>
         a.name.toLowerCase().includes(keyword)
         || (a.description ?? "").toLowerCase().includes(keyword),
@@ -271,7 +273,7 @@ const AgentsPanel = defineComponent({
         <div class={ns.e("search-row")}>
           <el-input
             size="small"
-            v-model={searchKeyword}
+            v-model={searchState.keyword}
             placeholder="搜索智能体..."
             clearable
             prefix-icon={Search}

@@ -24,7 +24,7 @@ import {
   Warning,
 } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { defineComponent, onMounted, ref } from "vue";
+import { defineComponent, onMounted, reactive, ref } from "vue";
 import { useCsNamespace } from "../../../hooks/use-namespace";
 import { useCommandExecutor } from "../hooks/use-command-executor";
 import CommandLogPanel from "./command-log-panel";
@@ -54,11 +54,11 @@ const SkillsPanel = defineComponent({
     const skills = ref<SkillInfo[]>([]);
     const loadingSkills = ref(false);
 
-    // ---- 搜索过滤 ----
-    const searchKeyword = ref("");
-
-    // ---- 安装表单 ----
-    const installUrl = ref("");
+    // ---- 表单状态（使用 reactive 避免 IDE 自动移除 ref .value） ----
+    const formState = reactive({
+      searchKeyword: "",
+      installUrl: "",
+    });
 
     // ---- 详情对话框 ----
     const detailVisible = ref(false);
@@ -124,10 +124,10 @@ const SkillsPanel = defineComponent({
 
     /** 过滤后的技能列表 */
     const filteredSkills = () => {
-      if (!searchKeyword.value) {
+      if (!formState.searchKeyword) {
         return skills.value;
       }
-      const keyword = searchKeyword.value.toLowerCase();
+      const keyword = formState.searchKeyword.toLowerCase();
       return skills.value.filter(s =>
         s.name.toLowerCase().includes(keyword)
         || (s.description ?? "").toLowerCase().includes(keyword),
@@ -174,11 +174,11 @@ const SkillsPanel = defineComponent({
 
     /** 安装技能 */
     const handleInstall = async () => {
-      if (!installUrl.value.trim()) {
+      if (!formState.installUrl.trim()) {
         ElMessage.warning("请输入技能包地址");
         return;
       }
-      const url = installUrl.value.trim();
+      const url = formState.installUrl.trim();
       await execCommand(
         `openclaw skills install ${url}`,
         `✓ 技能已从 ${url} 安装成功`,
@@ -194,7 +194,7 @@ const SkillsPanel = defineComponent({
         source: "market",
         packageUrl: url,
       });
-      installUrl.value = "";
+      formState.installUrl = "";
     };
 
     /** 卸载技能 */
@@ -242,7 +242,7 @@ const SkillsPanel = defineComponent({
         <div class={ns.e("search-row")}>
           <el-input
             size="small"
-            v-model={searchKeyword}
+            v-model={formState.searchKeyword}
             placeholder="搜索技能..."
             clearable
             prefix-icon={Search}
@@ -366,7 +366,7 @@ const SkillsPanel = defineComponent({
           <div class={ns.e("form-row")}>
             <el-input
               size="small"
-              v-model={installUrl}
+              v-model={formState.installUrl}
               placeholder="输入技能包地址（如 npm:@openclaw/skill-rollup 或 https://...）"
               clearable
               class={ns.e("form-input")}
@@ -378,7 +378,7 @@ const SkillsPanel = defineComponent({
               type="primary"
               icon={Download}
               loading={loading.value}
-              disabled={!installUrl.value.trim()}
+              disabled={!formState.installUrl.trim()}
               onClick={handleInstall}
             >
               安装
