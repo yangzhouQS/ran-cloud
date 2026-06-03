@@ -53,7 +53,10 @@ const CommandLogPanel = defineComponent({
             <div key={idx} class={[ns.e("item"), !log.success && ns.is("error")]}>
               <div class={ns.e("cmd")}>
                 <span class={ns.e("time")}>{log.time}</span>
-                <code>$ {log.cmd}</code>
+                <code>
+                  $
+                  {log.cmd}
+                </code>
               </div>
               <pre class={ns.e("output")}>{log.output}</pre>
               {log.url && (
@@ -61,7 +64,9 @@ const CommandLogPanel = defineComponent({
                   <el-link
                     type="primary"
                     icon={Link}
-                    onClick={() => { openUrl(log.url!); }}
+                    onClick={() => {
+                      openUrl(log.url!);
+                    }}
                   >
                     {log.url}
                   </el-link>

@@ -14,8 +14,8 @@
 import { CirclePlus, Edit, Monitor, Refresh, Tools } from "@element-plus/icons-vue";
 import { defineComponent, onMounted, ref } from "vue";
 import { useCsNamespace } from "../../../hooks/use-namespace";
-import CommandLogPanel from "./command-log-panel";
 import { useCommandExecutor } from "../hooks/use-command-executor";
+import CommandLogPanel from "./command-log-panel";
 import "./config-panel.less";
 
 const ConfigPanel = defineComponent({

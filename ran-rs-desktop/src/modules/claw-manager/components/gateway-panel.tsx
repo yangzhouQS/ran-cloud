@@ -21,8 +21,8 @@ import {
 } from "@element-plus/icons-vue";
 import { defineComponent, onMounted, ref } from "vue";
 import { useCsNamespace } from "../../../hooks/use-namespace";
-import CommandLogPanel from "./command-log-panel";
 import { useCommandExecutor } from "../hooks/use-command-executor";
+import CommandLogPanel from "./command-log-panel";
 import "./gateway-panel.less";
 
 const GatewayPanel = defineComponent({
@@ -46,14 +46,18 @@ const GatewayPanel = defineComponent({
       `✓ 网关已启动，监听端口 ${gatewayPort.value}\n\nDashboard 地址:`,
       1500,
       dashboardUrl(),
-    ).then(() => { gatewayStatus.value = "running"; gatewayUptime.value = 0; });
+    ).then(() => {
+      gatewayStatus.value = "running"; gatewayUptime.value = 0;
+    });
 
     /** 停止网关 */
     const stopGateway = () => execCommand(
       "openclaw gateway stop",
       "✓ 网关已停止",
       800,
-    ).then(() => { gatewayStatus.value = "stopped"; gatewayUptime.value = 0; });
+    ).then(() => {
+      gatewayStatus.value = "stopped"; gatewayUptime.value = 0;
+    });
 
     /** 重启网关 */
     const restartGateway = () => execCommand(
@@ -61,7 +65,9 @@ const GatewayPanel = defineComponent({
       `✓ 网关已重启，监听端口 ${gatewayPort.value}\n\nDashboard 地址:`,
       2000,
       dashboardUrl(),
-    ).then(() => { gatewayStatus.value = "running"; gatewayUptime.value = 0; });
+    ).then(() => {
+      gatewayStatus.value = "running"; gatewayUptime.value = 0;
+    });
 
     /** 查看网关状态 */
     const checkStatus = () => execCommand(
@@ -101,8 +107,14 @@ const GatewayPanel = defineComponent({
             </span>
           </div>
           <div class={ns.e("status-info")}>
-            <span>端口: {gatewayPort.value}</span>
-            <span>版本: v{gatewayVersion.value}</span>
+            <span>
+              端口:
+              {gatewayPort.value}
+            </span>
+            <span>
+              版本: v
+              {gatewayVersion.value}
+            </span>
           </div>
         </div>
 

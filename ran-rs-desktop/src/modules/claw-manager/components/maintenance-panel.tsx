@@ -22,8 +22,8 @@ import {
 import { ElMessageBox } from "element-plus";
 import { defineComponent } from "vue";
 import { useCsNamespace } from "../../../hooks/use-namespace";
-import CommandLogPanel from "./command-log-panel";
 import { useCommandExecutor } from "../hooks/use-command-executor";
+import CommandLogPanel from "./command-log-panel";
 import "./maintenance-panel.less";
 
 const MaintenancePanel = defineComponent({
