@@ -1,0 +1,98 @@
+/**
+ * @component ConfigPanel
+ * @description 系统配置面板样式
+ * @block ran-claw-config
+ * @elements __version-card, __version-header, __version-title, __version-content,
+ *           __config-actions, __action-card, __action-info, __action-name, __action-cmd, __action-desc
+ */
+
+@import (reference) "../../../assets/styles/global.less";
+
+.ran-claw-config {
+  // ---- 版本卡片 ----
+  &__version-card {
+    background: #fff;
+    border: 1px solid @color-border-light;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+
+  &__version-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  &__version-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: @color-text-primary;
+  }
+
+  &__version-content {
+    padding: 8px 12px;
+    background: #f8f9fb;
+    border-radius: 4px;
+
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 14px;
+      color: @color-text-primary;
+    }
+  }
+
+  // ---- 配置操作卡片 ----
+  &__config-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  // ---- 操作卡片（与 maintenance 共用结构） ----
+  &__action-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #fff;
+    border: 1px solid @color-border-light;
+    border-radius: 8px;
+    padding: 16px 20px;
+    transition: box-shadow 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+  }
+
+  &__action-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__action-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: @color-text-primary;
+  }
+
+  &__action-cmd {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 12px;
+    color: @color-primary;
+    background: @color-primary-lighter;
+    padding: 1px 6px;
+    border-radius: 3px;
+    display: inline-block;
+    width: fit-content;
+  }
+
+  &__action-desc {
+    font-size: 12px;
+    color: @color-text-secondary;
+  }
+}

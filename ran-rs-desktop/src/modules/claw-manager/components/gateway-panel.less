@@ -1,0 +1,80 @@
+/**
+ * @component GatewayPanel
+ * @description 网关管理面板样式
+ * @block ran-claw-gateway
+ * @elements __status-card, __status-indicator, __status-dot, __status-text, __status-info, __actions
+ * @modifiers is-running, is-stopped, is-error
+ */
+
+@import (reference) "../../../assets/styles/global.less";
+
+.ran-claw-gateway {
+  // ---- 状态卡片 ----
+  &__status-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fff;
+    border: 1px solid @color-border-light;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+
+    &.is-running {
+      border-left: 3px solid @color-success;
+    }
+
+    &.is-stopped {
+      border-left: 3px solid @color-text-placeholder;
+    }
+
+    &.is-error {
+      border-left: 3px solid @color-danger;
+    }
+  }
+
+  &__status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: @color-text-placeholder;
+
+    .is-running & {
+      background: @color-success;
+      box-shadow: 0 0 6px rgba(103, 194, 58, 0.4);
+    }
+
+    .is-error & {
+      background: @color-danger;
+      box-shadow: 0 0 6px rgba(245, 108, 108, 0.4);
+    }
+  }
+
+  &__status-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: @color-text-primary;
+  }
+
+  &__status-info {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: @color-text-secondary;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
+  // ---- 操作按钮 ----
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+}

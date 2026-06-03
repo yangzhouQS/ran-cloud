@@ -1,0 +1,81 @@
+/**
+ * @component MaintenancePanel
+ * @description 健康检查与维护面板样式
+ * @block ran-claw-maintenance
+ * @elements __action-list, __action-card, __action-icon, __action-info,
+ *           __action-name, __action-cmd, __action-desc
+ * @modifiers is-danger
+ */
+
+@import (reference) "../../../assets/styles/global.less";
+
+.ran-claw-maintenance {
+  // ---- 操作列表 ----
+  &__action-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  // ---- 操作卡片 ----
+  &__action-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #fff;
+    border: 1px solid @color-border-light;
+    border-radius: 8px;
+    padding: 16px 20px;
+    transition: box-shadow 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    &.is-danger {
+      border-color: rgba(245, 108, 108, 0.3);
+      background: rgba(245, 108, 108, 0.02);
+    }
+  }
+
+  &__action-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f5f7fa;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  &__action-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__action-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: @color-text-primary;
+  }
+
+  &__action-cmd {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 12px;
+    color: @color-primary;
+    background: @color-primary-lighter;
+    padding: 1px 6px;
+    border-radius: 3px;
+    display: inline-block;
+    width: fit-content;
+  }
+
+  &__action-desc {
+    font-size: 12px;
+    color: @color-text-secondary;
+  }
+}

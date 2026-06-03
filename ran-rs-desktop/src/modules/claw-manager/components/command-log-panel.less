@@ -1,0 +1,108 @@
+/**
+ * @component CommandLogPanel
+ * @description 命令日志面板样式 — 三个子页面共用
+ * @block ran-claw-command-log
+ * @elements __header, __title, __list, __empty, __item, __cmd, __time, __output, __url
+ * @modifiers is-error
+ */
+
+@import (reference) "../../../assets/styles/global.less";
+
+.ran-claw-command-log {
+  margin-top: 20px;
+  background: #fff;
+  border: 1px solid @color-border-light;
+  border-radius: 8px;
+  overflow: hidden;
+
+  // ---- 日志头部 ----
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid @color-border-light;
+    background: #fafafa;
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: @color-text-primary;
+  }
+
+  // ---- 日志列表 ----
+  &__list {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  &__empty {
+    padding: 24px;
+    text-align: center;
+    color: @color-text-placeholder;
+    font-size: 13px;
+  }
+
+  // ---- 日志条目 ----
+  &__item {
+    padding: 10px 16px;
+    border-bottom: 1px solid @color-border-light;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &.is-error {
+      background: rgba(245, 108, 108, 0.04);
+    }
+  }
+
+  &__cmd {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 13px;
+      color: @color-primary;
+      background: @color-primary-lighter;
+      padding: 1px 6px;
+      border-radius: 3px;
+    }
+  }
+
+  &__time {
+    font-size: 12px;
+    color: @color-text-placeholder;
+    flex-shrink: 0;
+  }
+
+  &__output {
+    margin: 0;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: @color-text-regular;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  // ---- 日志中的可点击 URL ----
+  &__url {
+    margin-top: 6px;
+    padding: 6px 12px;
+    background: @color-primary-lighter;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+
+    .el-link {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 14px;
+      font-weight: 600;
+    }
+  }
+}
