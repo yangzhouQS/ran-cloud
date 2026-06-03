@@ -1,0 +1,14 @@
+{
+    // This file is not used in compilation. It is here just for a nice editor experience.
+    "extends": "@tsconfig/docusaurus/tsconfig.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "resolveJsonModule": true,
+        "paths": {
+            "dockview-core": ["../dockview-core/src/index.ts"],
+            "dockview-core/*": ["../dockview-core/src/*"],
+            "dockview": ["../dockview/src/index.ts"],
+            "dockview/*": ["../dockview/src/*"]
+        }
+    }
+}

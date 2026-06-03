@@ -1,0 +1,94 @@
+---
+title: Popout Windows
+description: How to pop out a Dockview group into a separate browser window and dock it back.
+---
+
+import { DocRef } from '@site/src/components/ui/reference/docRef';
+
+This section describes have to create popout windows.
+
+:::info
+Popout groups **cannot** be maximized. Calling maximize function on groups in these states will have no effect.
+:::
+
+<DocRef declaration="DockviewApi" methods={['addPopoutGroup']} />
+
+Dockview has built-in support for opening groups in new Windows.
+Each popout window can contain a single group with many panels and you can have as many popout
+windows as needed. You cannot dock multiple groups together in the same window.
+
+Popout windows require your website to have a blank `.html` page that can be used, by default this is set to `/popout.html` but
+can be configured to match requirements.
+
+```tsx
+api.addPopoutGroup(
+  group,
+  // the second arguments (options) is optional
+  {
+    popoutUrl:"/popout.html",
+    box: { left: 0, top: 0, height: 200, width: 300 }
+  });
+```
+
+> If you do not provide `options.popoutUrl` a default of `/popout.html` is used and if `options.box` is not provided
+the view will be places according to it's currently position.
+
+:::caution Security: same-origin only
+
+`popoutUrl` must point to a same-origin `http(s)` location. Dockview rejects `javascript:`, `data:`, `blob:`, and cross-origin URLs to prevent a malicious value — for example, from a layout JSON loaded from an untrusted source — from executing script in a context the browser still associates with your application via `window.opener`. The guard runs automatically when the popout is opened, including on layouts restored via `fromJSON()`.
+:::
+
+From within a panel you may say
+
+```tsx
+props.containerApi.addPopoutGroup(props.api.group);
+```
+
+## Closing the Popout Group
+
+To programatically move the popout group back into the main grid you can use the `moveTo` method in many ways, one of the following would suffice
+
+```tsx
+// option 1: add absolutely to the right-side of the grid
+props.group.api.moveTo({ position: 'right' });
+
+// option 2: create a new group and move the contents of the popout group to it
+const group = props.containerApi.addGroup();
+props.group.api.moveTo({ group });
+```
+
+Alternatively, if the user closes the Window the group the dock will make a best attempt to place it back
+in it's original location within the grid. If the dock cannot determine the original location it will
+choose a new location.
+
+
+<CodeRunner id="dockview/popout-group"/>
+
+## Overlays Inside Popout Windows
+
+Floating overlays — including drag-target indicators, the tab context menu, and tab group chip popovers (color picker, rename) — render inside the DOM of the window that hosts them. When a group lives in a popout window, those overlays render in the popout window's document, not the parent. This means:
+
+- Custom chip components and context menu components are mounted in the popout window's DOM tree.
+- CSS that you load into the main page is automatically copied into popout windows; if you ship custom styles outside the standard import pipeline (for example, lazily injected stylesheets), make sure they are also available in the popout window.
+- Event handlers and portals inside custom components should not assume the document is the main window — use the element's `ownerDocument` when you need a reference.
+
+## Popout Window Events
+
+`DockviewApi` exposes three events specific to popout windows:
+
+```ts
+// Fires when the popout window is resized by the user
+api.onDidPopoutGroupSizeChange((event: PopoutGroupChangeSizeEvent) => {
+    console.log('popout resized:', event);
+});
+
+// Fires when the popout window is moved by the user
+api.onDidPopoutGroupPositionChange((event: PopoutGroupChangePositionEvent) => {
+    console.log('popout moved:', event);
+});
+
+// Fires when the browser blocked opening the popout window (e.g. popup blocker)
+api.onDidOpenPopoutWindowFail(() => {
+    alert('Please allow popups for this site to use this feature.');
+});
+```

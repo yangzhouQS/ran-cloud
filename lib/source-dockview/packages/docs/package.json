@@ -1,0 +1,49 @@
+{
+    "name": "dockview-docs",
+    "version": "6.0.1",
+    "private": true,
+    "scripts": {
+        "build": "npm run build-templates && docusaurus build",
+        "clear": "docusaurus clear",
+        "start": "concurrently \"docusaurus start\" \"npm run start-esm-server\"",
+        "start-esm-server": "node web-server/index.mjs",
+        "swizzle": "docusaurus swizzle @docusaurus/theme-classic",
+        "docs:version": "docusaurus docs:version",
+        "typecheck": "tsc",
+        "build-templates": "node scripts/buildTemplates.mjs",
+        "build-templates:local": "node scripts/buildTemplates.mjs --local"
+    },
+    "browserslist": {
+        "production": [
+            ">0.5%",
+            "not dead",
+            "not op_mini all"
+        ],
+        "development": [
+            "last 1 chrome version",
+            "last 1 firefox version",
+            "last 1 safari version"
+        ]
+    },
+    "dependencies": {
+        "@docusaurus/core": "^3.10.1",
+        "@docusaurus/module-type-aliases": "^3.10.1",
+        "@docusaurus/preset-classic": "^3.10.1",
+        "@docusaurus/theme-search-algolia": "^3.10.1",
+        "@mdx-js/react": "^3.1.1",
+        "@minoru/react-dnd-treeview": "^3.5.3",
+        "@radix-ui/react-dropdown-menu": "^2.1.16",
+        "ag-grid-community": "^35.3.0",
+        "ag-grid-react": "^35.3.0",
+        "clsx": "^2.1.1",
+        "dockview-react": "^6.0.1",
+        "dockview-core": "^6.0.1",
+        "prism-react-renderer": "^2.4.1",
+        "react-dnd": "^16.0.1",
+        "source-map-loader": "^5.0.0"
+    },
+    "devDependencies": {
+        "@tsconfig/docusaurus": "^2.0.9",
+        "docusaurus-plugin-sass": "^0.2.6"
+    }
+}

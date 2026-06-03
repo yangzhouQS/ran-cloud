@@ -56,24 +56,8 @@ dashmap = "6"
 # === Lazy Static ===
 once_cell = "1"
 
-# === SQL Database Drivers ===
-rusqlite = { version = "0.31", features = ["bundled"] }
-tokio-postgres = "0.7"
-postgres = "0.19"
-mysql_async = { version = "0.34", features = ["native-tls-tls"] }
-chrono = { version = "0.4", features = ["serde"] }
-
 # === Version Comparison ===
 semver = "1"
 
-# === TLS for SQL Drivers ===
-tokio-native-tls = "0.3"
-native-tls = "0.2"
-postgres-native-tls = "0.5"
-
 [dev-dependencies]
 tempfile = "3"
-
-[[bench]]
-name = "query_benchmark"
-harness = false

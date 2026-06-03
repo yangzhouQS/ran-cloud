@@ -1,0 +1,41 @@
+.codesandbox-button {
+    display: flex;
+    align-items: center;
+    padding: 0px 4px;
+    border-radius: 4px;
+    transition: background-color 0.15s;
+
+    .codesandbox-button-pretext {
+        padding: 0px 4px;
+        color: var(--ifm-color-content-secondary);
+    }
+
+    .codesandbox-button-content {
+        display: flex;
+        align-items: center;
+        color: var(--ifm-color-primary);
+        font-weight: 600;
+    }
+
+    &:hover {
+        cursor: pointer;
+        background-color: var(--ifm-background-surface-color);
+
+        .codesandbox-button-content {
+            color: var(--ifm-color-primary-dark);
+            text-decoration: none;
+        }
+
+        .codesandbox-button-pretext {
+            color: var(--ifm-color-content);
+        }
+    }
+}
+
+.dv-svg {
+    display: inline-block;
+    fill: currentcolor;
+    line-height: 1;
+    stroke: currentcolor;
+    stroke-width: 0;
+}

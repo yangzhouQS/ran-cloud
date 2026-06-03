@@ -1,0 +1,167 @@
+---
+title: Registering Panels
+sidebar_position: 0
+description: How to register panel components with Dockview so they can be instantiated by name.
+---
+
+import { DocRef } from '@site/src/components/ui/reference/docRef';
+
+
+This section describes how to register a panel.
+
+You can register panels through the dock  [option](/docs/api/dockview/options) `components`.
+
+<FrameworkSpecific framework='React'>
+  <DocRef declaration="IDockviewReactProps" methods={['components']} />
+</FrameworkSpecific>
+
+<FrameworkSpecific framework='Vue'>
+  <DocRef declaration="IDockviewVueProps" methods={['components']} />
+</FrameworkSpecific>
+
+<FrameworkSpecific framework='Angular'>
+  <DocRef declaration="IDockviewAngularProps" methods={['components']} />
+</FrameworkSpecific>
+
+
+<FrameworkSpecific framework='JavaScript'>
+  <DocRef declaration="DockviewComponentOptions" methods={['createComponent']} />
+</FrameworkSpecific>
+
+
+<FrameworkSpecific framework='React'>
+```tsx
+const components = {
+  component_1: (props: IDockviewPanelProps) => {
+    const api: DockviewPanelApi  = props.api;
+    const groupApi: DockviewGroupPanelApi  = props.group.api;
+    const containerApi: DockviewApi  = props.containerApi;
+
+    return <div>{/** logic */}</div>
+  },
+  component_2: (props: IDockviewPanelProps) => {
+    return <div>{/** logic */}</div>
+  }
+}
+
+return <DockviewReact components={components}/>
+```
+</FrameworkSpecific>
+
+
+<FrameworkSpecific framework='JavaScript'>
+```tsx
+class Panel implements IContentRenderer {
+    private readonly _element: HTMLElement;
+
+    get element(): HTMLElement {
+        return this._element;
+    }
+
+    constructor() {
+        this._element = document.createElement('div');
+    }
+
+    init(parameters: GroupPanelPartInitParameters): void {
+        //
+    }
+}
+
+
+const api = createDockview(parentElement, {
+    createComponent: (options) => {
+        switch (options.name) {
+            case 'component_1':
+                return new Panel();
+        }
+    },
+});
+```
+</FrameworkSpecific>
+
+
+<FrameworkSpecific framework='Vue'>
+```tsx
+const App = {
+    name: 'App',
+    components: {
+        'component_1': VueComponent1,
+        'component_2': VueComponent2,
+    },
+    methods: {
+        onReady(event: DockviewReadyEvent) {
+            event.api.addPanel({
+                id: 'panel_1',
+                component: 'component_1'
+            });
+
+               event.api.addPanel({
+                id: 'panel_2',
+                component: 'component_2'
+            });
+        },
+    },
+    template: `
+      <dockview-vue
+        @ready="onReady"
+      >
+      </dockview-vue>`,
+};
+```
+</FrameworkSpecific>
+
+<FrameworkSpecific framework='Angular'>
+```tsx
+@Component({
+    selector: 'panel-component-1',
+    template: `<div>Panel Content 1</div>`
+})
+export class PanelComponent1 {
+    @Input() api: DockviewPanelApi;
+    @Input() group: any;
+    @Input() containerApi: DockviewApi;
+}
+
+@Component({
+    selector: 'panel-component-2', 
+    template: `<div>Panel Content 2</div>`
+})
+export class PanelComponent2 {
+    @Input() api: DockviewPanelApi;
+}
+
+@Component({
+    selector: 'app-root',
+    template: `
+        <dv-dockview 
+            [components]="components"
+            (ready)="onReady($event)">
+        </dv-dockview>
+    `
+})
+export class AppComponent {
+    components = {
+        'component_1': PanelComponent1,
+        'component_2': PanelComponent2,
+    };
+
+    onReady(event: DockviewReadyEvent) {
+        event.api.addPanel({
+            id: 'panel_1',
+            component: 'component_1'
+        });
+
+        event.api.addPanel({
+            id: 'panel_2',
+            component: 'component_2'
+        });
+    }
+}
+```
+</FrameworkSpecific>
+
+
+Each panel has an [api](/docs/api/dockview/panelApi) which is used to control specific
+features on that individual panel.
+The panel also has access the [group api](/docs/api/dockview/groupApi) and the container
+[api](/docs/api/dockview/overview).

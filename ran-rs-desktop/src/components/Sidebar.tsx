@@ -1,6 +1,5 @@
 import type { PropType } from "vue";
 import {
-  Coin,
   HomeFilled,
   InfoFilled,
   Monitor,
@@ -34,7 +33,6 @@ export const navItems: NavItem[] = [
   { key: "home", label: "首页", icon: HomeFilled },
   { key: "k8s", label: "开发工具", icon: SetUp },
   { key: "redis", label: "Redis", iconSrc: iconRedis },
-  { key: "database", label: "数据库", icon: Coin },
   { key: "claw-manager", label: "Claw管理", icon: Van },
 ];
 

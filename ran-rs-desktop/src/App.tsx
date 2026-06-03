@@ -7,7 +7,6 @@ import { useCsNamespace } from "./hooks/use-namespace";
 import ClawManager from "./modules/claw-manager";
 import { Json2TsPanel } from "./modules/develop-tools/json2ts";
 import { TelepresencePanel } from "./modules/develop-tools/telepresence";
-import SqlStudio from "./modules/sql-studio";
 import "./components/layout.less";
 
 /** 检测是否运行在 Tauri 环境中 */
@@ -162,8 +161,6 @@ const App = defineComponent({
             default:
               return <TelepresencePanel />;
           }
-        case "database":
-          return <SqlStudio />;
         case "claw-manager":
           return <ClawManager activeCategory={activeCategory.value} />;
         case "home":

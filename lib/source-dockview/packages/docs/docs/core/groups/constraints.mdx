@@ -1,0 +1,17 @@
+---
+title: Constraints
+description: How to set minimum and maximum size constraints on groups in Dockview.
+---
+
+import { DocRef } from '@site/src/components/ui/reference/docRef'
+
+:::warning
+Constraints come with several caveats. They are not serialized with layouts and can only be applied to groups.
+:::
+
+<DocRef declaration="DockviewGroupPanelApi" methods={['setConstraints', 'onDidConstraintsChange']} />
+
+## Live Example
+
+<CodeRunner id="dockview/constraints"/>
+

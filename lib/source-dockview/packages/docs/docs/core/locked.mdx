@@ -1,0 +1,18 @@
+---
+title: Locked
+description: How to lock the entire Dockview layout to prevent resizing and drag-and-drop interactions.
+---
+
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
+import { DocRef } from '@site/src/components/ui/reference/docRef';
+
+This section describes how to lock the dock to prevent movement.
+
+:::info
+You may want to combine this with `disableDnd={true}` to provide a locked grid with no dnd funtionality. See [Disable Dnd](/docs/core/dnd/disable) for more.
+:::
+
+Locking the component prevent the resizing of components using the drag handles between panels.
+
+<CodeRunner id='dockview/locked'/>

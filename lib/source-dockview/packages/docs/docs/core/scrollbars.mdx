@@ -1,0 +1,53 @@
+---
+title: Scrolling
+description: How to configure tab header scrollbars and overflow behaviour in Dockview.
+---
+
+## Tab Header Scrollbars
+
+When there are more tabs than can fit in the header, Dockview shows a scrollable overflow list. The `scrollbars` option controls how the tab strip scrollbar behaves:
+
+- `'custom'` (default): an internal implementation with improved overlay UX
+- `'native'`: uses the browser's native scrollbar behaviour
+
+<FrameworkSpecific framework='React'>
+```tsx
+<DockviewReact scrollbars="native" onReady={onReady} components={components} />
+```
+</FrameworkSpecific>
+
+<FrameworkSpecific framework='JavaScript'>
+```ts
+const api = createDockview(element, {
+    scrollbars: 'native',
+    createComponent: (options) => new MyPanel(),
+});
+```
+</FrameworkSpecific>
+
+You can also disable the overflow tab list entirely with `disableTabsOverflowList`. When disabled, tabs that do not fit are simply hidden rather than accessible via scroll.
+
+<FrameworkSpecific framework='React'>
+```tsx
+<DockviewReact disableTabsOverflowList={true} onReady={onReady} components={components} />
+```
+</FrameworkSpecific>
+
+---
+
+## Panel Content Scrollbars
+
+It's important to understand how to configure the scrollbar within a panel.
+
+A panel will appear with a scrollbar if the the contents of your view has a fixed height.
+If you are using a relative height such as `100%` you will need a child container
+with the appropiate `overflow` value to allow for scrollbars.
+
+## Live Examples
+
+The following example contains three views:
+- **Panel 1** (`height: 100%`): No scrollbar appears and the content is clipped.
+- **Panel 2** (`height: 2000px`): A scrollbar does appear since a fixed height has been used.
+- **Panel 3**: `height: 100%` and a child component with `overflow: auto` which will enable scrollbars.
+
+<CodeRunner id="dockview/scrollbars"/>

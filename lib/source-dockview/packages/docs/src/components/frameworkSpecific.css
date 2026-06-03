@@ -1,0 +1,141 @@
+
+.DropdownMenuContent {
+  background-color: var(--ifm-dropdown-background-color);
+  color: var(--ifm-font-color-base);
+  border: var(--ifm-dropdown-border);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.08);
+  animation-duration: 200ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+  z-index: 99;
+}
+.DropdownMenuContent[data-side='top'],
+.DropdownMenuSubContent[data-side='top'] {
+  animation-name: slideDownAndFade;
+}
+.DropdownMenuContent[data-side='right'],
+.DropdownMenuSubContent[data-side='right'] {
+  animation-name: slideLeftAndFade;
+}
+.DropdownMenuContent[data-side='bottom'],
+.DropdownMenuSubContent[data-side='bottom'] {
+  animation-name: slideUpAndFade;
+}
+.DropdownMenuContent[data-side='left'],
+.DropdownMenuSubContent[data-side='left'] {
+  animation-name: slideRightAndFade;
+}
+
+.DropdownMenuItem[data-highlighted],
+.DropdownMenuCheckboxItem[data-highlighted],
+.DropdownMenuRadioItem[data-highlighted],
+.DropdownMenuSubTrigger[data-highlighted] {
+  background-color: var(--ifm-background-surface-color);
+  outline: none;
+}
+
+
+
+.framework-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 400;
+  cursor: pointer;
+  color: var(--ifm-font-color-base);
+  white-space: nowrap;
+}
+
+.framework-selector-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.framework-selector-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ifm-color-primary);
+  opacity: 0.8;
+}
+
+.framework-menu-item-select {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px 0 10px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--ifm-color-primary-light);
+  color: var(--ifm-color-primary);
+  background-color: var(--ifm-background-color);
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+  user-select: none;
+
+  &:hover {
+    background-color: var(--ifm-color-primary-lightest);
+    border-color: var(--ifm-color-primary);
+    color: var(--ifm-color-primary-dark);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ifm-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+@keyframes slideUpAndFade {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideRightAndFade {
+  from {
+    opacity: 0;
+    transform: translateX(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideDownAndFade {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideLeftAndFade {
+  from {
+    opacity: 0;
+    transform: translateX(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
