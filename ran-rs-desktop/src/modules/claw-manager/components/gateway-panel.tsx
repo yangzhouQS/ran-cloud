@@ -3,7 +3,9 @@
  *
  * 功能：
  * - 网关状态展示（运行中/已停止/异常）
- * - 启动/停止/重启网关
+ * - 启动/停止/重启网关（openclaw gateway start/stop/restart）
+ * - 安装/卸载网关服务（openclaw gateway install/uninstall）
+ * - Windows 计划任务运行（schtasks /Run /TN "OpenClaw Gateway"）
  * - 查看状态、打开 Dashboard、打开 TUI
  * - 命令执行日志
  *
@@ -14,9 +16,12 @@ import type { GatewayStatus } from "../types";
 import {
   Connection,
   DataBoard,
+  Download,
   Monitor,
   RefreshRight,
+  Setup,
   SwitchButton,
+  Upload,
   VideoPlay,
 } from "@element-plus/icons-vue";
 import { defineComponent, onMounted, ref } from "vue";
@@ -40,7 +45,9 @@ const GatewayPanel = defineComponent({
     /** 获取 Dashboard 本地地址 */
     const dashboardUrl = () => `http://127.0.0.1:${gatewayPort.value}`;
 
-    /** 启动网关 */
+    // ---- 网关操作 ----
+
+    /** 启动网关（openclaw gateway start） */
     const startGateway = () => execCommand(
       "openclaw gateway start",
       { url: dashboardUrl() },
@@ -87,6 +94,45 @@ const GatewayPanel = defineComponent({
     const openTui = () => execCommand(
       "openclaw tui",
     );
+
+    // ---- 服务管理 ----
+
+    /** 安装网关服务（openclaw gateway install） */
+    const installGateway = () => execCommand(
+      "openclaw gateway install",
+    ).then((result) => {
+      if (result.success) {
+        // 安装成功后查询状态
+        checkStatus();
+      }
+    });
+
+    /** 卸载网关服务（openclaw gateway uninstall） */
+    const uninstallGateway = () => execCommand(
+      "openclaw gateway uninstall",
+    );
+
+    /** 通过 Windows 计划任务启动网关（schtasks /Run /TN "OpenClaw Gateway"） */
+    const startViaSchtasks = () => execCommand(
+      'schtasks /Run /TN "OpenClaw Gateway"',
+      { url: dashboardUrl() },
+    ).then((result) => {
+      if (result.success) {
+        gatewayStatus.value = "running";
+        gatewayUptime.value = 0;
+      }
+    });
+
+    /** 直接启动网关（openclaw gateway，无子命令） */
+    const startBareGateway = () => execCommand(
+      "openclaw gateway",
+      { url: dashboardUrl() },
+    ).then((result) => {
+      if (result.success) {
+        gatewayStatus.value = "running";
+        gatewayUptime.value = 0;
+      }
+    });
 
     onMounted(() => {
       // TODO: 初始化时查询网关状态
@@ -141,6 +187,28 @@ const GatewayPanel = defineComponent({
           <el-button icon={Connection} loading={loading.value} onClick={openTui}>
             打开 TUI
           </el-button>
+        </div>
+
+        {/* 服务管理区域 */}
+        <div class={ns.e("service-section")}>
+          <div class={ns.e("section-title")}>
+            <el-icon><Setup /></el-icon>
+            <span>服务管理</span>
+          </div>
+          <div class={ns.e("actions")}>
+            <el-button type="primary" icon={Download} loading={loading.value} onClick={installGateway}>
+              安装服务
+            </el-button>
+            <el-button type="danger" icon={Upload} loading={loading.value} onClick={uninstallGateway}>
+              卸载服务
+            </el-button>
+            <el-button type="success" icon={VideoPlay} loading={loading.value} onClick={startViaSchtasks}>
+              计划任务启动
+            </el-button>
+            <el-button icon={VideoPlay} loading={loading.value} onClick={startBareGateway}>
+              直接启动
+            </el-button>
+          </div>
         </div>
 
         {/* 命令执行日志 */}

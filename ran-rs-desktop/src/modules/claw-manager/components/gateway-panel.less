@@ -2,7 +2,8 @@
  * @component GatewayPanel
  * @description 网关管理面板样式
  * @block ran-claw-gateway
- * @elements __status-card, __status-indicator, __status-dot, __status-text, __status-info, __actions
+ * @elements __status-card, __status-indicator, __status-dot, __status-text, __status-info,
+ *           __actions, __service-section, __section-title
  * @modifiers is-running, is-stopped, is-error
  */
 
@@ -76,5 +77,31 @@
     flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 16px;
+  }
+
+  // ---- 服务管理区域 ----
+  &__service-section {
+    background: #fff;
+    border: 1px solid @color-border-light;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+
+  &__section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: @color-text-primary;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid @color-border-light;
+
+    .el-icon {
+      font-size: 16px;
+      color: @color-primary;
+    }
   }
 }

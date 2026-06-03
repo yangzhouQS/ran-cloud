@@ -11,7 +11,9 @@ use crate::modules::claw_manager::models::{ClawCliInfo, CommandResult};
 const DEFAULT_TIMEOUT_SECS: u64 = 30;
 
 /// 允许执行的命令前缀白名单
-const ALLOWED_PREFIXES: &[&str] = &["openclaw"];
+/// - openclaw: OpenClaw CLI 所有命令
+/// - schtasks: Windows 计划任务管理（用于 Gateway 服务安装/运行）
+const ALLOWED_PREFIXES: &[&str] = &["openclaw", "schtasks"];
 
 /// 校验命令是否在白名单中
 fn validate_command(cmd: &str) -> Result<(), String> {
@@ -103,19 +105,8 @@ pub fn execute(
     // 2. 解析命令
     let (program, args) = parse_command(command)?;
 
-    // 3. 构建进程
-    let mut cmd = std::process::Command::new(&program);
-    cmd.args(&args)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .env("TERM", "dumb"); // 避免终端颜色码干扰输出
-
-    // Windows 下隐藏控制台窗口
-    #[cfg(target_os = "windows")]
-    {
-        use std::os::windows::process::CommandExt;
-        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
-    }
+    // 3. 构建进程（Windows 使用 cmd.exe /C 以支持 .cmd 文件）
+    let mut cmd = build_process_command(&program, &args);
 
     // 设置工作目录
     if let Some(dir) = cwd {
@@ -210,10 +201,9 @@ pub fn execute(
 
 /// 检查 openclaw CLI 是否可用
 pub fn check_cli() -> ClawCliInfo {
-    // 尝试执行 `openclaw --version`
-    let result = std::process::Command::new("openclaw")
-        .arg("--version")
-        .output();
+    // 尝试执行 `openclaw --version`（Windows 通过 cmd.exe /C 以支持 .cmd 文件）
+    let version_args = vec!["--version".to_string()];
+    let result = build_process_command("openclaw", &version_args).output();
 
     match result {
         Ok(output) => {
@@ -258,11 +248,17 @@ pub fn check_cli() -> ClawCliInfo {
 
 /// 尝试获取 openclaw 可执行文件路径
 fn which_openclaw() -> Option<String> {
-    // 在 Windows 上使用 `where`，Unix 上使用 `which`
+    // 在 Windows 上使用 `where`（系统自带 .exe，无需 cmd.exe 包装，但仍需隐藏控制台窗口）
     #[cfg(target_os = "windows")]
-    let result = std::process::Command::new("where")
-        .arg("openclaw")
-        .output();
+    let result = {
+        let mut cmd = std::process::Command::new("where");
+        cmd.arg("openclaw")
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        cmd.output()
+    };
 
     #[cfg(not(target_os = "windows"))]
     let result = std::process::Command::new("which")
