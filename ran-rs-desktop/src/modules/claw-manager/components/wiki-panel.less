@@ -1,0 +1,159 @@
+/**
+ * @component WikiPanel
+ * @description 知识库 RAG 管理面板样式 — 状态展示、文档导入、搜索结果
+ * @block ran-claw-wiki
+ * @elements __section-title, __status-card, __init-section, __form-row,
+ *           __search-results, __result-card
+ */
+
+@import (reference) "../../../assets/styles/global.less";
+
+.ran-claw-wiki {
+  // ---- 区块标题 ----
+  &__section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 20px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: @color-text-primary;
+
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+
+  // ---- 状态卡片 ----
+  &__status-card {
+    padding: 16px;
+    border: 1px solid @color-border-light;
+    border-radius: 8px;
+    background: #ffffff;
+  }
+
+  &__status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+
+    & + & {
+      border-top: 1px dashed @color-border-light;
+    }
+  }
+
+  &__status-label {
+    font-size: 13px;
+    color: #909399;
+  }
+
+  &__status-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: @color-text-primary;
+
+    &--mono {
+      font-family: "Cascadia Code", "Fira Code", monospace;
+      font-size: 12px;
+    }
+  }
+
+  // ---- 初始化区块 ----
+  &__init-section {
+    display: flex;
+    gap: 8px;
+  }
+
+  // ---- 表单行 ----
+  &__form-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  &__form-input {
+    flex: 1;
+  }
+
+  // ---- 搜索结果 ----
+  &__search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  &__result-card {
+    padding: 12px 16px;
+    border: 1px solid @color-border-light;
+    border-radius: 8px;
+    background: #ffffff;
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
+
+    &:hover {
+      border-color: @color-primary;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.08);
+    }
+  }
+
+  &__result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  &__result-doc {
+    font-size: 14px;
+    font-weight: 600;
+    color: @color-text-primary;
+  }
+
+  &__result-snippet {
+    font-size: 12px;
+    color: #606266;
+    line-height: 1.6;
+    margin-bottom: 4px;
+  }
+
+  &__result-source {
+    font-size: 12px;
+    color: #909399;
+  }
+}
+
+// ==================== 暗黑主题 ====================
+
+html.dark {
+  .ran-claw-wiki {
+    &__status-card {
+      background: #252526;
+      border-color: #363637;
+    }
+
+    &__status-row {
+      & + & {
+        border-top-color: #363637;
+      }
+    }
+
+    &__result-card {
+      background: #252526;
+      border-color: #363637;
+
+      &:hover {
+        border-color: @color-primary;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.12);
+      }
+    }
+
+    &__result-snippet {
+      color: #ccc;
+    }
+  }
+}

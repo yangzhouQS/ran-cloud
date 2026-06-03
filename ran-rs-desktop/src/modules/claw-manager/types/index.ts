@@ -100,3 +100,112 @@ export interface SkillInfo {
   /** 语法错误详情 */
   errorMessage?: string;
 }
+
+// ==================== 知识库 RAG ====================
+
+/** 知识库状态 */
+export interface WikiStatus {
+  /** 是否已初始化 */
+  initialized: boolean;
+  /** 文档数量 */
+  documentCount: number;
+  /** 索引状态 */
+  indexStatus: "ready" | "indexing" | "empty" | "error";
+  /** 向量库路径 */
+  dbPath?: string;
+  /** 最后更新时间 */
+  lastUpdated?: string;
+}
+
+/** 知识库搜索结果 */
+export interface WikiSearchResult {
+  /** 文档名称 */
+  docName: string;
+  /** 匹配片段 */
+  snippet: string;
+  /** 相关度分数 */
+  score: number;
+  /** 来源路径 */
+  source?: string;
+}
+
+// ==================== 定时任务 Cron ====================
+
+/** 定时任务状态 */
+export type CronTaskStatus = "enabled" | "disabled" | "error";
+
+/** 定时任务信息 */
+export interface CronTaskInfo {
+  /** 任务 ID */
+  id: string;
+  /** 任务名称 */
+  name: string;
+  /** cron 表达式 */
+  cronExpression: string;
+  /** 执行的 openclaw 指令 */
+  command: string;
+  /** 运行状态 */
+  status: CronTaskStatus;
+  /** 上次执行时间 */
+  lastRunAt?: string;
+  /** 下次执行时间 */
+  nextRunAt?: string;
+  /** 描述 */
+  description?: string;
+}
+
+// ==================== 会话 & 日志 ====================
+
+/** 会话信息 */
+export interface SessionInfo {
+  /** 会话 ID */
+  id: string;
+  /** 关联的智能体名称 */
+  agentName: string;
+  /** 会话创建时间 */
+  createdAt: string;
+  /** 最后活跃时间 */
+  lastActiveAt: string;
+  /** 消息数量 */
+  messageCount: number;
+  /** 会话摘要 */
+  summary?: string;
+}
+
+/** 日志条目 */
+export interface LogEntry {
+  /** 时间戳 */
+  timestamp: string;
+  /** 日志级别 */
+  level: "info" | "warn" | "error" | "debug";
+  /** 日志内容 */
+  message: string;
+  /** 来源模块 */
+  source?: string;
+}
+
+// ==================== 渠道接入 ====================
+
+/** 渠道类型 */
+export type ChannelType = "feishu" | "wecom" | "dingtalk" | "slack";
+
+/** 渠道状态 */
+export type ChannelStatus = "connected" | "disconnected" | "error";
+
+/** 渠道信息 */
+export interface ChannelInfo {
+  /** 渠道 ID */
+  id: string;
+  /** 渠道类型 */
+  type: ChannelType;
+  /** 渠道名称 */
+  name: string;
+  /** 连接状态 */
+  status: ChannelStatus;
+  /** Webhook 地址 */
+  webhookUrl?: string;
+  /** 最后连通时间 */
+  lastConnectedAt?: string;
+  /** 描述 */
+  description?: string;
+}

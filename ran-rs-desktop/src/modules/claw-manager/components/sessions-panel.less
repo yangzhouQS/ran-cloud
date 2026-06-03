@@ -1,0 +1,255 @@
+/**
+ * @component SessionsPanel
+ * @description 会话 & 日志面板样式 — 会话列表、日志面板、对话详情
+ * @block ran-claw-sessions
+ * @elements __section-title, __session-list, __session-card, __log-controls,
+ *           __log-panel, __chat-box
+ */
+
+@import (reference) "../../../assets/styles/global.less";
+
+.ran-claw-sessions {
+  // ---- 区块标题 ----
+  &__section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 20px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: @color-text-primary;
+
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+
+  // ---- 会话列表 ----
+  &__session-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__empty,
+  &__loading {
+    padding: 24px;
+    text-align: center;
+    color: #909399;
+    font-size: 13px;
+  }
+
+  // ---- 会话卡片 ----
+  &__session-card {
+    padding: 12px 16px;
+    border: 1px solid @color-border-light;
+    border-radius: 8px;
+    background: #ffffff;
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
+
+    &:hover {
+      border-color: @color-primary;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.08);
+    }
+  }
+
+  &__session-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  &__session-agent {
+    font-size: 14px;
+    font-weight: 600;
+    color: @color-text-primary;
+  }
+
+  &__session-summary {
+    font-size: 12px;
+    color: #606266;
+    margin-bottom: 6px;
+    line-height: 1.5;
+  }
+
+  &__session-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: #909399;
+    margin-bottom: 6px;
+  }
+
+  &__session-actions {
+    padding-top: 8px;
+    border-top: 1px solid @color-border-light;
+  }
+
+  // ---- 日志控制区 ----
+  &__log-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  &__agent-log-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  &__agent-select {
+    width: 180px;
+  }
+
+  // ---- 日志面板 ----
+  &__log-panel {
+    padding: 12px;
+    background: #1d1e1f;
+    border-radius: 8px;
+    font-family: "Cascadia Code", "Fira Code", monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+  }
+
+  &__log-entry {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  &__log-time {
+    color: #6a9955;
+    flex-shrink: 0;
+  }
+
+  &__log-level {
+    font-weight: 600;
+    flex-shrink: 0;
+    min-width: 50px;
+  }
+
+  &__log-message {
+    color: #d4d4d4;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__log-source {
+    color: #569cd6;
+    flex-shrink: 0;
+    font-style: italic;
+  }
+
+  // ---- 对话详情对话框 ----
+  &__chat-box {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 8px;
+  }
+
+  &__chat-msg {
+    padding: 10px 14px;
+    border-radius: 8px;
+    max-width: 85%;
+
+    &--user {
+      align-self: flex-end;
+      background: #ecf5ff;
+      border: 1px solid #d9ecff;
+    }
+
+    &--assistant {
+      align-self: flex-start;
+      background: #f0f9eb;
+      border: 1px solid #e1f3d8;
+    }
+
+    &--system {
+      align-self: center;
+      background: #f4f4f5;
+      border: 1px solid #e9e9eb;
+      font-size: 12px;
+      color: #909399;
+    }
+  }
+
+  &__msg-role {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: @color-text-primary;
+  }
+
+  &__msg-content {
+    font-size: 13px;
+    color: #303133;
+    white-space: pre-wrap;
+    line-height: 1.6;
+  }
+
+  &__msg-time {
+    font-size: 11px;
+    color: #c0c4cc;
+    margin-top: 4px;
+    text-align: right;
+  }
+}
+
+// ==================== 暗黑主题 ====================
+
+html.dark {
+  .ran-claw-sessions {
+    &__session-card {
+      background: #252526;
+      border-color: #363637;
+
+      &:hover {
+        border-color: @color-primary;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.12);
+      }
+    }
+
+    &__session-summary {
+      color: #ccc;
+    }
+
+    &__session-actions {
+      border-top-color: #363637;
+    }
+
+    &__chat-msg {
+      &--user {
+        background: #1a2a3a;
+        border-color: #1a3a5a;
+      }
+
+      &--assistant {
+        background: #1a2a1a;
+        border-color: #1a3a1a;
+      }
+
+      &--system {
+        background: #2a2a2a;
+        border-color: #363637;
+      }
+    }
+
+    &__msg-content {
+      color: #ccc;
+    }
+  }
+}
