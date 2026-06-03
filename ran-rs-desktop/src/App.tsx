@@ -1,13 +1,37 @@
+/**
+ * App 主应用组件
+ *
+ * 三栏布局：Sidebar（主导航） + CategoryPanel（二级分类） + MainContent（模块内容）。
+ * 各业务模块通过 registerModule() 注册，App 从注册表读取分类和组件。
+ * Redis / Settings / About 以独立 OS 级窗口打开。
+ */
+
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { ElMessage } from "element-plus";
 import { computed, defineComponent, ref } from "vue";
-import { getCategoriesByNav, getCategoryTitle } from "./components/category-panel";
 import Layout from "./components/layout";
 import { useCsNamespace } from "./hooks/use-namespace";
+import { getModule, registerModule } from "./modules/_shared/module-registry";
 import ClawManager from "./modules/claw-manager";
-import { Json2TsPanel } from "./modules/develop-tools/json2ts";
-import { TelepresencePanel } from "./modules/develop-tools/telepresence";
+import { clawManagerCategories, clawManagerTitle } from "./modules/claw-manager/categories";
+import DevelopTools from "./modules/develop-tools";
+import { developToolsCategories, developToolsTitle } from "./modules/develop-tools/categories";
 import "./components/layout.less";
+
+// ===== 注册业务模块 =====
+registerModule({
+  navKey: "k8s",
+  categoryTitle: developToolsTitle,
+  categories: developToolsCategories,
+  component: DevelopTools,
+});
+
+registerModule({
+  navKey: "claw-manager",
+  categoryTitle: clawManagerTitle,
+  categories: clawManagerCategories,
+  component: ClawManager,
+});
 
 /** 检测是否运行在 Tauri 环境中 */
 const isTauri = () => "__TAURI_INTERNALS__" in window;
@@ -28,9 +52,10 @@ const App = defineComponent({
     const activeNav = ref("k8s");
     const activeCategory = ref("k8s-network-tools");
 
-    // ===== 计算属性 =====
-    const categories = computed(() => getCategoriesByNav(activeNav.value));
-    const categoryTitle = computed(() => getCategoryTitle(activeNav.value));
+    // ===== 计算属性（从注册表获取） =====
+    const currentModule = computed(() => getModule(activeNav.value));
+    const categories = computed(() => currentModule.value?.categories ?? []);
+    const categoryTitle = computed(() => currentModule.value?.categoryTitle ?? "");
 
     // ===== 事件处理 =====
 
@@ -83,9 +108,9 @@ const App = defineComponent({
       }
 
       activeNav.value = key;
-      const cats = getCategoriesByNav(key);
-      if (cats.length > 0) {
-        activeCategory.value = cats[0].key;
+      const mod = getModule(key);
+      if (mod && mod.categories.length > 0) {
+        activeCategory.value = mod.categories[0].key;
       }
     };
 
@@ -153,28 +178,26 @@ const App = defineComponent({
 
     // ===== 渲染主内容 =====
     const renderMainContent = () => {
-      switch (activeNav.value) {
-        case "k8s":
-          switch (activeCategory.value) {
-            case "json2ts":
-              return <Json2TsPanel />;
-            default:
-              return <TelepresencePanel />;
-          }
-        case "claw-manager":
-          return <ClawManager activeCategory={activeCategory.value} />;
-        case "home":
-          return (
-            <div class={nsPage.b()}>
-              <h2 class={nsPage.e("title")}>首页</h2>
-              <div class={nsPage.e("placeholder")}>
-                <el-empty description="欢迎使用 Ran RS Desktop" />
-              </div>
+      // 首页特殊处理（无注册模块）
+      if (activeNav.value === "home") {
+        return (
+          <div class={nsPage.b()}>
+            <h2 class={nsPage.e("title")}>首页</h2>
+            <div class={nsPage.e("placeholder")}>
+              <el-empty description="欢迎使用 Ran RS Desktop" />
             </div>
-          );
-        default:
-          return null;
+          </div>
+        );
       }
+
+      // 从注册表获取模块组件
+      const mod = currentModule.value;
+      if (!mod) {
+        return null;
+      }
+
+      const Comp = mod.component;
+      return <Comp activeCategory={activeCategory.value} />;
     };
 
     return () => (
