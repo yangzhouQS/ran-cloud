@@ -1,65 +1,85 @@
 /**
  * @component ConfigPanel
- * @description 系统配置面板样式
+ * @description 系统配置面板样式 — 配置文件路径、常用配置快速设置、自定义操作、配置项列表
  * @block ran-claw-config
- * @elements __version-card, __version-header, __version-title, __version-content,
- *           __config-actions, __action-card, __action-info, __action-name, __action-cmd, __action-desc
+ * @elements __version-card, __path-card, __section-title, __quick-config, __quick-item,
+ *           __custom-config, __config-table, __validate-section
  */
 
 @import (reference) "../../../assets/styles/global.less";
 
 .ran-claw-config {
-  // ---- 版本卡片 ----
-  &__version-card {
+  // ---- 通用卡片样式 ----
+  &__version-card,
+  &__path-card {
     background: #fff;
     border: 1px solid @color-border-light;
     border-radius: 8px;
     padding: 16px 20px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
   }
 
-  &__version-header {
+  // ---- 卡片头部 ----
+  &__version-header,
+  &__path-header {
     display: flex;
     align-items: center;
     gap: 8px;
     margin-bottom: 8px;
   }
 
-  &__version-title {
+  &__version-title,
+  &__path-title {
     font-size: 15px;
     font-weight: 600;
     color: @color-text-primary;
   }
 
-  &__version-content {
+  // ---- 卡片内容 ----
+  &__version-content,
+  &__path-content {
     padding: 8px 12px;
     background: #f8f9fb;
     border-radius: 4px;
 
     code {
       font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-      font-size: 14px;
+      font-size: 13px;
       color: @color-text-primary;
+      word-break: break-all;
     }
   }
 
-  // ---- 配置操作卡片 ----
-  &__config-actions {
+  // ---- 区块标题 ----
+  &__section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: @color-text-primary;
+    margin: 20px 0 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid @color-border-light;
+  }
+
+  // ==================== 常用配置快速设置 ====================
+
+  &__quick-config {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     margin-bottom: 16px;
   }
 
-  // ---- 操作卡片（与 maintenance 共用结构） ----
-  &__action-card {
+  &__quick-item {
     display: flex;
     align-items: center;
     gap: 16px;
     background: #fff;
     border: 1px solid @color-border-light;
     border-radius: 8px;
-    padding: 16px 20px;
+    padding: 12px 16px;
     transition: box-shadow 0.2s ease;
 
     &:hover {
@@ -67,20 +87,21 @@
     }
   }
 
-  &__action-info {
+  &__quick-info {
     flex: 1;
     display: flex;
     flex-direction: column;
     gap: 2px;
+    min-width: 0;
   }
 
-  &__action-name {
+  &__quick-label {
     font-size: 14px;
     font-weight: 600;
     color: @color-text-primary;
   }
 
-  &__action-cmd {
+  &__quick-key {
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     font-size: 12px;
     color: @color-primary;
@@ -91,7 +112,146 @@
     width: fit-content;
   }
 
-  &__action-desc {
+  &__quick-desc {
+    font-size: 12px;
+    color: @color-text-secondary;
+  }
+
+  &__restart-tag {
+    margin-top: 2px;
+    width: fit-content;
+  }
+
+  &__quick-action {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  &__quick-input {
+    width: 240px;
+  }
+
+  // ==================== 自定义配置操作 ====================
+
+  &__custom-config {
+    background: #fff;
+    border: 1px solid @color-border-light;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__custom-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__custom-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: @color-text-primary;
+    width: 72px;
+    flex-shrink: 0;
+  }
+
+  &__custom-fields {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__custom-input {
+    flex: 1;
+  }
+
+  // ==================== 配置项列表 ====================
+
+  &__config-table {
+    background: #fff;
+    border: 1px solid @color-border-light;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  &__config-empty,
+  &__config-loading {
+    padding: 24px;
+    text-align: center;
+    color: @color-text-placeholder;
+    font-size: 13px;
+  }
+
+  &__config-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid @color-border-light;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      background: #fafbfc;
+    }
+  }
+
+  &__config-key {
+    width: 220px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 12px;
+      color: @color-primary;
+    }
+  }
+
+  &__config-value {
+    flex: 1;
+    min-width: 0;
+
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 13px;
+      color: @color-text-primary;
+      word-break: break-all;
+    }
+  }
+
+  &__config-desc {
+    font-size: 12px;
+    color: @color-text-secondary;
+    width: 140px;
+    flex-shrink: 0;
+  }
+
+  &__config-actions {
+    flex-shrink: 0;
+  }
+
+  // ==================== 配置校验 ====================
+
+  &__validate-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  &__validate-hint {
     font-size: 12px;
     color: @color-text-secondary;
   }

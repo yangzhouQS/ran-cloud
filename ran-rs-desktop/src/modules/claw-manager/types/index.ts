@@ -20,3 +20,35 @@ export interface CommandLogEntry {
   /** 可选的可点击 URL（如 Dashboard 地址） */
   url?: string;
 }
+
+// ==================== 配置管理 ====================
+
+/** 配置项条目 */
+export interface ConfigEntry {
+  /** 配置键名（点分路径，如 model.baseUrl） */
+  key: string;
+  /** 当前值 */
+  value: string;
+  /** 默认值（可选） */
+  defaultValue?: string;
+  /** 配置描述 */
+  description?: string;
+  /** 是否需要重启网关生效 */
+  requireRestart?: boolean;
+}
+
+/** 常用配置预设（快速设置面板使用） */
+export interface ConfigPreset {
+  /** 配置键名 */
+  key: string;
+  /** 显示标签 */
+  label: string;
+  /** 占位提示 */
+  placeholder: string;
+  /** 输入类型 */
+  inputType?: "text" | "number" | "path";
+  /** 配置描述 */
+  description: string;
+  /** 修改后是否需要重启网关 */
+  requireRestart: boolean;
+}
