@@ -47,7 +47,8 @@ const GatewayPanel = defineComponent({
       1500,
       dashboardUrl(),
     ).then(() => {
-      gatewayStatus.value = "running"; gatewayUptime.value = 0;
+      gatewayStatus.value = "running";
+      gatewayUptime.value = 0;
     });
 
     /** 停止网关 */
@@ -56,7 +57,8 @@ const GatewayPanel = defineComponent({
       "✓ 网关已停止",
       800,
     ).then(() => {
-      gatewayStatus.value = "stopped"; gatewayUptime.value = 0;
+      gatewayStatus.value = "stopped";
+      gatewayUptime.value = 0;
     });
 
     /** 重启网关 */
@@ -66,7 +68,8 @@ const GatewayPanel = defineComponent({
       2000,
       dashboardUrl(),
     ).then(() => {
-      gatewayStatus.value = "running"; gatewayUptime.value = 0;
+      gatewayStatus.value = "running";
+      gatewayUptime.value = 0;
     });
 
     /** 查看网关状态 */
