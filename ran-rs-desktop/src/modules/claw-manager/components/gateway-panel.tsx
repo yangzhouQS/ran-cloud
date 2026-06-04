@@ -19,7 +19,7 @@ import {
   Download,
   Monitor,
   RefreshRight,
-  Setup,
+  SetUp,
   SwitchButton,
   Upload,
   VideoPlay,
@@ -192,7 +192,7 @@ const GatewayPanel = defineComponent({
         {/* 服务管理区域 */}
         <div class={ns.e("service-section")}>
           <div class={ns.e("section-title")}>
-            <el-icon><Setup /></el-icon>
+            <el-icon><SetUp /></el-icon>
             <span>服务管理</span>
           </div>
           <div class={ns.e("actions")}>
