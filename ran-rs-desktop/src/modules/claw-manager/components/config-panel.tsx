@@ -23,6 +23,8 @@ import {
   Refresh,
   Search,
 } from "@element-plus/icons-vue";
+import { homeDir } from "@tauri-apps/api/path";
+import { invoke } from "@tauri-apps/api/core";
 import { defineComponent, onMounted, reactive, ref } from "vue";
 import { useCsNamespace } from "../../../hooks/use-namespace";
 import { useCommandExecutor } from "../hooks/use-command-executor";
@@ -138,9 +140,26 @@ const ConfigPanel = defineComponent({
     };
 
     /** 打开配置文件夹 */
-    const openConfigPath = () => execCommand(
-      "openclaw config path",
-    );
+    const openConfigPath = async () => {
+      try {
+        // 通过 Tauri API 获取用户主目录，拼接配置目录路径
+        const home = await homeDir();
+        const configDir = `${home}.openclaw`;
+        configPath.value = configDir;
+        // 通过 Rust 后端命令打开系统文件管理器
+        await invoke("claw_open_folder", { path: configDir });
+      } catch {
+        // homeDir 获取失败时回退到命令方式
+        const result = await execCommand("openclaw config");
+        if (result.success) {
+          const path = (result.stdout || result.output).trim();
+          if (path) {
+            configPath.value = path;
+            await invoke("claw_open_folder", { path });
+          }
+        }
+      }
+    };
 
     /** 加载所有配置项 */
     const loadConfigs = async () => {

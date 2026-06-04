@@ -45,3 +45,55 @@ pub fn claw_check_cli() -> Result<ClawCliInfo, String> {
     let info = executor::check_cli();
     Ok(info)
 }
+
+/// 在系统文件管理器中打开指定文件夹
+///
+/// 跨平台支持：
+/// - Windows: `explorer <path>`
+/// - macOS: `open <path>`
+/// - Linux: `xdg-open <path>`
+#[tauri::command]
+pub fn claw_open_folder(path: String) -> Result<(), String> {
+    // 验证路径存在
+    let p = std::path::Path::new(&path);
+    if !p.exists() {
+        // 如果路径不存在，尝试打开父目录
+        if let Some(parent) = p.parent() {
+            if parent.exists() {
+                return open_path(parent.to_string_lossy().to_string());
+            }
+        }
+        return Err(format!("路径不存在: {}", path));
+    }
+
+    open_path(path)
+}
+
+/// 使用系统文件管理器打开路径
+fn open_path(path: String) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("explorer")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| format!("打开文件夹失败: {}", e))?;
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| format!("打开文件夹失败: {}", e))?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| format!("打开文件夹失败: {}", e))?;
+    }
+
+    Ok(())
+}

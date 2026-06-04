@@ -101,6 +101,7 @@ pub fn run() {
             // ===== Claw Manager 命令 =====
             modules::claw_manager::commands::claw_execute_command,
             modules::claw_manager::commands::claw_check_cli,
+            modules::claw_manager::commands::claw_open_folder,
         ])
         .setup(|app| {
             // 初始化共享 SSH 隧道管理器（Redis 模块使用）
