@@ -1,5 +1,6 @@
 //! App 状态:持有快照存储、命令通道、运行时控件、当前 Tab、Mica 标记、提权状态。
 
+use std::collections::HashMap;
 use std::time::Instant;
 
 use crossbeam_channel::Sender;
@@ -11,7 +12,7 @@ use tm_core::startup::StartupEntry;
 use tm_core::users::UserInfo;
 
 use crate::pages::performance_page::{self, PerfResource};
-use crate::pages::{Page, PageKind, processes_page::ProcessesPage};
+use crate::pages::PageKind;
 use crate::settings::Settings;
 use crate::shell;
 use crate::theme;
@@ -38,6 +39,7 @@ pub struct App {
     pub services_cache: Timed<Vec<ServiceInfo>>,
     pub startup_cache: Timed<Vec<StartupEntry>>,
     pub users_cache: Timed<Vec<UserInfo>>,
+    pub icons: HashMap<String, Option<egui::TextureHandle>>,
     pub settings: Settings,
     pub settings_open: bool,
     pub maximized: bool,
@@ -93,6 +95,7 @@ impl App {
                 value: Vec::new(),
                 at: None,
             },
+            icons: HashMap::new(),
             settings,
             settings_open: false,
             maximized: false,
@@ -146,6 +149,7 @@ impl eframe::App for App {
         let current = self.current;
         let mut perf_selected = self.perf_selected;
         let mut perf_points = self.perf_chart_points;
+        let mut icons = std::mem::take(&mut self.icons);
         let services = &self.services_cache.value;
         let startup = &self.startup_cache.value;
         let users = &self.users_cache.value;
@@ -153,7 +157,9 @@ impl eframe::App for App {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             match current {
-                PageKind::Processes => ProcessesPage.show(ui, &snap, &search, &cmd_tx),
+                PageKind::Processes => {
+                    crate::pages::processes_page::show(ui, &snap, &search, &cmd_tx, &mut icons)
+                }
                 PageKind::Performance => {
                     performance_page::show(ui, &snap, &mut perf_selected, &mut perf_points)
                 }
@@ -168,6 +174,7 @@ impl eframe::App for App {
         });
         self.perf_selected = perf_selected;
         self.perf_chart_points = perf_points;
+        self.icons = icons;
         if svc_invalidate {
             self.services_cache.at = None;
         }

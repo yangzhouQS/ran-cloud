@@ -1,58 +1,55 @@
-//! 进程页:分组(应用/后台/Windows)、搜索过滤、CPU 降序、行右键菜单。
+//! 进程页:分组(应用/后台/Windows)、搜索过滤、CPU 降序、行右键菜单、应用图标。
+
+use std::collections::HashMap;
 
 use eframe::egui;
 use tm_core::models::{Command, PowerUsage, ProcColumn, ProcInfo, ProcKind, SortDir, SystemSnapshot};
 use tm_core::sorting::sort_processes;
 
-use crate::pages::{Page, PageKind};
 use crate::theme;
 
-pub struct ProcessesPage;
+pub fn show(
+    ui: &mut egui::Ui,
+    snap: &SystemSnapshot,
+    search: &str,
+    cmd_tx: &crossbeam_channel::Sender<Command>,
+    icons: &mut HashMap<String, Option<egui::TextureHandle>>,
+) {
+    let q = search.trim().to_ascii_lowercase();
+    let mut rows: Vec<ProcInfo> = snap
+        .processes
+        .iter()
+        .filter(|p| q.is_empty() || p.name.to_ascii_lowercase().contains(&q))
+        .cloned()
+        .collect();
+    sort_processes(&mut rows, ProcColumn::Cpu, SortDir::Desc);
 
-impl Page for ProcessesPage {
-    fn show(
-        &self,
-        ui: &mut egui::Ui,
-        snap: &SystemSnapshot,
-        search: &str,
-        cmd_tx: &crossbeam_channel::Sender<Command>,
-    ) {
-        let q = search.trim().to_ascii_lowercase();
-        let mut rows: Vec<ProcInfo> = snap
-            .processes
-            .iter()
-            .filter(|p| q.is_empty() || p.name.to_ascii_lowercase().contains(&q))
-            .cloned()
-            .collect();
-        sort_processes(&mut rows, ProcColumn::Cpu, SortDir::Desc);
+    column_header(ui);
 
-        column_header(ui);
+    let groups: [(ProcKind, &str); 3] = [
+        (ProcKind::App, "应用"),
+        (ProcKind::Background, "后台进程"),
+        (ProcKind::Windows, "Windows 进程"),
+    ];
 
-        let groups: [(ProcKind, &str); 3] = [
-            (ProcKind::App, "应用"),
-            (ProcKind::Background, "后台进程"),
-            (ProcKind::Windows, "Windows 进程"),
-        ];
-
-        egui::ScrollArea::vertical()
-            .auto_shrink([false, false])
-            .show(ui, |ui| {
-                for (kind, title) in groups {
-                    let list: Vec<&ProcInfo> = rows.iter().filter(|p| p.kind == kind).collect();
-                    if list.is_empty() {
-                        continue;
-                    }
-                    let header = format!("{}  ({})", title, list.len());
-                    ui.add_space(4.0);
-                    ui.collapsing(header, |ui| {
-                        for p in &list {
-                            render_row(ui, p, cmd_tx);
-                        }
-                    });
+    egui::ScrollArea::vertical()
+        .auto_shrink([false, false])
+        .show(ui, |ui| {
+            for (kind, title) in groups {
+                let list: Vec<&ProcInfo> = rows.iter().filter(|p| p.kind == kind).collect();
+                if list.is_empty() {
+                    continue;
                 }
-                ui.add_space(8.0);
-            });
-    }
+                let header = format!("{}  ({})", title, list.len());
+                ui.add_space(4.0);
+                ui.collapsing(header, |ui| {
+                    for p in &list {
+                        render_row(ui, p, cmd_tx, icons);
+                    }
+                });
+            }
+            ui.add_space(8.0);
+        });
 }
 
 fn column_header(ui: &mut egui::Ui) {
@@ -77,13 +74,46 @@ fn column_header(ui: &mut egui::Ui) {
         .line_segment([r.left_top(), r.right_top()], (1.0, theme::separator()));
 }
 
-fn render_row(ui: &mut egui::Ui, p: &ProcInfo, cmd_tx: &crossbeam_channel::Sender<Command>) {
+fn render_row(
+    ui: &mut egui::Ui,
+    p: &ProcInfo,
+    cmd_tx: &crossbeam_channel::Sender<Command>,
+    icons: &mut HashMap<String, Option<egui::TextureHandle>>,
+) {
     let resp = egui::Frame::default()
         .inner_margin(egui::Margin::symmetric(12.0, 4.0))
         .fill(egui::Color32::TRANSPARENT)
         .show(ui, |ui| {
             ui.set_min_width(ui.available_width());
             ui.horizontal(|ui| {
+                // 应用图标(按 exe_path 缓存,提取失败则用首字母色块)
+                let entry = icons
+                    .entry(p.exe_path.clone())
+                    .or_insert_with(|| match tm_core::win_source::exe_icon(&p.exe_path) {
+                        Some(img) => {
+                            let ci = egui::ColorImage::from_rgba_unmultiplied(
+                                [img.width() as usize, img.height() as usize],
+                                img.as_raw(),
+                            );
+                            Some(ui.ctx().load_texture(
+                                format!("icon:{}", p.exe_path),
+                                ci,
+                                Default::default(),
+                            ))
+                        }
+                        None => None,
+                    });
+                match entry.as_ref() {
+                    Some(h) => {
+                        ui.add(
+                            egui::Image::from_texture(h).fit_to_exact_size(egui::vec2(16.0, 16.0)),
+                        );
+                    }
+                    None => {
+                        placeholder_icon(ui, &p.name);
+                    }
+                }
+                ui.add_space(4.0);
                 ui.label(&p.name);
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     ui.label(format!("{}", p.pid));
@@ -141,5 +171,25 @@ fn power_label(p: PowerUsage) -> egui::RichText {
     }
 }
 
-#[allow(dead_code)]
-fn _unused(_: PageKind) {}
+/// 图标提取失败时的占位:取进程名首字符的彩色方块。
+fn placeholder_icon(ui: &mut egui::Ui, name: &str) {
+    let ch = name.chars().next().filter(|c| c.is_alphabetic()).unwrap_or('?');
+    let colors = [
+        egui::Color32::from_rgb(0x4C, 0xC2, 0xFF),
+        egui::Color32::from_rgb(0x9B, 0x6A, 0xE5),
+        egui::Color32::from_rgb(0x4C, 0xC2, 0x6B),
+        egui::Color32::from_rgb(0xE2, 0xA0, 0x4A),
+        egui::Color32::from_rgb(0xE5, 0x6B, 0x6B),
+        egui::Color32::from_rgb(0x6A, 0x9B, 0xD8),
+    ];
+    let c = colors[(ch as usize) % colors.len()];
+    let (rect, _) = ui.allocate_exact_size(egui::vec2(16.0, 16.0), egui::Sense::hover());
+    ui.painter().rect_filled(rect, egui::Rounding::same(3.0), c);
+    ui.painter().text(
+        rect.center(),
+        egui::Align2::CENTER_CENTER,
+        ch.to_string(),
+        egui::FontId::proportional(10.0),
+        egui::Color32::WHITE,
+    );
+}

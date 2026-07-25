@@ -1,7 +1,4 @@
-//! 页面 trait 与路由。
-
-use eframe::egui;
-use tm_core::models::{Command, SystemSnapshot};
+//! 页面模块与路由枚举。
 
 pub mod app_history_page;
 pub mod details_page;
@@ -34,14 +31,4 @@ impl PageKind {
             PageKind::Services => "服务",
         }
     }
-}
-
-pub trait Page {
-    fn show(
-        &self,
-        ui: &mut egui::Ui,
-        snap: &SystemSnapshot,
-        search: &str,
-        cmd_tx: &crossbeam_channel::Sender<Command>,
-    );
 }
