@@ -20,6 +20,14 @@ pub struct App {
     pub elevated: bool,
     pub speed: RefreshSpeed,
     pub perf_selected: PerfResource,
+    pub run_dialog: RunDialog,
+}
+
+/// 运行新任务对话框状态。
+pub struct RunDialog {
+    pub open: bool,
+    pub input: String,
+    pub elevated: bool,
 }
 
 impl App {
@@ -42,6 +50,11 @@ impl App {
             elevated,
             speed: RefreshSpeed::Normal,
             perf_selected: PerfResource::Cpu,
+            run_dialog: RunDialog {
+                open: false,
+                input: String::new(),
+                elevated: false,
+            },
         }
     }
 }
@@ -76,6 +89,52 @@ impl eframe::App for App {
         self.perf_selected = perf_selected;
 
         shell::status_bar(ctx, &snap, &self.controls, &mut self.speed);
+
+        self.render_run_dialog(ctx);
+    }
+}
+
+impl App {
+    fn render_run_dialog(&mut self, ctx: &egui::Context) {
+        if !self.run_dialog.open {
+            return;
+        }
+        let mut open = self.run_dialog.open;
+        let mut do_run = false;
+        let mut cancel = false;
+        egui::Window::new("运行新任务")
+            .open(&mut open)
+            .resizable(false)
+            .default_width(440.0)
+            .show(ctx, |ui| {
+                ui.label("输入要打开的程序、文件夹、文档或 Internet 资源:");
+                ui.add(
+                    egui::TextEdit::singleline(&mut self.run_dialog.input)
+                        .hint_text("例如:notepad / explorer")
+                        .desired_width(420.0),
+                );
+                ui.checkbox(&mut self.run_dialog.elevated, "以此任务的管理员权限创建");
+                ui.add_space(6.0);
+                ui.horizontal(|ui| {
+                    if ui.button("确定").clicked() {
+                        do_run = true;
+                    }
+                    if ui.button("取消").clicked() {
+                        cancel = true;
+                    }
+                });
+            });
+        if do_run {
+            let _ = tm_core::run_task::run_new_task(&self.run_dialog.input, self.run_dialog.elevated);
+            self.run_dialog.input.clear();
+            self.run_dialog.elevated = false;
+            open = false;
+        }
+        if cancel {
+            self.run_dialog.input.clear();
+            open = false;
+        }
+        self.run_dialog.open = open;
     }
 }
 

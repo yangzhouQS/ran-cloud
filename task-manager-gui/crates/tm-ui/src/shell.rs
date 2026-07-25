@@ -61,7 +61,9 @@ pub fn top_bar(ctx: &egui::Context, app: &mut App) {
                             crate::app::request_elevation();
                         }
                     });
-                    let _ = ui.button("▶ 运行新任务");
+                    if ui.button("▶ 运行新任务").clicked() {
+                        app.run_dialog.open = true;
+                    }
                     let _ = ui.button("⟳ 刷新");
                 });
             });
