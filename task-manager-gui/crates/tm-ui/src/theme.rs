@@ -38,7 +38,7 @@ pub fn install(ctx: &egui::Context) {
     ctx.style_mut(|s| {
         s.spacing.item_spacing = egui::vec2(8.0, 6.0);
         s.spacing.button_padding = egui::vec2(10.0, 6.0);
-        s.spacing.window_margin = egui::Margin::same(0.0);
+        s.spacing.window_margin = egui::Margin::symmetric(8.0, 6.0);
         s.spacing.scroll.bar_width = 10.0;
     });
     set_mode(ctx, true);

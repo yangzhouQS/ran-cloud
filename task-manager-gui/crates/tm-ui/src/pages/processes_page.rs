@@ -78,12 +78,11 @@ fn column_header(ui: &mut egui::Ui) {
 }
 
 fn render_row(ui: &mut egui::Ui, p: &ProcInfo, cmd_tx: &crossbeam_channel::Sender<Command>) {
-    let width = ui.available_width();
     let resp = egui::Frame::default()
         .inner_margin(egui::Margin::symmetric(12.0, 4.0))
         .fill(egui::Color32::TRANSPARENT)
         .show(ui, |ui| {
-            ui.set_min_width(width);
+            ui.set_min_width(ui.available_width());
             ui.horizontal(|ui| {
                 ui.label(&p.name);
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
