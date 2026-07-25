@@ -20,6 +20,12 @@ pub struct SysState {
     pub mem_history: VecDeque<f32>,
 }
 
+impl Default for SysState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SysState {
     pub fn new() -> Self {
         let mut sys = System::new();
@@ -137,7 +143,7 @@ impl SysState {
 
     fn build_network(&self, prev: &mut NetAccum) -> NetworkSnapshot {
         let (mut send, mut recv) = (0u64, 0u64);
-        for (_, n) in self.nets.list() {
+        for n in self.nets.list().values() {
             send += n.transmitted();
             recv += n.received();
         }
@@ -159,6 +165,12 @@ pub struct NetAccum {
     pub last_send: u64,
     pub last_recv: u64,
     pub last_uptime: u64,
+}
+
+impl Default for NetAccum {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl NetAccum {

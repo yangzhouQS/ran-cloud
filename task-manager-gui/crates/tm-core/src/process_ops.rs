@@ -136,7 +136,10 @@ fn nt_proc_fn(name: &[u8]) -> Result<unsafe extern "system" fn(HANDLE) -> i32, O
         let ntdll: HMODULE = GetModuleHandleW(w!("ntdll.dll")).map_err(map_err)?;
         let addr = GetProcAddress(ntdll, PCSTR(name.as_ptr()));
         match addr {
-            Some(f) => Ok(std::mem::transmute(f)),
+            Some(f) => Ok(std::mem::transmute::<
+                unsafe extern "system" fn() -> isize,
+                unsafe extern "system" fn(HANDLE) -> i32,
+            >(f)),
             None => Err(OpsError::Other(0)),
         }
     }
