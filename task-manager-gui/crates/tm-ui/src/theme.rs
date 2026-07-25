@@ -47,4 +47,42 @@ pub fn install(ctx: &egui::Context) {
         s.visuals.widgets.noninteractive.rounding = egui::Rounding::same(6.0);
         s.visuals.widgets.hovered.rounding = egui::Rounding::same(6.0);
     });
+
+    install_cjk_font(ctx);
+}
+
+/// 注入系统 CJK 字体(Microsoft YaHei),解决 egui 默认字体无中文导致的方框问题。
+///
+/// 仅在 App::new 调用一次(theme::install 随之运行一次)。把 CJK 字体追加到
+/// Proportional/Monospace 末尾:Latin 仍用 egui 默认字体,中文回退到 YaHei。
+fn install_cjk_font(ctx: &egui::Context) {
+    // 候选顺序:优先 Win11 默认 YaHei(ttc, index 0),兜底 SimHei(纯 ttf)。
+    let candidates: &[&str] = &[
+        r"C:\Windows\Fonts\msyh.ttc",
+        r"C:\Windows\Fonts\msyhl.ttc",
+        r"C:\Windows\Fonts\simhei.ttf",
+        r"C:\Windows\Fonts\simsun.ttc",
+    ];
+
+    for path in candidates {
+        if let Ok(bytes) = std::fs::read(path) {
+            let mut data = egui::FontData::from_owned(bytes);
+            data.index = 0; // ttc 取首个字面;纯 ttf 同样用 0
+            let mut fonts = egui::FontDefinitions::default();
+            fonts.font_data.insert("cjk".to_owned(), std::sync::Arc::new(data));
+            fonts
+                .families
+                .entry(egui::FontFamily::Proportional)
+                .or_default()
+                .push("cjk".to_owned());
+            fonts
+                .families
+                .entry(egui::FontFamily::Monospace)
+                .or_default()
+                .push("cjk".to_owned());
+            ctx.set_fonts(fonts);
+            return;
+        }
+    }
+    // 全部读取失败:不设置,中文将保持方框(但应用不崩溃)。
 }

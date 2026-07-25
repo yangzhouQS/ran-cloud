@@ -22,6 +22,7 @@ pub struct App {
 
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        theme::install(&cc.egui_ctx); // 主题与字体仅设置一次(含 CJK 字体注入)
         let ctx = cc.egui_ctx.clone();
         let (store, cmd_tx) = collector::spawn(
             Duration::from_secs(1),
@@ -45,7 +46,6 @@ impl eframe::App for App {
     }
 
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        theme::install(ctx);
         apply_mica_once(self, frame);
 
         shell::top_bar(ctx, self);
