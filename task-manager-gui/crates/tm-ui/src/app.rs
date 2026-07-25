@@ -39,6 +39,7 @@ pub struct App {
     pub users_cache: Timed<Vec<UserInfo>>,
     pub settings: Settings,
     pub settings_open: bool,
+    pub maximized: bool,
     mica_dark: Option<bool>,
     aot_applied: Option<bool>,
 }
@@ -90,6 +91,7 @@ impl App {
             },
             settings,
             settings_open: false,
+            maximized: false,
             mica_dark: None,
             aot_applied: None,
         }

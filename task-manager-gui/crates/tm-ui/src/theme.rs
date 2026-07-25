@@ -1,4 +1,7 @@
 //! Win11 风格主题:Mica 半透明(暗/亮)、Accent、Segoe UI + CJK 字体。
+//!
+//! 注意:半透明叠加色必须用 `from_rgba_unmultiplied`(RGB 可大于 alpha)。
+//! 误用 `from_rgba_premultiplied` 且 RGB>alpha 会导致渲染成刺眼的纯白色。
 
 use eframe::egui;
 
@@ -6,22 +9,24 @@ pub fn accent() -> egui::Color32 {
     egui::Color32::from_rgb(0x4C, 0xC2, 0xFF)
 }
 pub fn panel_fill() -> egui::Color32 {
-    egui::Color32::from_rgba_premultiplied(32, 32, 32, 200)
+    egui::Color32::from_rgba_unmultiplied(32, 32, 32, 200)
 }
 pub fn bar_fill() -> egui::Color32 {
-    egui::Color32::from_rgba_premultiplied(28, 28, 28, 215)
+    egui::Color32::from_rgba_unmultiplied(28, 28, 28, 215)
 }
 pub fn header_fill() -> egui::Color32 {
-    egui::Color32::from_rgba_premultiplied(40, 40, 40, 220)
+    egui::Color32::from_rgba_unmultiplied(40, 40, 40, 220)
 }
+/// 行 hover:淡灰叠加(避免刺眼白)。
 pub fn row_hover() -> egui::Color32 {
-    egui::Color32::from_rgba_premultiplied(255, 255, 255, 22)
+    egui::Color32::from_rgba_unmultiplied(255, 255, 255, 16)
 }
+/// 行选中:Accent 淡叠加。
 pub fn row_selected() -> egui::Color32 {
-    egui::Color32::from_rgba_premultiplied(0x4C, 0xC2, 0xFF, 60)
+    egui::Color32::from_rgba_unmultiplied(0x4C, 0xC2, 0xFF, 56)
 }
 pub fn separator() -> egui::Color32 {
-    egui::Color32::from_rgba_premultiplied(255, 255, 255, 28)
+    egui::Color32::from_rgba_unmultiplied(255, 255, 255, 26)
 }
 pub fn text_dim() -> egui::Color32 {
     egui::Color32::from_rgb(160, 160, 160)
@@ -49,15 +54,15 @@ pub fn set_mode(ctx: &egui::Context, dark: bool) {
     if dark {
         v.panel_fill = panel_fill();
         v.extreme_bg_color = egui::Color32::from_rgb(20, 20, 20);
-        v.faint_bg_color = egui::Color32::from_rgba_premultiplied(255, 255, 255, 8);
-        v.widgets.hovered.bg_fill = egui::Color32::from_rgba_premultiplied(255, 255, 255, 25);
-        v.widgets.active.bg_fill = egui::Color32::from_rgba_premultiplied(255, 255, 255, 45);
+        v.faint_bg_color = egui::Color32::from_rgba_unmultiplied(255, 255, 255, 8);
+        v.widgets.hovered.bg_fill = egui::Color32::from_rgba_unmultiplied(255, 255, 255, 22);
+        v.widgets.active.bg_fill = egui::Color32::from_rgba_unmultiplied(255, 255, 255, 40);
     } else {
-        v.panel_fill = egui::Color32::from_rgba_premultiplied(243, 243, 243, 215);
+        v.panel_fill = egui::Color32::from_rgba_unmultiplied(243, 243, 243, 215);
         v.extreme_bg_color = egui::Color32::from_rgb(250, 250, 250);
-        v.faint_bg_color = egui::Color32::from_rgba_premultiplied(0, 0, 0, 8);
-        v.widgets.hovered.bg_fill = egui::Color32::from_rgba_premultiplied(0, 0, 0, 15);
-        v.widgets.active.bg_fill = egui::Color32::from_rgba_premultiplied(0, 0, 0, 30);
+        v.faint_bg_color = egui::Color32::from_rgba_unmultiplied(0, 0, 0, 8);
+        v.widgets.hovered.bg_fill = egui::Color32::from_rgba_unmultiplied(0, 0, 0, 15);
+        v.widgets.active.bg_fill = egui::Color32::from_rgba_unmultiplied(0, 0, 0, 30);
     }
     v.selection.bg_fill = accent();
     v.window_rounding = egui::Rounding::same(8.0);

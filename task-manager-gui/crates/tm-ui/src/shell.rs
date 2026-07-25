@@ -159,18 +159,42 @@ fn whoami() -> String {
     std::env::var("USERNAME").unwrap_or_else(|_| "用户".to_string())
 }
 
-/// 主区顶部命令栏。
+/// 主区顶部命令栏(兼作可拖拽标题栏 + 窗口控制按钮)。
 pub fn command_bar(ctx: &egui::Context, app: &mut App) {
     egui::TopBottomPanel::top("command_bar")
         .exact_height(42.0)
         .frame(
             egui::Frame::default()
                 .fill(theme::bar_fill())
-                .inner_margin(egui::Margin::symmetric(12.0, 6.0)),
+                .inner_margin(egui::Margin::symmetric(8.0, 6.0)),
         )
         .show_separator_line(false)
         .show(ctx, |ui| {
+            // 整栏可拖拽移动窗口(StartDrag 仅在真正拖动时触发,不影响按钮点击)。
+            let bar_rect = ui.max_rect();
+            let drag = ui.interact(
+                bar_rect,
+                ui.id().with("title_drag"),
+                egui::Sense::drag(),
+            );
+            if drag.drag_started() {
+                ctx.send_viewport_cmd(egui::ViewportCommand::StartDrag);
+            }
+
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                // 窗口控制:关闭 / 最大化 / 最小化
+                if titlebar_button(ui, "✕", "tb_close", egui::Color32::from_rgb(0xE8, 0x4B, 0x4B)) {
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                }
+                if titlebar_button(ui, "▢", "tb_max", theme::row_hover()) {
+                    app.maximized = !app.maximized;
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Maximized(app.maximized));
+                }
+                if titlebar_button(ui, "—", "tb_min", theme::row_hover()) {
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(true));
+                }
+                ui.separator();
+
                 if ui.button("⚙ 设置").clicked() {
                     app.settings_open = true;
                 }
@@ -182,7 +206,6 @@ pub fn command_bar(ctx: &egui::Context, app: &mut App) {
                 });
                 ui.separator();
                 if ui.button("⟳ 刷新").clicked() {
-                    // 强制立即刷新各缓存
                     app.services_cache.at = None;
                     app.startup_cache.at = None;
                     app.users_cache.at = None;
@@ -192,6 +215,30 @@ pub fn command_bar(ctx: &egui::Context, app: &mut App) {
                 }
             });
         });
+}
+
+/// 标题栏小按钮(allocate + hover 背景 + 居中字符)。
+fn titlebar_button(
+    ui: &mut egui::Ui,
+    glyph: &str,
+    id: &str,
+    hover_color: egui::Color32,
+) -> bool {
+    let (rect, resp) =
+        ui.allocate_exact_size(egui::vec2(40.0, 30.0), egui::Sense::click());
+    if resp.hovered() {
+        ui.painter()
+            .rect_filled(rect, egui::Rounding::same(4.0), hover_color);
+    }
+    ui.painter().text(
+        rect.center(),
+        egui::Align2::CENTER_CENTER,
+        glyph,
+        egui::FontId::proportional(15.0),
+        egui::Color32::WHITE,
+    );
+    let _ = id;
+    resp.clicked()
 }
 
 pub fn status_bar(
