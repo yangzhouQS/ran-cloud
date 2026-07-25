@@ -232,27 +232,26 @@ fn titlebar_button(
     hover_color: egui::Color32,
 ) -> bool {
     let (rect, resp) =
-        ui.allocate_exact_size(egui::vec2(40.0, 30.0), egui::Sense::click());
+        ui.allocate_exact_size(egui::vec2(38.0, 28.0), egui::Sense::click());
     let painter = ui.painter();
     if resp.hovered() {
         painter.rect_filled(rect, egui::Rounding::same(4.0), hover_color);
     }
     let c = rect.center();
-    let s = 7.0; // 半尺寸
-    let stroke = egui::Stroke::new(1.5_f32, egui::Color32::WHITE);
+    let s = 4.5; // 半尺寸(整图约 9px,贴近 Win11 标题图标)
+    let stroke = egui::Stroke::new(1.2_f32, egui::Color32::WHITE);
     match kind {
         WinCtl::Min => {
-            // 底部水平线
-            let y = c.y + 3.0;
+            // 居中短横线
             painter.line_segment(
-                [egui::pos2(c.x - s, y), egui::pos2(c.x + s, y)],
+                [egui::pos2(c.x - s, c.y), egui::pos2(c.x + s, c.y)],
                 stroke,
             );
         }
         WinCtl::Max => {
             // 方框轮廓
             let r = egui::Rect::from_center_size(c, egui::vec2(s * 2.0, s * 2.0));
-            painter.rect_stroke(r, 0.0, stroke);
+            painter.rect_stroke(r, 1.0, stroke);
         }
         WinCtl::Close => {
             // 叉号
