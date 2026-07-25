@@ -68,7 +68,12 @@ pub fn top_bar(ctx: &egui::Context, app: &mut App) {
         });
 }
 
-pub fn status_bar(ctx: &egui::Context, snap: &SystemSnapshot) {
+pub fn status_bar(
+    ctx: &egui::Context,
+    snap: &SystemSnapshot,
+    controls: &tm_core::collector::Controls,
+    speed: &mut tm_core::models::RefreshSpeed,
+) {
     egui::TopBottomPanel::bottom("status_bar")
         .exact_height(26.0)
         .frame(
@@ -90,7 +95,28 @@ pub fn status_bar(ctx: &egui::Context, snap: &SystemSnapshot) {
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     let badge = if snap.elevated { "管理员" } else { "标准" };
-                    ui.colored_label(theme::text_dim(), format!("{} · 更新速度: 正常(1s)", badge));
+                    ui.colored_label(theme::text_dim(), badge);
+                    ui.separator();
+                    // 刷新速度下拉
+                    let speeds = [
+                        tm_core::models::RefreshSpeed::Paused,
+                        tm_core::models::RefreshSpeed::Low,
+                        tm_core::models::RefreshSpeed::Normal,
+                        tm_core::models::RefreshSpeed::High,
+                    ];
+                    egui::ComboBox::from_id_salt("refresh_speed")
+                        .selected_text(speed.label())
+                        .show_ui(ui, |ui| {
+                            for s in speeds {
+                                if ui
+                                    .selectable_label(*speed == s, s.label())
+                                    .clicked()
+                                {
+                                    *speed = s;
+                                    controls.set_speed(s);
+                                }
+                            }
+                        });
                 });
             });
         });

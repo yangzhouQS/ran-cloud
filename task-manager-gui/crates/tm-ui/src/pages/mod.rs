@@ -3,6 +3,7 @@
 use eframe::egui;
 use tm_core::models::{Command, SystemSnapshot};
 
+pub mod performance_page;
 pub mod processes_page;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

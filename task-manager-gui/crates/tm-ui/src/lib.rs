@@ -4,3 +4,4 @@ pub mod app;
 pub mod pages;
 pub mod shell;
 pub mod theme;
+pub mod widgets;

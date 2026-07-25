@@ -1,41 +1,47 @@
-//! App 状态:持有快照存储、命令通道、当前 Tab、Mica 标记、提权状态。
-
-use std::time::Duration;
+//! App 状态:持有快照存储、命令通道、运行时控件、当前 Tab、Mica 标记、提权状态。
 
 use crossbeam_channel::Sender;
 use eframe::egui;
-use tm_core::collector::{self, SnapshotStore};
-use tm_core::models::Command;
+use tm_core::collector::{self, Controls, SnapshotStore};
+use tm_core::models::{Command, RefreshSpeed};
 
-use crate::pages::{PageKind, processes_page::ProcessesPage, Page};
+use crate::pages::performance_page::{self, PerfResource};
+use crate::pages::{Page, PageKind, processes_page::ProcessesPage};
 use crate::shell;
 use crate::theme;
 
 pub struct App {
     pub store: SnapshotStore,
     pub cmd_tx: Sender<Command>,
+    pub controls: Controls,
     pub mica_applied: bool,
     pub current: PageKind,
     pub search: String,
     pub elevated: bool,
+    pub speed: RefreshSpeed,
+    pub perf_selected: PerfResource,
 }
 
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         theme::install(&cc.egui_ctx); // 主题与字体仅设置一次(含 CJK 字体注入)
         let ctx = cc.egui_ctx.clone();
-        let (store, cmd_tx) = collector::spawn(
-            Duration::from_secs(1),
-            false,
+        let elevated = tm_core::privilege::is_elevated();
+        let (store, cmd_tx, controls) = collector::spawn(
+            elevated,
+            RefreshSpeed::Normal,
             Box::new(move || ctx.request_repaint()),
         );
         Self {
             store,
             cmd_tx,
+            controls,
             mica_applied: false,
             current: PageKind::Processes,
             search: String::new(),
-            elevated: false,
+            elevated,
+            speed: RefreshSpeed::Normal,
+            perf_selected: PerfResource::Cpu,
         }
     }
 }
@@ -54,10 +60,12 @@ impl eframe::App for App {
         let cmd_tx = self.cmd_tx.clone();
         let search = self.search.clone();
         let current = self.current;
+        let mut perf_selected = self.perf_selected;
 
         egui::CentralPanel::default().show(ctx, |ui| {
             match current {
                 PageKind::Processes => ProcessesPage.show(ui, &snap, &search, &cmd_tx),
+                PageKind::Performance => performance_page::show(ui, &snap, &mut perf_selected),
                 other => {
                     ui.add_space(20.0);
                     ui.heading(format!("{}(待实现 · 见后续阶段)", other.label()));
@@ -65,8 +73,9 @@ impl eframe::App for App {
                 }
             }
         });
+        self.perf_selected = perf_selected;
 
-        shell::status_bar(ctx, &snap);
+        shell::status_bar(ctx, &snap, &self.controls, &mut self.speed);
     }
 }
 
