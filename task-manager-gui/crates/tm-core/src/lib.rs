@@ -3,6 +3,7 @@
 pub mod classify;
 pub mod collector;
 pub mod error;
+pub mod gpu;
 pub mod models;
 pub mod privilege;
 pub mod process_ops;

@@ -2,7 +2,7 @@
 //!
 //! `on_tick` 每次刷新后被调用(UI 侧用它触发 egui::Context::request_repaint)。
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -64,6 +64,9 @@ pub fn spawn(
             // 应用历史累计(会话内近似)。
             let mut app_hist: HashMap<String, (f64, u64)> = HashMap::new();
             let mut last_time = Instant::now();
+            // GPU(PDH,可能不可用)。
+            let gpu = crate::gpu::GpuMonitor::new();
+            let mut gpu_history: VecDeque<f32> = VecDeque::with_capacity(60);
             // 预热:首次 CPU≈0,丢弃结果以获得后续准确差分。
             let _ = state.snapshot(elevated, &mut net);
             loop {
@@ -104,6 +107,21 @@ pub fn spawn(
                         .unwrap_or(std::cmp::Ordering::Equal)
                 });
                 snap.app_history = hist;
+                // GPU 采样(若可用)。
+                if let Some(m) = &gpu {
+                    let (util, mem) = m.sample();
+                    if gpu_history.len() == 60 {
+                        gpu_history.pop_front();
+                    }
+                    gpu_history.push_back(util);
+                    snap.gpus = vec![GpuSnapshot {
+                        name: "GPU".into(),
+                        usage_pct: Some(util),
+                        dedicated_used: Some(mem),
+                        dedicated_total: None,
+                        history: gpu_history.clone(),
+                    }];
+                }
                 *store_c.write() = snap;
                 on_tick();
             }

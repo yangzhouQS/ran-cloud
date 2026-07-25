@@ -98,14 +98,25 @@ fn build_items(snap: &SystemSnapshot) -> Vec<PerfItem> {
         egui::Color32::from_rgb(0xE2, 0xA0, 0x4A),
     ));
 
-    v.push((
-        PerfResource::Gpu,
-        "GPU".into(),
-        "暂不支持".into(),
-        VecDeque::new(),
-        1.0,
-        egui::Color32::from_rgb(0x80, 0x80, 0x80),
-    ));
+    if let Some(g) = snap.gpus.first() {
+        v.push((
+            PerfResource::Gpu,
+            "GPU".into(),
+            format!("{:.0}%", g.usage_pct.unwrap_or(0.0)),
+            g.history.clone(),
+            100.0,
+            egui::Color32::from_rgb(0xE5, 0x6B, 0x6B),
+        ));
+    } else {
+        v.push((
+            PerfResource::Gpu,
+            "GPU".into(),
+            "不可用".into(),
+            VecDeque::new(),
+            1.0,
+            egui::Color32::from_rgb(0x80, 0x80, 0x80),
+        ));
+    }
 
     v
 }
@@ -234,7 +245,12 @@ fn render_detail(
             detail_row(ui, "适配器", &snap.network.adapter);
         }
         PerfResource::Gpu => {
-            ui.label("GPU 利用率/显存:需要 DXGI/性能计数器,后续阶段支持(spec §2.3 best-effort)。");
+            if let Some(g) = snap.gpus.first() {
+                detail_row(ui, "利用率", &format!("{:.1}%", g.usage_pct.unwrap_or(0.0)));
+                detail_row(ui, "专用显存", &fmt_bytes(g.dedicated_used.unwrap_or(0)));
+            } else {
+                ui.label("GPU 计数器不可用(无独显或驱动未暴露性能计数器)。");
+            }
         }
     }
 }
