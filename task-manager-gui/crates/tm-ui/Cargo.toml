@@ -12,6 +12,15 @@ egui = "0.30"
 egui_extras = { version = "0.30", features = ["image"] }
 window-vibrancy = "0.8"
 raw-window-handle = "0.6"
+windows = { version = "0.58", features = ["Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
 parking_lot = "0.12"
 crossbeam-channel = "0.5"
 anyhow = "1"
+
+[lib]
+name = "tm_ui"
+path = "src/lib.rs"
+
+[[bin]]
+name = "tm-ui"
+path = "src/main.rs"
