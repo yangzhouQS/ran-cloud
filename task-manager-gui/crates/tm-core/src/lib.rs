@@ -7,6 +7,7 @@ pub mod models;
 pub mod privilege;
 pub mod process_ops;
 pub mod run_task;
+pub mod services;
 pub mod sorting;
 pub mod sysinfo_source;
 pub mod win_source;
