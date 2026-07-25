@@ -3,6 +3,7 @@
 pub mod classify;
 pub mod error;
 pub mod models;
+pub mod process_ops;
 pub mod sorting;
 pub mod sysinfo_source;
 pub mod win_source;
