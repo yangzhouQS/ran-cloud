@@ -276,14 +276,17 @@ pub fn status_bar(
     speed: &mut tm_core::models::RefreshSpeed,
 ) {
     egui::TopBottomPanel::bottom("status_bar")
-        .exact_height(26.0)
+        .exact_height(30.0)
         .frame(
             egui::Frame::default()
                 .fill(theme::bar_fill())
-                .inner_margin(egui::Margin::symmetric(12.0, 4.0)),
+                .inner_margin(egui::Margin::symmetric(12.0, 3.0)),
         )
         .show_separator_line(false)
         .show(ctx, |ui| {
+            // 收紧行高,使下拉等控件完整落在状态栏内
+            ui.spacing_mut().interact_size.y = 20.0;
+            ui.spacing_mut().button_padding = egui::vec2(6.0, 1.0);
             ui.horizontal(|ui| {
                 ui.label(format!("进程 {}", snap.total_processes));
                 ui.separator();
