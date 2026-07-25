@@ -1,22 +1,30 @@
-//! 应用历史页(会话内累计近似):名称/CPU 时间/网络流量。
+//! 应用历史页(会话内累计近似):图标/名称/CPU 时间/网络流量。
+
+use std::collections::HashMap;
 
 use eframe::egui;
 use tm_core::models::SystemSnapshot;
 
 use crate::theme;
 
-pub fn show(ui: &mut egui::Ui, snap: &SystemSnapshot, search: &str) {
+pub fn show(
+    ui: &mut egui::Ui,
+    snap: &SystemSnapshot,
+    search: &str,
+    icons: &mut HashMap<String, Option<egui::TextureHandle>>,
+) {
     let q = search.trim().to_ascii_lowercase();
     ui.add_space(2.0);
     egui::ScrollArea::vertical()
         .auto_shrink([false, false])
         .show(ui, |ui| {
             egui::Grid::new("app_history_grid")
-                .num_columns(3)
+                .num_columns(4)
                 .striped(true)
                 .min_col_width(80.0)
-                .spacing([24.0, 4.0])
+                .spacing([8.0, 4.0])
                 .show(ui, |ui| {
+                    ui.strong("");
                     ui.strong("应用");
                     ui.strong("CPU 时间");
                     ui.strong("网络");
@@ -24,6 +32,7 @@ pub fn show(ui: &mut egui::Ui, snap: &SystemSnapshot, search: &str) {
                     for e in snap.app_history.iter().filter(|e| {
                         q.is_empty() || e.name.to_ascii_lowercase().contains(&q)
                     }) {
+                        crate::icons::render(ui, icons, &e.exe_path, &e.name);
                         ui.label(&e.name);
                         ui.label(fmt_dur(e.cpu_secs));
                         ui.label(fmt_net(e.net_bytes));

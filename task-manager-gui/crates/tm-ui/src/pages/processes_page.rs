@@ -86,33 +86,8 @@ fn render_row(
         .show(ui, |ui| {
             ui.set_min_width(ui.available_width());
             ui.horizontal(|ui| {
-                // 应用图标(按 exe_path 缓存,提取失败则用首字母色块)
-                let entry = icons
-                    .entry(p.exe_path.clone())
-                    .or_insert_with(|| match tm_core::win_source::exe_icon(&p.exe_path) {
-                        Some(img) => {
-                            let ci = egui::ColorImage::from_rgba_unmultiplied(
-                                [img.width() as usize, img.height() as usize],
-                                img.as_raw(),
-                            );
-                            Some(ui.ctx().load_texture(
-                                format!("icon:{}", p.exe_path),
-                                ci,
-                                Default::default(),
-                            ))
-                        }
-                        None => None,
-                    });
-                match entry.as_ref() {
-                    Some(h) => {
-                        ui.add(
-                            egui::Image::from_texture(h).fit_to_exact_size(egui::vec2(16.0, 16.0)),
-                        );
-                    }
-                    None => {
-                        placeholder_icon(ui, &p.name);
-                    }
-                }
+                // 应用图标(按 exe_path 缓存,失败用首字母色块)
+                crate::icons::render(ui, icons, &p.exe_path, &p.name);
                 ui.add_space(4.0);
                 ui.label(&p.name);
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -169,27 +144,4 @@ fn power_label(p: PowerUsage) -> egui::RichText {
         PowerUsage::Medium => egui::RichText::new("中").color(egui::Color32::from_rgb(0xE2, 0xC0, 0x4A)),
         PowerUsage::High => egui::RichText::new("高").color(egui::Color32::from_rgb(0xE8, 0x6B, 0x4B)),
     }
-}
-
-/// 图标提取失败时的占位:取进程名首字符的彩色方块。
-fn placeholder_icon(ui: &mut egui::Ui, name: &str) {
-    let ch = name.chars().next().filter(|c| c.is_alphabetic()).unwrap_or('?');
-    let colors = [
-        egui::Color32::from_rgb(0x4C, 0xC2, 0xFF),
-        egui::Color32::from_rgb(0x9B, 0x6A, 0xE5),
-        egui::Color32::from_rgb(0x4C, 0xC2, 0x6B),
-        egui::Color32::from_rgb(0xE2, 0xA0, 0x4A),
-        egui::Color32::from_rgb(0xE5, 0x6B, 0x6B),
-        egui::Color32::from_rgb(0x6A, 0x9B, 0xD8),
-    ];
-    let c = colors[(ch as usize) % colors.len()];
-    let (rect, _) = ui.allocate_exact_size(egui::vec2(16.0, 16.0), egui::Sense::hover());
-    ui.painter().rect_filled(rect, egui::Rounding::same(3.0), c);
-    ui.painter().text(
-        rect.center(),
-        egui::Align2::CENTER_CENTER,
-        ch.to_string(),
-        egui::FontId::proportional(10.0),
-        egui::Color32::WHITE,
-    );
 }

@@ -61,7 +61,7 @@ pub fn spawn(
             }
             let mut state = SysState::new();
             // 应用历史累计(会话内近似)。
-            let mut app_hist: HashMap<String, (f64, u64)> = HashMap::new();
+            let mut app_hist: HashMap<String, (f64, u64, String)> = HashMap::new();
             let mut last_time = Instant::now();
             // GPU(PDH,可能不可用)。
             let gpu = crate::gpu::GpuMonitor::new();
@@ -88,14 +88,18 @@ pub fn spawn(
                 let dt = now.duration_since(last_time).as_secs_f64().max(0.0);
                 last_time = now;
                 for p in &snap.processes {
-                    let e = app_hist.entry(p.name.clone()).or_insert((0.0, 0));
+                    let e = app_hist.entry(p.name.clone()).or_insert((0.0, 0, String::new()));
                     e.0 += (p.cpu_usage as f64 / 100.0) * dt;
                     e.1 += ((p.net_send_bps + p.net_recv_bps) * dt) as u64;
+                    if !p.exe_path.is_empty() {
+                        e.2 = p.exe_path.clone();
+                    }
                 }
                 let mut hist: Vec<AppHistEntry> = app_hist
                     .iter()
-                    .map(|(k, (c, n))| AppHistEntry {
+                    .map(|(k, (c, n, exe))| AppHistEntry {
                         name: k.clone(),
+                        exe_path: exe.clone(),
                         cpu_secs: *c,
                         net_bytes: *n,
                     })

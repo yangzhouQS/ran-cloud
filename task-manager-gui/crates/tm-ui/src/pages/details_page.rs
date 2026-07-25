@@ -1,10 +1,17 @@
-//! 详细信息页:名称/PID/状态/用户/会话/内存/CPU,按 CPU 降序,支持搜索过滤。
+//! 详细信息页:图标/名称/PID/状态/用户/会话/内存/CPU,按 CPU 降序,支持搜索过滤。
+
+use std::collections::HashMap;
 
 use eframe::egui;
 use tm_core::models::{ProcColumn, ProcInfo, ProcStatus, SortDir, SystemSnapshot};
 use tm_core::sorting::sort_processes;
 
-pub fn show(ui: &mut egui::Ui, snap: &SystemSnapshot, search: &str) {
+pub fn show(
+    ui: &mut egui::Ui,
+    snap: &SystemSnapshot,
+    search: &str,
+    icons: &mut HashMap<String, Option<egui::TextureHandle>>,
+) {
     let q = search.trim().to_ascii_lowercase();
     let mut rows: Vec<ProcInfo> = snap
         .processes
@@ -19,11 +26,12 @@ pub fn show(ui: &mut egui::Ui, snap: &SystemSnapshot, search: &str) {
         .auto_shrink([false, false])
         .show(ui, |ui| {
             egui::Grid::new("details_grid")
-                .num_columns(7)
+                .num_columns(8)
                 .striped(true)
                 .min_col_width(56.0)
-                .spacing([20.0, 3.0])
+                .spacing([8.0, 3.0])
                 .show(ui, |ui| {
+                    ui.strong("");
                     ui.strong("名称");
                     ui.strong("PID");
                     ui.strong("状态");
@@ -33,6 +41,7 @@ pub fn show(ui: &mut egui::Ui, snap: &SystemSnapshot, search: &str) {
                     ui.strong("CPU");
                     ui.end_row();
                     for p in &rows {
+                        crate::icons::render(ui, icons, &p.exe_path, &p.name);
                         ui.label(&p.name);
                         ui.label(format!("{}", p.pid));
                         ui.label(status_str(p.status));

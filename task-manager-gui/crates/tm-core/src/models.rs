@@ -21,6 +21,7 @@ pub struct SystemSnapshot {
 #[derive(Debug, Clone)]
 pub struct AppHistEntry {
     pub name: String,
+    pub exe_path: String,
     pub cpu_secs: f64,
     pub net_bytes: u64,
 }

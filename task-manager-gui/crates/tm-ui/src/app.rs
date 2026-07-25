@@ -166,10 +166,12 @@ impl eframe::App for App {
                 PageKind::Services => {
                     svc_invalidate = crate::pages::services_page::show(ui, services, &search);
                 }
-                PageKind::StartupApps => crate::pages::startup_page::show(ui, startup, &search),
+                PageKind::StartupApps => crate::pages::startup_page::show(ui, startup, &search, &mut icons),
                 PageKind::Users => crate::pages::users_page::show(ui, users, &search),
-                PageKind::AppHistory => crate::pages::app_history_page::show(ui, &snap, &search),
-                PageKind::Details => crate::pages::details_page::show(ui, &snap, &search),
+                PageKind::AppHistory => {
+                    crate::pages::app_history_page::show(ui, &snap, &search, &mut icons)
+                }
+                PageKind::Details => crate::pages::details_page::show(ui, &snap, &search, &mut icons),
             }
         });
         self.perf_selected = perf_selected;
