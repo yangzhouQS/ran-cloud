@@ -1,12 +1,32 @@
-//! windows 补缺:窗口 PID 集合(供进程分组 App/Background 使用)。
-//!
-//! Task 7 将用 EnumWindows 实现真实逻辑;此处为跨平台占位。
+//! windows 补缺:枚举可见顶层窗口,收集其拥有者 PID(用于进程分组 App/Background)。
 
 use std::collections::HashSet;
 
 #[cfg(windows)]
 pub fn window_pids() -> HashSet<u32> {
-    HashSet::new() // 占位:Task 7 用 EnumWindows 填充
+    use windows::Win32::Foundation::{BOOL, HWND, LPARAM, TRUE};
+    use windows::Win32::UI::WindowsAndMessaging::{
+        EnumWindows, GetWindowThreadProcessId, IsWindowVisible,
+    };
+
+    unsafe extern "system" fn enum_proc(hwnd: HWND, lparam: LPARAM) -> BOOL {
+        let set = &mut *(lparam.0 as *mut HashSet<u32>);
+        if IsWindowVisible(hwnd).as_bool() {
+            let mut pid: u32 = 0;
+            GetWindowThreadProcessId(hwnd, Some(&mut pid as *mut u32));
+            if pid != 0 {
+                set.insert(pid);
+            }
+        }
+        TRUE
+    }
+
+    let mut set: HashSet<u32> = HashSet::new();
+    let ptr = &mut set as *mut HashSet<u32> as isize;
+    unsafe {
+        let _ = EnumWindows(Some(enum_proc), LPARAM(ptr));
+    }
+    set
 }
 
 #[cfg(not(windows))]
