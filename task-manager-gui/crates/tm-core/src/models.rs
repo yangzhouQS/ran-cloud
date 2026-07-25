@@ -14,6 +14,15 @@ pub struct SystemSnapshot {
     pub processes: Vec<ProcInfo>,
     pub elevated: bool,
     pub total_processes: usize,
+    pub app_history: Vec<AppHistEntry>,
+}
+
+/// 应用历史(会话内累计近似):按进程名累计的 CPU 时间与网络流量。
+#[derive(Debug, Clone)]
+pub struct AppHistEntry {
+    pub name: String,
+    pub cpu_secs: f64,
+    pub net_bytes: u64,
 }
 
 #[derive(Debug, Clone)]

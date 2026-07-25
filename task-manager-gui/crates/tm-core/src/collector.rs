@@ -2,9 +2,10 @@
 //!
 //! `on_tick` 每次刷新后被调用(UI 侧用它触发 egui::Context::request_repaint)。
 
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use parking_lot::RwLock;
@@ -60,6 +61,9 @@ pub fn spawn(
             }
             let mut state = SysState::new();
             let mut net = NetAccum::new();
+            // 应用历史累计(会话内近似)。
+            let mut app_hist: HashMap<String, (f64, u64)> = HashMap::new();
+            let mut last_time = Instant::now();
             // 预热:首次 CPU≈0,丢弃结果以获得后续准确差分。
             let _ = state.snapshot(elevated, &mut net);
             loop {
@@ -77,7 +81,29 @@ pub fn spawn(
                 while let Ok(cmd) = rx.try_recv() {
                     let _ = exec_command(cmd);
                 }
-                let snap = state.snapshot(elevated, &mut net);
+                let mut snap = state.snapshot(elevated, &mut net);
+                let now = Instant::now();
+                let dt = now.duration_since(last_time).as_secs_f64().max(0.0);
+                last_time = now;
+                for p in &snap.processes {
+                    let e = app_hist.entry(p.name.clone()).or_insert((0.0, 0));
+                    e.0 += (p.cpu_usage as f64 / 100.0) * dt;
+                    e.1 += ((p.net_send_bps + p.net_recv_bps) * dt) as u64;
+                }
+                let mut hist: Vec<AppHistEntry> = app_hist
+                    .iter()
+                    .map(|(k, (c, n))| AppHistEntry {
+                        name: k.clone(),
+                        cpu_secs: *c,
+                        net_bytes: *n,
+                    })
+                    .collect();
+                hist.sort_by(|a, b| {
+                    b.cpu_secs
+                        .partial_cmp(&a.cpu_secs)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                });
+                snap.app_history = hist;
                 *store_c.write() = snap;
                 on_tick();
             }
@@ -119,6 +145,7 @@ pub fn empty_snapshot() -> SystemSnapshot {
         processes: vec![],
         elevated: false,
         total_processes: 0,
+        app_history: vec![],
     }
 }
 

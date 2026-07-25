@@ -9,7 +9,9 @@ pub mod process_ops;
 pub mod run_task;
 pub mod services;
 pub mod sorting;
+pub mod startup;
 pub mod sysinfo_source;
+pub mod users;
 pub mod win_source;
 
 pub use models::*;

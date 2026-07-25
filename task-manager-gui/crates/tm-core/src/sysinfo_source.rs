@@ -80,6 +80,7 @@ impl SysState {
             total_processes: processes.len(),
             elevated,
             processes,
+            app_history: Vec::new(),
         }
     }
 
