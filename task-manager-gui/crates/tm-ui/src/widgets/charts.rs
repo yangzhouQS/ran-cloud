@@ -28,7 +28,7 @@ pub fn sparkline(ui: &mut Ui, history: &VecDeque<f32>, max: f32, color: Color32,
     resp
 }
 
-fn paint_series(
+pub fn paint_series(
     painter: egui::Painter,
     rect: Rect,
     history: &VecDeque<f32>,
