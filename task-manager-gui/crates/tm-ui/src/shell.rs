@@ -105,31 +105,51 @@ pub fn sidebar(ctx: &egui::Context, app: &mut App) {
         });
 }
 
+fn page_index(k: PageKind) -> u8 {
+    match k {
+        PageKind::Processes => 0,
+        PageKind::Performance => 1,
+        PageKind::AppHistory => 2,
+        PageKind::StartupApps => 3,
+        PageKind::Users => 4,
+        PageKind::Details => 5,
+        PageKind::Services => 6,
+    }
+}
+
 fn nav_item(ui: &mut egui::Ui, app: &mut App, k: PageKind, collapsed: bool) {
     let selected = app.current == k;
-    let bg = if selected {
-        theme::row_selected()
-    } else {
-        egui::Color32::TRANSPARENT
-    };
-    let resp = egui::Frame::default()
-        .fill(bg)
-        .rounding(egui::Rounding::same(6.0))
-        .inner_margin(egui::Margin::symmetric(8.0, 6.0))
-        .show(ui, |ui| {
-            if collapsed {
-                ui.horizontal_top(|ui| {
-                    ui.add_space(6.0);
-                    icon_square(ui, page_color(k), 18.0);
-                });
-            } else {
-                ui.horizontal(|ui| {
-                    icon_square(ui, page_color(k), 16.0);
-                    ui.label(k.label());
-                });
-            }
+    let frame = egui::Frame::default()
+        .fill(if selected {
+            theme::row_selected()
+        } else {
+            egui::Color32::TRANSPARENT
         })
-        .response;
+        .rounding(egui::Rounding::same(6.0))
+        .inner_margin(egui::Margin::symmetric(8.0, 6.0));
+    let inner = frame.show(ui, |ui| {
+        if collapsed {
+            ui.horizontal_top(|ui| {
+                ui.add_space(6.0);
+                icon_square(ui, page_color(k), 18.0);
+            });
+        } else {
+            ui.horizontal(|ui| {
+                icon_square(ui, page_color(k), 16.0);
+                ui.label(k.label());
+            });
+        }
+    });
+    // Frame 的 response 无点击 sense,需显式 interact 才能响应点击。
+    let resp = ui.interact(
+        inner.response.rect,
+        ui.id().with(("navitem", page_index(k))),
+        egui::Sense::click(),
+    );
+    if !selected && resp.hovered() {
+        ui.painter()
+            .rect_filled(inner.response.rect, egui::Rounding::same(6.0), theme::row_hover());
+    }
     if resp.clicked() {
         app.current = k;
     }
