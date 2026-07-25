@@ -29,9 +29,12 @@ pub fn show(
 ) {
     let items = build_items(snap);
 
+    // 外层:左列表 | 右详情(并排)
     ui.horizontal_top(|ui| {
-        // 左:资源列表
-        ui.allocate_ui(egui::vec2(200.0, ui.available_height()), |ui| {
+        // 左:资源列表(显式垂直列,逐项自上而下)
+        ui.vertical(|ui| {
+            ui.set_min_width(196.0);
+            ui.set_max_width(200.0);
             egui::ScrollArea::vertical()
                 .auto_shrink([false, true])
                 .show(ui, |ui| {
@@ -43,8 +46,8 @@ pub fn show(
 
         ui.separator();
 
-        // 右:详情面板
-        ui.allocate_ui(egui::vec2(ui.available_width() - 4.0, ui.available_height()), |ui| {
+        // 右:详情面板(纵向可滚动)
+        ui.vertical(|ui| {
             egui::ScrollArea::vertical()
                 .auto_shrink([false, true])
                 .show(ui, |ui| {
