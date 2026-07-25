@@ -4,5 +4,7 @@ pub mod classify;
 pub mod error;
 pub mod models;
 pub mod sorting;
+pub mod sysinfo_source;
+pub mod win_source;
 
 pub use models::*;
