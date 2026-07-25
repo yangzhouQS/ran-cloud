@@ -2,6 +2,7 @@
 //!
 //! `on_tick` 每次刷新后被调用(UI 侧用它触发 egui::Context::request_repaint)。
 
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -9,27 +10,69 @@ use crossbeam_channel::{unbounded, Receiver, Sender};
 use parking_lot::RwLock;
 
 use crate::models::*;
+use crate::privilege::enable_debug_privilege;
 use crate::sysinfo_source::{NetAccum, SysState};
 
 pub type SnapshotStore = Arc<RwLock<SystemSnapshot>>;
 pub type CmdTx = Sender<Command>;
 pub type CmdRx = Receiver<Command>;
 
-/// 启动 Collector 线程。返回 (共享快照存储, 命令发送端)。
-pub fn spawn(interval: Duration, elevated: bool, on_tick: Box<dyn Fn() + Send + Sync>) -> (SnapshotStore, CmdTx) {
+/// 运行时控件:刷新速度(毫秒)与暂停标志。
+#[derive(Clone)]
+pub struct Controls {
+    pub interval_ms: Arc<AtomicU64>,
+    pub paused: Arc<AtomicBool>,
+}
+
+impl Controls {
+    fn new(speed: RefreshSpeed) -> Self {
+        Self {
+            interval_ms: Arc::new(AtomicU64::new(speed.millis())),
+            paused: Arc::new(AtomicBool::new(speed == RefreshSpeed::Paused)),
+        }
+    }
+    pub fn set_speed(&self, speed: RefreshSpeed) {
+        self.interval_ms.store(speed.millis(), Ordering::Relaxed);
+        self.paused.store(speed == RefreshSpeed::Paused, Ordering::Relaxed);
+    }
+    pub fn is_paused(&self) -> bool {
+        self.paused.load(Ordering::Relaxed)
+    }
+}
+
+/// 启动 Collector 线程。返回 (共享快照存储, 命令发送端, 运行时控件)。
+pub fn spawn(
+    elevated: bool,
+    speed: RefreshSpeed,
+    on_tick: Box<dyn Fn() + Send + Sync>,
+) -> (SnapshotStore, CmdTx, Controls) {
     let store: SnapshotStore = Arc::new(RwLock::new(empty_snapshot()));
     let (tx, rx): (CmdTx, CmdRx) = unbounded::<Command>();
     let store_c = Arc::clone(&store);
+    let controls = Controls::new(speed);
+    let controls_c = controls.clone();
 
     std::thread::Builder::new()
         .name("tm-collector".into())
         .spawn(move || {
+            if elevated {
+                enable_debug_privilege();
+            }
             let mut state = SysState::new();
             let mut net = NetAccum::new();
             // 预热:首次 CPU≈0,丢弃结果以获得后续准确差分。
             let _ = state.snapshot(elevated, &mut net);
             loop {
-                std::thread::sleep(interval);
+                let ms = controls_c.interval_ms.load(Ordering::Relaxed);
+                if ms > 0 {
+                    std::thread::sleep(Duration::from_millis(ms));
+                } else {
+                    // 暂停时短眠,避免忙等。
+                    std::thread::sleep(Duration::from_millis(200));
+                }
+                if controls_c.paused.load(Ordering::Relaxed) {
+                    continue;
+                }
                 // 先排空命令(下个快照前执行,UI 可立即看到效果)。
                 while let Ok(cmd) = rx.try_recv() {
                     let _ = exec_command(cmd);
@@ -41,7 +84,7 @@ pub fn spawn(interval: Duration, elevated: bool, on_tick: Box<dyn Fn() + Send + 
         })
         .expect("collector thread");
 
-    (store, tx)
+    (store, tx, controls)
 }
 
 pub fn empty_snapshot() -> SystemSnapshot {

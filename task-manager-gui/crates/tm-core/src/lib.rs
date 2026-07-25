@@ -4,6 +4,7 @@ pub mod classify;
 pub mod collector;
 pub mod error;
 pub mod models;
+pub mod privilege;
 pub mod process_ops;
 pub mod sorting;
 pub mod sysinfo_source;

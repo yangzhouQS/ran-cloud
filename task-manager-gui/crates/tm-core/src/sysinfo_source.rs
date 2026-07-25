@@ -1,6 +1,6 @@
 //! sysinfo → SystemSnapshot 适配。持有 SysState,供 Collector 两次采样间差分 CPU。
 
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use sysinfo::{
     Disks, MemoryRefreshKind, Networks, ProcessRefreshKind, ProcessesToUpdate, System,
@@ -18,6 +18,8 @@ pub struct SysState {
     pub nets: Networks,
     pub cpu_history: VecDeque<f32>,
     pub mem_history: VecDeque<f32>,
+    pub disk_history: HashMap<String, VecDeque<f32>>,
+    pub net_history: VecDeque<f32>,
 }
 
 impl Default for SysState {
@@ -38,6 +40,8 @@ impl SysState {
             nets,
             cpu_history: VecDeque::with_capacity(HISTORY_LEN),
             mem_history: VecDeque::with_capacity(HISTORY_LEN),
+            disk_history: HashMap::new(),
+            net_history: VecDeque::with_capacity(HISTORY_LEN),
         }
     }
 
@@ -120,28 +124,43 @@ impl SysState {
         }
     }
 
-    fn build_disks(&self) -> Vec<DiskSnapshot> {
-        self.disks
+    fn build_disks(&mut self) -> Vec<DiskSnapshot> {
+        // 先以不可变借用收集原始数据,再以可变借用写历史,避免同时借用 self。
+        let raw: Vec<(String, u64, u64, f32)> = self
+            .disks
             .list()
             .iter()
             .map(|d| {
                 let total = d.total_space();
                 let used = total.saturating_sub(d.available_space());
+                let usage = if total == 0 {
+                    0.0
+                } else {
+                    used as f32 * 100.0 / total as f32
+                };
+                (d.name().to_string_lossy().into_owned(), used, total, usage)
+            })
+            .collect();
+
+        raw.into_iter()
+            .map(|(name, used, total, usage)| {
+                let hist = self.disk_history.entry(name.clone()).or_default();
+                push(hist, usage);
                 DiskSnapshot {
-                    name: d.name().to_string_lossy().into_owned(),
+                    name,
                     used,
                     total,
                     read_bps: 0.0,
                     write_bps: 0.0,
-                    activity_pct: 0.0,
+                    activity_pct: usage,
                     response_time_ms: 0.0,
-                    history: VecDeque::new(),
+                    history: hist.clone(),
                 }
             })
             .collect()
     }
 
-    fn build_network(&self, prev: &mut NetAccum) -> NetworkSnapshot {
+    fn build_network(&mut self, prev: &mut NetAccum) -> NetworkSnapshot {
         let (mut send, mut recv) = (0u64, 0u64);
         for n in self.nets.list().values() {
             send += n.transmitted();
@@ -152,10 +171,11 @@ impl SysState {
         let sps = bytes_per_sec(send, prev.last_send, dt);
         let rps = bytes_per_sec(recv, prev.last_recv, dt);
         prev.update(send, recv, now_up);
+        push(&mut self.net_history, (sps + rps) as f32);
         NetworkSnapshot {
             send_bps: sps,
             recv_bps: rps,
-            history: VecDeque::new(),
+            history: self.net_history.clone(),
             adapter: "all".into(),
         }
     }

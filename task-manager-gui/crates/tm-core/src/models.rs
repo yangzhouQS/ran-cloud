@@ -144,3 +144,32 @@ pub enum SortDir {
     Asc,
     Desc,
 }
+
+/// 刷新速度(对齐 Win11 任务管理器)。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum RefreshSpeed {
+    Paused,
+    Low,
+    #[default]
+    Normal,
+    High,
+}
+
+impl RefreshSpeed {
+    pub fn millis(self) -> u64 {
+        match self {
+            RefreshSpeed::Paused => 0,
+            RefreshSpeed::Low => 2000,
+            RefreshSpeed::Normal => 1000,
+            RefreshSpeed::High => 500,
+        }
+    }
+    pub fn label(self) -> &'static str {
+        match self {
+            RefreshSpeed::Paused => "暂停",
+            RefreshSpeed::Low => "低 (2s)",
+            RefreshSpeed::Normal => "正常 (1s)",
+            RefreshSpeed::High => "高 (0.5s)",
+        }
+    }
+}
