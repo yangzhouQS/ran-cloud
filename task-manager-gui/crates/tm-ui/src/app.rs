@@ -33,6 +33,7 @@ pub struct App {
     pub elevated: bool,
     pub speed: RefreshSpeed,
     pub perf_selected: PerfResource,
+    pub perf_chart_points: usize,
     pub run_dialog: RunDialog,
     pub services_cache: Timed<Vec<ServiceInfo>>,
     pub startup_cache: Timed<Vec<StartupEntry>>,
@@ -72,6 +73,7 @@ impl App {
             elevated,
             speed: RefreshSpeed::Normal,
             perf_selected: PerfResource::Cpu,
+            perf_chart_points: 60,
             run_dialog: RunDialog {
                 open: false,
                 input: String::new(),
@@ -141,6 +143,7 @@ impl eframe::App for App {
         let search = self.search.clone();
         let current = self.current;
         let mut perf_selected = self.perf_selected;
+        let mut perf_points = self.perf_chart_points;
         let services = &self.services_cache.value;
         let startup = &self.startup_cache.value;
         let users = &self.users_cache.value;
@@ -149,7 +152,9 @@ impl eframe::App for App {
         egui::CentralPanel::default().show(ctx, |ui| {
             match current {
                 PageKind::Processes => ProcessesPage.show(ui, &snap, &search, &cmd_tx),
-                PageKind::Performance => performance_page::show(ui, &snap, &mut perf_selected),
+                PageKind::Performance => {
+                    performance_page::show(ui, &snap, &mut perf_selected, &mut perf_points)
+                }
                 PageKind::Services => {
                     svc_invalidate = crate::pages::services_page::show(ui, services, &search);
                 }
@@ -160,6 +165,7 @@ impl eframe::App for App {
             }
         });
         self.perf_selected = perf_selected;
+        self.perf_chart_points = perf_points;
         if svc_invalidate {
             self.services_cache.at = None;
         }
