@@ -33,3 +33,21 @@ pub fn window_pids() -> HashSet<u32> {
 pub fn window_pids() -> HashSet<u32> {
     HashSet::new()
 }
+
+#[cfg(windows)]
+pub fn session_id(pid: u32) -> Option<u32> {
+    use windows::Win32::System::RemoteDesktop::ProcessIdToSessionId;
+    unsafe {
+        let mut sid: u32 = 0;
+        if ProcessIdToSessionId(pid, &mut sid).is_ok() {
+            Some(sid)
+        } else {
+            None
+        }
+    }
+}
+
+#[cfg(not(windows))]
+pub fn session_id(_pid: u32) -> Option<u32> {
+    None
+}

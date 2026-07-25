@@ -29,7 +29,7 @@ pub fn top_bar(ctx: &egui::Context, app: &mut App) {
                     PageKind::Services,
                 ];
                 for k in items {
-                    let enabled = matches!(k, PageKind::Processes | PageKind::Performance);
+                    let enabled = true;
                     ui.add_enabled_ui(enabled, |ui| {
                         let sel = app.current == k;
                         let btn = egui::Button::new(k.label())

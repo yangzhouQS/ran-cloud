@@ -227,7 +227,7 @@ fn to_proc_info(p: &sysinfo::Process, winset: &HashSet<u32>) -> ProcInfo {
         name: name.clone(),
         exe_path: exe_path.clone(),
         user: p.user_id().map(|u| u.to_string()),
-        session_id: None,
+        session_id: crate::win_source::session_id(pid),
         cpu_usage: p.cpu_usage(),
         memory_bytes: p.memory(),
         disk_read_bps: du.read_bytes as f64,

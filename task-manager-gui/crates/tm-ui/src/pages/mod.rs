@@ -3,8 +3,13 @@
 use eframe::egui;
 use tm_core::models::{Command, SystemSnapshot};
 
+pub mod app_history_page;
+pub mod details_page;
 pub mod performance_page;
 pub mod processes_page;
+pub mod services_page;
+pub mod startup_page;
+pub mod users_page;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PageKind {
