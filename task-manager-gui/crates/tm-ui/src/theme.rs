@@ -3,33 +3,77 @@
 //! 注意:半透明叠加色必须用 `from_rgba_unmultiplied`(RGB 可大于 alpha)。
 //! 误用 `from_rgba_premultiplied` 且 RGB>alpha 会导致渲染成刺眼的纯白色。
 
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use eframe::egui;
+
+/// 当前主题模式(由 set_mode 写入,颜色函数读取)。
+static DARK: AtomicBool = AtomicBool::new(true);
+
+fn is_dark() -> bool {
+    DARK.load(Ordering::Relaxed)
+}
 
 pub fn accent() -> egui::Color32 {
     egui::Color32::from_rgb(0x4C, 0xC2, 0xFF)
 }
+/// 主面板背景(暗:近黑半透明;亮:近白半透明)。
 pub fn panel_fill() -> egui::Color32 {
-    egui::Color32::from_rgba_unmultiplied(32, 32, 32, 200)
+    if is_dark() {
+        egui::Color32::from_rgba_unmultiplied(32, 32, 32, 200)
+    } else {
+        egui::Color32::from_rgba_unmultiplied(248, 248, 248, 230)
+    }
 }
+/// 边栏/命令栏/状态栏背景(比主面板略深/略深以区分)。
 pub fn bar_fill() -> egui::Color32 {
-    egui::Color32::from_rgba_unmultiplied(28, 28, 28, 215)
+    if is_dark() {
+        egui::Color32::from_rgba_unmultiplied(26, 26, 26, 220)
+    } else {
+        egui::Color32::from_rgba_unmultiplied(236, 236, 236, 238)
+    }
 }
 pub fn header_fill() -> egui::Color32 {
-    egui::Color32::from_rgba_unmultiplied(40, 40, 40, 220)
+    if is_dark() {
+        egui::Color32::from_rgba_unmultiplied(40, 40, 40, 220)
+    } else {
+        egui::Color32::from_rgba_unmultiplied(226, 226, 226, 235)
+    }
 }
-/// 行 hover:淡灰叠加(避免刺眼白)。
+/// 行 hover 叠加(暗:白;亮:黑)。
 pub fn row_hover() -> egui::Color32 {
-    egui::Color32::from_rgba_unmultiplied(255, 255, 255, 16)
+    if is_dark() {
+        egui::Color32::from_rgba_unmultiplied(255, 255, 255, 16)
+    } else {
+        egui::Color32::from_rgba_unmultiplied(0, 0, 0, 12)
+    }
 }
-/// 行选中:Accent 淡叠加。
+/// 行选中:Accent 叠加。
 pub fn row_selected() -> egui::Color32 {
-    egui::Color32::from_rgba_unmultiplied(0x4C, 0xC2, 0xFF, 56)
+    let a = if is_dark() { 56 } else { 70 };
+    egui::Color32::from_rgba_unmultiplied(0x4C, 0xC2, 0xFF, a)
 }
 pub fn separator() -> egui::Color32 {
-    egui::Color32::from_rgba_unmultiplied(255, 255, 255, 26)
+    if is_dark() {
+        egui::Color32::from_rgba_unmultiplied(255, 255, 255, 26)
+    } else {
+        egui::Color32::from_rgba_unmultiplied(0, 0, 0, 22)
+    }
 }
 pub fn text_dim() -> egui::Color32 {
-    egui::Color32::from_rgb(160, 160, 160)
+    if is_dark() {
+        egui::Color32::from_rgb(160, 160, 160)
+    } else {
+        egui::Color32::from_rgb(110, 110, 110)
+    }
+}
+/// 前景强对比色(用于自绘图标:暗=白,亮=近黑)。
+pub fn fg() -> egui::Color32 {
+    if is_dark() {
+        egui::Color32::WHITE
+    } else {
+        egui::Color32::from_rgb(40, 40, 40)
+    }
 }
 
 /// 安装字体与间距(仅一次,在 App::new 调用)。
@@ -44,8 +88,9 @@ pub fn install(ctx: &egui::Context) {
     set_mode(ctx, true);
 }
 
-/// 切换暗/亮模式(同时改 Visuals;可随时调用)。
+/// 切换暗/亮模式(同时改 Visuals 与全局配色;可随时调用)。
 pub fn set_mode(ctx: &egui::Context, dark: bool) {
+    DARK.store(dark, Ordering::Relaxed);
     let mut v = if dark {
         egui::Visuals::dark()
     } else {

@@ -239,7 +239,7 @@ fn titlebar_button(
     }
     let c = rect.center();
     let s = 4.5; // 半尺寸(整图约 9px,贴近 Win11 标题图标)
-    let stroke = egui::Stroke::new(1.2_f32, egui::Color32::WHITE);
+    let stroke = egui::Stroke::new(1.2_f32, theme::fg());
     match kind {
         WinCtl::Min => {
             // 居中短横线
