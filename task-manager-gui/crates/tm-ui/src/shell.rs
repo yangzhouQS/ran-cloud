@@ -182,15 +182,15 @@ pub fn command_bar(ctx: &egui::Context, app: &mut App) {
             }
 
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                // 窗口控制:关闭 / 最大化 / 最小化
-                if titlebar_button(ui, "✕", "tb_close", egui::Color32::from_rgb(0xE8, 0x4B, 0x4B)) {
+                // 窗口控制:关闭 / 最大化 / 最小化(用 painter 画形状,避免字形缺失变方框)
+                if titlebar_button(ui, WinCtl::Close, "tb_close", egui::Color32::from_rgb(0xE8, 0x4B, 0x4B)) {
                     ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                 }
-                if titlebar_button(ui, "▢", "tb_max", theme::row_hover()) {
+                if titlebar_button(ui, WinCtl::Max, "tb_max", theme::row_hover()) {
                     app.maximized = !app.maximized;
                     ctx.send_viewport_cmd(egui::ViewportCommand::Maximized(app.maximized));
                 }
-                if titlebar_button(ui, "—", "tb_min", theme::row_hover()) {
+                if titlebar_button(ui, WinCtl::Min, "tb_min", theme::row_hover()) {
                     ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(true));
                 }
                 ui.separator();
@@ -217,26 +217,55 @@ pub fn command_bar(ctx: &egui::Context, app: &mut App) {
         });
 }
 
-/// 标题栏小按钮(allocate + hover 背景 + 居中字符)。
+#[derive(Clone, Copy)]
+enum WinCtl {
+    Close,
+    Max,
+    Min,
+}
+
+/// 标题栏小按钮:用 painter 画形状(不依赖字体字形),allocate + hover 背景。
 fn titlebar_button(
     ui: &mut egui::Ui,
-    glyph: &str,
+    kind: WinCtl,
     id: &str,
     hover_color: egui::Color32,
 ) -> bool {
     let (rect, resp) =
         ui.allocate_exact_size(egui::vec2(40.0, 30.0), egui::Sense::click());
+    let painter = ui.painter();
     if resp.hovered() {
-        ui.painter()
-            .rect_filled(rect, egui::Rounding::same(4.0), hover_color);
+        painter.rect_filled(rect, egui::Rounding::same(4.0), hover_color);
     }
-    ui.painter().text(
-        rect.center(),
-        egui::Align2::CENTER_CENTER,
-        glyph,
-        egui::FontId::proportional(15.0),
-        egui::Color32::WHITE,
-    );
+    let c = rect.center();
+    let s = 7.0; // 半尺寸
+    let stroke = egui::Stroke::new(1.5_f32, egui::Color32::WHITE);
+    match kind {
+        WinCtl::Min => {
+            // 底部水平线
+            let y = c.y + 3.0;
+            painter.line_segment(
+                [egui::pos2(c.x - s, y), egui::pos2(c.x + s, y)],
+                stroke,
+            );
+        }
+        WinCtl::Max => {
+            // 方框轮廓
+            let r = egui::Rect::from_center_size(c, egui::vec2(s * 2.0, s * 2.0));
+            painter.rect_stroke(r, 0.0, stroke);
+        }
+        WinCtl::Close => {
+            // 叉号
+            painter.line_segment(
+                [egui::pos2(c.x - s, c.y - s), egui::pos2(c.x + s, c.y + s)],
+                stroke,
+            );
+            painter.line_segment(
+                [egui::pos2(c.x + s, c.y - s), egui::pos2(c.x - s, c.y + s)],
+                stroke,
+            );
+        }
+    }
     let _ = id;
     resp.clicked()
 }
