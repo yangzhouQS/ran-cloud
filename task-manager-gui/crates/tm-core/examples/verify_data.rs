@@ -1,4 +1,4 @@
-use tm_core::sysinfo_source::{NetAccum, SysState};
+use tm_core::sysinfo_source::SysState;
 
 fn main() {
     let su = tm_core::startup::enumerate();
@@ -8,9 +8,9 @@ fn main() {
     }
 
     let mut s = SysState::new();
-    let _ = s.snapshot(false, &mut NetAccum::new());
+    let _ = s.snapshot(false);
     std::thread::sleep(std::time::Duration::from_secs(1));
-    let snap = s.snapshot(false, &mut NetAccum::new());
+    let snap = s.snapshot(false);
 
     let u = tm_core::users::enumerate(&snap);
     println!("users = {}", u.len());

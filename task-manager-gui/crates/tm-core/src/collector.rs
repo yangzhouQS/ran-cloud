@@ -12,7 +12,7 @@ use parking_lot::RwLock;
 
 use crate::models::*;
 use crate::privilege::enable_debug_privilege;
-use crate::sysinfo_source::{NetAccum, SysState};
+use crate::sysinfo_source::SysState;
 
 pub type SnapshotStore = Arc<RwLock<SystemSnapshot>>;
 pub type CmdTx = Sender<Command>;
@@ -60,7 +60,6 @@ pub fn spawn(
                 enable_debug_privilege();
             }
             let mut state = SysState::new();
-            let mut net = NetAccum::new();
             // 应用历史累计(会话内近似)。
             let mut app_hist: HashMap<String, (f64, u64)> = HashMap::new();
             let mut last_time = Instant::now();
@@ -68,7 +67,7 @@ pub fn spawn(
             let gpu = crate::gpu::GpuMonitor::new();
             let mut gpu_history: VecDeque<f32> = VecDeque::with_capacity(60);
             // 预热:首次 CPU≈0,丢弃结果以获得后续准确差分。
-            let _ = state.snapshot(elevated, &mut net);
+            let _ = state.snapshot(elevated);
             loop {
                 let ms = controls_c.interval_ms.load(Ordering::Relaxed);
                 if ms > 0 {
@@ -84,7 +83,7 @@ pub fn spawn(
                 while let Ok(cmd) = rx.try_recv() {
                     let _ = exec_command(cmd);
                 }
-                let mut snap = state.snapshot(elevated, &mut net);
+                let mut snap = state.snapshot(elevated);
                 let now = Instant::now();
                 let dt = now.duration_since(last_time).as_secs_f64().max(0.0);
                 last_time = now;
@@ -153,12 +152,7 @@ pub fn empty_snapshot() -> SystemSnapshot {
             history: Default::default(),
         },
         disks: vec![],
-        network: NetworkSnapshot {
-            send_bps: 0.0,
-            recv_bps: 0.0,
-            history: Default::default(),
-            adapter: String::new(),
-        },
+        networks: vec![],
         gpus: vec![],
         processes: vec![],
         elevated: false,

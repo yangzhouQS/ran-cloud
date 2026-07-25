@@ -9,7 +9,7 @@ pub struct SystemSnapshot {
     pub cpu: CpuSnapshot,
     pub memory: MemorySnapshot,
     pub disks: Vec<DiskSnapshot>,
-    pub network: NetworkSnapshot,
+    pub networks: Vec<NetworkSnapshot>,
     pub gpus: Vec<GpuSnapshot>,
     pub processes: Vec<ProcInfo>,
     pub elevated: bool,

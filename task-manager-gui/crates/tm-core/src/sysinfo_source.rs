@@ -19,7 +19,8 @@ pub struct SysState {
     pub cpu_history: VecDeque<f32>,
     pub mem_history: VecDeque<f32>,
     pub disk_history: HashMap<String, VecDeque<f32>>,
-    pub net_history: VecDeque<f32>,
+    pub net_history: HashMap<String, VecDeque<f32>>,
+    pub net_accum: HashMap<String, (u64, u64, u64)>,
 }
 
 impl Default for SysState {
@@ -41,12 +42,13 @@ impl SysState {
             cpu_history: VecDeque::with_capacity(HISTORY_LEN),
             mem_history: VecDeque::with_capacity(HISTORY_LEN),
             disk_history: HashMap::new(),
-            net_history: VecDeque::with_capacity(HISTORY_LEN),
+            net_history: HashMap::new(),
+            net_accum: HashMap::new(),
         }
     }
 
     /// 刷新并产出快照。调用方应间隔 ~1s 调用两次以获得准确 CPU%(首次 CPU≈0)。
-    pub fn snapshot(&mut self, elevated: bool, prev_net: &mut NetAccum) -> SystemSnapshot {
+    pub fn snapshot(&mut self, elevated: bool) -> SystemSnapshot {
         let pkind = ProcessRefreshKind::everything();
         self.sys.refresh_cpu_usage();
         self.sys.refresh_processes_specifics(ProcessesToUpdate::All, true, pkind);
@@ -75,7 +77,7 @@ impl SysState {
             cpu,
             memory,
             disks: self.build_disks(),
-            network: self.build_network(prev_net),
+            networks: self.build_networks(),
             gpus: Vec::new(),
             total_processes: processes.len(),
             elevated,
@@ -161,54 +163,69 @@ impl SysState {
             .collect()
     }
 
-    fn build_network(&mut self, prev: &mut NetAccum) -> NetworkSnapshot {
-        let (mut send, mut recv) = (0u64, 0u64);
-        for n in self.nets.list().values() {
-            send += n.transmitted();
-            recv += n.received();
-        }
+    /// 逐网卡计算收发速率与历史,返回每个网卡的快照。
+    fn build_networks(&mut self) -> Vec<NetworkSnapshot> {
         let now_up = System::uptime();
-        let dt = prev.dt(now_up);
-        let sps = bytes_per_sec(send, prev.last_send, dt);
-        let rps = bytes_per_sec(recv, prev.last_recv, dt);
-        prev.update(send, recv, now_up);
-        push(&mut self.net_history, (sps + rps) as f32);
-        NetworkSnapshot {
-            send_bps: sps,
-            recv_bps: rps,
-            history: self.net_history.clone(),
-            adapter: "all".into(),
+        let mut out: Vec<NetworkSnapshot> = Vec::new();
+        for (name, n) in self.nets.list() {
+            // 跳过回环等明显虚拟接口。
+            let lname = name.to_ascii_lowercase();
+            if lname.contains("loopback") {
+                continue;
+            }
+            let send = n.transmitted();
+            let recv = n.received();
+            let (sps, rps) = {
+                let e = self
+                    .net_accum
+                    .entry(name.clone())
+                    .or_insert((0, 0, 0));
+                let dt = (now_up.saturating_sub(e.2)).max(1) as f64;
+                let s = bytes_per_sec(send, e.0, dt);
+                let r = bytes_per_sec(recv, e.1, dt);
+                e.0 = send;
+                e.1 = recv;
+                e.2 = now_up;
+                (s, r)
+            };
+            let hist = self
+                .net_history
+                .entry(name.clone())
+                .or_insert_with(|| VecDeque::with_capacity(HISTORY_LEN));
+            push(hist, (sps + rps) as f32);
+            out.push(NetworkSnapshot {
+                send_bps: sps,
+                recv_bps: rps,
+                history: hist.clone(),
+                adapter: friendly_adapter_name(name),
+            });
         }
+        // 排序:以太网在前、Wi-Fi 次之、其余按名。
+        out.sort_by_key(|n| adapter_rank(&n.adapter));
+        out
     }
 }
 
-pub struct NetAccum {
-    pub last_send: u64,
-    pub last_recv: u64,
-    pub last_uptime: u64,
-}
-
-impl Default for NetAccum {
-    fn default() -> Self {
-        Self::new()
+fn adapter_rank(name: &str) -> u8 {
+    let l = name.to_ascii_lowercase();
+    if l.contains("以太网") || l.contains("ethernet") {
+        0
+    } else if l.contains("wi-fi") || l.contains("wlan") {
+        1
+    } else {
+        2
     }
 }
 
-impl NetAccum {
-    pub fn new() -> Self {
-        Self {
-            last_send: 0,
-            last_recv: 0,
-            last_uptime: 0,
-        }
-    }
-    fn dt(&self, now: u64) -> f64 {
-        (now.saturating_sub(self.last_uptime)).max(1) as f64
-    }
-    fn update(&mut self, send: u64, recv: u64, uptime: u64) {
-        self.last_send = send;
-        self.last_recv = recv;
-        self.last_uptime = uptime;
+/// 把 sysinfo 的网卡名映射为友好名(以太网 / Wi-Fi / 原名)。
+fn friendly_adapter_name(name: &str) -> String {
+    let l = name.to_ascii_lowercase();
+    if l.contains("wlan") || l.contains("wi-fi") || l.contains("wifi") || l.contains("wireless") {
+        "Wi-Fi".into()
+    } else if l.contains("以太网") || l.contains("ethernet") || l.contains("eth") {
+        "以太网".into()
+    } else {
+        name.to_string()
     }
 }
 

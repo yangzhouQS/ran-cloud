@@ -1,10 +1,10 @@
-use tm_core::sysinfo_source::{NetAccum, SysState};
+use tm_core::sysinfo_source::SysState;
 
 fn main() {
     let mut s = SysState::new();
-    let _ = s.snapshot(false, &mut NetAccum::new()); // 预热(首次 CPU≈0)
+    let _ = s.snapshot(false); // 预热(首次 CPU≈0)
     std::thread::sleep(std::time::Duration::from_secs(1));
-    let snap = s.snapshot(false, &mut NetAccum::new());
+    let snap = s.snapshot(false);
 
     println!(
         "processes={} cpu={:.1}% mem={:.2}GiB / {:.2}GiB",

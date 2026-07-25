@@ -17,7 +17,7 @@ pub enum PerfResource {
     Cpu,
     Memory,
     Disk(usize),
-    Network,
+    Network(usize),
     Gpu,
 }
 
@@ -93,22 +93,18 @@ fn build_items(snap: &SystemSnapshot) -> Vec<Item> {
             color: egui::Color32::from_rgb(0x4C, 0xC2, 0x6B),
         });
     }
-    let net_total = snap.network.send_bps + snap.network.recv_bps;
-    let net_max = snap
-        .network
-        .history
-        .iter()
-        .copied()
-        .fold(1.0f32, f32::max)
-        .max(1024.0);
-    v.push(Item {
-        res: PerfResource::Network,
-        name: "网络".into(),
-        value: fmt_rate(net_total),
-        hist: snap.network.history.clone(),
-        max: net_max,
-        color: egui::Color32::from_rgb(0xE2, 0xA0, 0x4A),
-    });
+    for (i, n) in snap.networks.iter().enumerate() {
+        let total = n.send_bps + n.recv_bps;
+        let max = n.history.iter().copied().fold(1.0f32, f32::max).max(1024.0);
+        v.push(Item {
+            res: PerfResource::Network(i),
+            name: n.adapter.clone(),
+            value: fmt_rate(total),
+            hist: n.history.clone(),
+            max,
+            color: egui::Color32::from_rgb(0xE2, 0xA0, 0x4A),
+        });
+    }
     if let Some(g) = snap.gpus.first() {
         v.push(Item {
             res: PerfResource::Gpu,
@@ -164,8 +160,8 @@ fn res_key(r: PerfResource) -> u32 {
         PerfResource::Cpu => 0,
         PerfResource::Memory => 1,
         PerfResource::Disk(i) => 100 + i as u32,
-        PerfResource::Network => 200,
-        PerfResource::Gpu => 201,
+        PerfResource::Network(i) => 200 + i as u32,
+        PerfResource::Gpu => 300,
     }
 }
 
@@ -174,7 +170,7 @@ fn resource_name(r: PerfResource) -> &'static str {
         PerfResource::Cpu => "CPU",
         PerfResource::Memory => "内存",
         PerfResource::Disk(_) => "磁盘",
-        PerfResource::Network => "网络",
+        PerfResource::Network(_) => "网络",
         PerfResource::Gpu => "GPU",
     }
 }
@@ -377,8 +373,7 @@ fn resolve(
                 )
             })
             .unwrap_or_else(|| empty("磁盘")),
-        PerfResource::Network => {
-            let n = &snap.network;
+        PerfResource::Network(i) => snap.networks.get(i).map(|n| {
             let total = n.send_bps + n.recv_bps;
             let max = n.history.iter().copied().fold(1.0f32, f32::max).max(1024.0);
             (
@@ -397,7 +392,7 @@ fn resolve(
                     ("SSID".into(), "—".into()),
                 ],
             )
-        }
+        }).unwrap_or_else(|| empty("网络")),
         PerfResource::Gpu => snap
             .gpus
             .first()
