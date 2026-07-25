@@ -3,12 +3,15 @@
 
 use windows::core::{Error, PCWSTR};
 use windows::Win32::System::Services::{
-    CloseServiceHandle, EnumServicesStatusExW, OpenSCManagerW, OpenServiceW, QueryServiceConfigW,
-    ENUM_SERVICE_STATUS_PROCESSW, QUERY_SERVICE_CONFIGW, SC_ENUM_PROCESS_INFO, SC_HANDLE,
-    SC_MANAGER_ENUMERATE_SERVICE, SERVICE_AUTO_START, SERVICE_BOOT_START, SERVICE_DEMAND_START,
-    SERVICE_DISABLED, SERVICE_QUERY_CONFIG, SERVICE_RUNNING, SERVICE_STATE_ALL, SERVICE_SYSTEM_START,
-    SERVICE_WIN32,
+    CloseServiceHandle, ControlService, EnumServicesStatusExW, OpenSCManagerW, OpenServiceW,
+    QueryServiceConfigW, StartServiceW, ENUM_SERVICE_STATUS_PROCESSW, QUERY_SERVICE_CONFIGW,
+    SC_ENUM_PROCESS_INFO, SC_HANDLE, SC_MANAGER_CONNECT, SC_MANAGER_ENUMERATE_SERVICE,
+    SERVICE_AUTO_START, SERVICE_BOOT_START, SERVICE_CONTROL_STOP, SERVICE_DEMAND_START,
+    SERVICE_DISABLED, SERVICE_QUERY_CONFIG, SERVICE_RUNNING, SERVICE_START, SERVICE_STATE_ALL,
+    SERVICE_STATUS, SERVICE_STOP, SERVICE_SYSTEM_START, SERVICE_WIN32,
 };
+
+use crate::error::OpsError;
 
 const ERROR_MORE_DATA: u32 = 122;
 
@@ -172,4 +175,43 @@ fn to_wide(s: &str) -> Vec<u16> {
         .encode_wide()
         .chain(std::iter::once(0))
         .collect()
+}
+
+fn map_err(err: Error) -> OpsError {
+    let hr = err.code().0 as u32;
+    let win32 = if (hr >> 16) & 0x7FFF == 7 { hr & 0xFFFF } else { 0 };
+    match win32 {
+        5 => OpsError::AccessDenied,
+        _ => OpsError::Windows(err),
+    }
+}
+
+/// 打开服务句柄(连接 SCM + OpenServiceW)。
+unsafe fn open_service(name: &str, access: u32) -> Result<SC_HANDLE, OpsError> {
+    let scm = OpenSCManagerW(None, None, SC_MANAGER_CONNECT).map_err(map_err)?;
+    let wide = to_wide(name);
+    let h = OpenServiceW(scm, PCWSTR(wide.as_ptr()), access).map_err(map_err)?;
+    let _ = CloseServiceHandle(scm);
+    Ok(h)
+}
+
+/// 启动服务。
+pub fn start(name: &str) -> Result<(), OpsError> {
+    unsafe {
+        let h = open_service(name, SERVICE_START)?;
+        let r = StartServiceW(h, None).map_err(map_err);
+        let _ = CloseServiceHandle(h);
+        r
+    }
+}
+
+/// 停止服务。
+pub fn stop(name: &str) -> Result<(), OpsError> {
+    unsafe {
+        let h = open_service(name, SERVICE_STOP)?;
+        let mut status = SERVICE_STATUS::default();
+        let r = ControlService(h, SERVICE_CONTROL_STOP, &mut status).map_err(map_err);
+        let _ = CloseServiceHandle(h);
+        r
+    }
 }

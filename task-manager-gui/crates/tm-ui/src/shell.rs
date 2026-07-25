@@ -55,6 +55,9 @@ pub fn top_bar(ctx: &egui::Context, app: &mut App) {
                 );
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui.button("⚙ 设置").clicked() {
+                        app.settings_open = true;
+                    }
                     ui.add_enabled_ui(!app.elevated, |ui| {
                         if ui.button("🔓 以管理员运行").clicked() {
                             #[cfg(windows)]

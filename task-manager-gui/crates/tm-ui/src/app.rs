@@ -12,6 +12,7 @@ use tm_core::users::UserInfo;
 
 use crate::pages::performance_page::{self, PerfResource};
 use crate::pages::{Page, PageKind, processes_page::ProcessesPage};
+use crate::settings::Settings;
 use crate::shell;
 use crate::theme;
 
@@ -27,7 +28,6 @@ pub struct App {
     pub store: SnapshotStore,
     pub cmd_tx: Sender<Command>,
     pub controls: Controls,
-    pub mica_applied: bool,
     pub current: PageKind,
     pub search: String,
     pub elevated: bool,
@@ -37,6 +37,10 @@ pub struct App {
     pub services_cache: Timed<Vec<ServiceInfo>>,
     pub startup_cache: Timed<Vec<StartupEntry>>,
     pub users_cache: Timed<Vec<UserInfo>>,
+    pub settings: Settings,
+    pub settings_open: bool,
+    mica_dark: Option<bool>,
+    aot_applied: Option<bool>,
 }
 
 /// 运行新任务对话框状态。
@@ -48,7 +52,9 @@ pub struct RunDialog {
 
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        theme::install(&cc.egui_ctx); // 主题与字体仅设置一次(含 CJK 字体注入)
+        let settings = crate::settings::load();
+        theme::install(&cc.egui_ctx); // 字体 + 间距 + 默认暗色
+        theme::set_mode(&cc.egui_ctx, settings.dark_mode); // 应用保存的主题
         let ctx = cc.egui_ctx.clone();
         let elevated = tm_core::privilege::is_elevated();
         let (store, cmd_tx, controls) = collector::spawn(
@@ -60,8 +66,7 @@ impl App {
             store,
             cmd_tx,
             controls,
-            mica_applied: false,
-            current: PageKind::Processes,
+            current: settings.default_page,
             search: String::new(),
             elevated,
             speed: RefreshSpeed::Normal,
@@ -83,6 +88,10 @@ impl App {
                 value: Vec::new(),
                 at: None,
             },
+            settings,
+            settings_open: false,
+            mica_dark: None,
+            aot_applied: None,
         }
     }
 }
@@ -93,7 +102,23 @@ impl eframe::App for App {
     }
 
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        apply_mica_once(self, frame);
+        // Mica + 主题:初始或主题切换时(重新)应用。
+        if self.mica_dark != Some(self.settings.dark_mode) {
+            let _ = window_vibrancy::apply_mica(frame, Some(self.settings.dark_mode));
+            theme::set_mode(ctx, self.settings.dark_mode);
+            self.mica_dark = Some(self.settings.dark_mode);
+        }
+        // 置顶:切换时下发 viewport 命令。
+        if self.aot_applied != Some(self.settings.always_on_top) {
+            ctx.send_viewport_cmd(egui::ViewportCommand::WindowLevel(
+                if self.settings.always_on_top {
+                    egui::WindowLevel::AlwaysOnTop
+                } else {
+                    egui::WindowLevel::Normal
+                },
+            ));
+            self.aot_applied = Some(self.settings.always_on_top);
+        }
 
         shell::top_bar(ctx, self);
 
@@ -114,12 +139,15 @@ impl eframe::App for App {
         let services = &self.services_cache.value;
         let startup = &self.startup_cache.value;
         let users = &self.users_cache.value;
+        let mut svc_invalidate = false;
 
         egui::CentralPanel::default().show(ctx, |ui| {
             match current {
                 PageKind::Processes => ProcessesPage.show(ui, &snap, &search, &cmd_tx),
                 PageKind::Performance => performance_page::show(ui, &snap, &mut perf_selected),
-                PageKind::Services => crate::pages::services_page::show(ui, services, &search),
+                PageKind::Services => {
+                    svc_invalidate = crate::pages::services_page::show(ui, services, &search);
+                }
                 PageKind::StartupApps => crate::pages::startup_page::show(ui, startup, &search),
                 PageKind::Users => crate::pages::users_page::show(ui, users, &search),
                 PageKind::AppHistory => crate::pages::app_history_page::show(ui, &snap, &search),
@@ -127,10 +155,14 @@ impl eframe::App for App {
             }
         });
         self.perf_selected = perf_selected;
+        if svc_invalidate {
+            self.services_cache.at = None;
+        }
 
         shell::status_bar(ctx, &snap, &self.controls, &mut self.speed);
 
         self.render_run_dialog(ctx);
+        self.render_settings(ctx);
     }
 }
 
@@ -160,6 +192,64 @@ impl App {
                 at: Some(Instant::now()),
             };
         }
+    }
+
+    fn render_settings(&mut self, ctx: &egui::Context) {
+        if !self.settings_open {
+            return;
+        }
+        let mut open = self.settings_open;
+        let mut changed = false;
+        egui::Window::new("设置")
+            .open(&mut open)
+            .resizable(false)
+            .default_width(360.0)
+            .show(ctx, |ui| {
+                ui.heading("任务管理器设置");
+                ui.add_space(6.0);
+                ui.checkbox(&mut self.settings.always_on_top, "始终置顶")
+                    .on_hover_text("窗口保持在最前");
+                changed |= self.settings.always_on_top != self.aot_applied.unwrap_or(false);
+                ui.checkbox(&mut self.settings.dark_mode, "暗色模式")
+                    .on_hover_text("切换暗/亮主题(含 Mica)");
+                changed |= self.settings.dark_mode != self.mica_dark.unwrap_or(true);
+
+                ui.add_space(4.0);
+                ui.horizontal(|ui| {
+                    ui.label("默认页:");
+                    let pages = [
+                        PageKind::Processes,
+                        PageKind::Performance,
+                        PageKind::AppHistory,
+                        PageKind::StartupApps,
+                        PageKind::Users,
+                        PageKind::Details,
+                        PageKind::Services,
+                    ];
+                    egui::ComboBox::from_id_salt("default_page")
+                        .selected_text(self.settings.default_page.label())
+                        .show_ui(ui, |ui| {
+                            for p in pages {
+                                if ui
+                                    .selectable_label(self.settings.default_page == p, p.label())
+                                    .clicked()
+                                {
+                                    self.settings.default_page = p;
+                                    changed = true;
+                                }
+                            }
+                        });
+                });
+                ui.add_space(6.0);
+                ui.colored_label(
+                    crate::theme::text_dim(),
+                    "设置保存于 %APPDATA%\\ran-task-manager\\settings.txt",
+                );
+            });
+        let _ = changed;
+        // 任一设置变动则持久化(update 中会据 dark/aot 变化重应用 Mica/置顶)。
+        crate::settings::save(&self.settings);
+        self.settings_open = open;
     }
 
     fn render_run_dialog(&mut self, ctx: &egui::Context) {
@@ -203,14 +293,6 @@ impl App {
         }
         self.run_dialog.open = open;
     }
-}
-
-fn apply_mica_once(app: &mut App, frame: &mut eframe::Frame) {
-    if app.mica_applied {
-        return;
-    }
-    let _ = window_vibrancy::apply_mica(frame, Some(true));
-    app.mica_applied = true;
 }
 
 /// 通过 ShellExecuteW "runas" 重启自身以管理员权限运行。

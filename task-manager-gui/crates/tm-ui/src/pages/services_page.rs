@@ -1,12 +1,13 @@
-//! 服务页:名称/描述/状态/启动类型,支持搜索过滤。
+//! 服务页:名称/描述/状态/启动类型,支持搜索过滤;右键行可启动/停止。
 
 use eframe::egui;
 use tm_core::services::{ServiceInfo, ServiceStartType, ServiceState};
 
 use crate::theme;
 
-pub fn show(ui: &mut egui::Ui, items: &[ServiceInfo], search: &str) {
+pub fn show(ui: &mut egui::Ui, items: &[ServiceInfo], search: &str) -> bool {
     let q = search.trim().to_ascii_lowercase();
+    let invalidate = std::cell::Cell::new(false);
     ui.add_space(2.0);
     egui::ScrollArea::vertical()
         .auto_shrink([false, false])
@@ -23,15 +24,39 @@ pub fn show(ui: &mut egui::Ui, items: &[ServiceInfo], search: &str) {
                     ui.strong("启动类型");
                     ui.end_row();
                     for s in items.iter().filter(|s| matches_q(s, &q)) {
-                        ui.label(&s.name);
+                        let name_resp = ui.label(&s.name);
                         ui.label(&s.display_name);
                         ui.label(state_str(s.status));
                         ui.label(start_str(s.start_type));
                         ui.end_row();
+
+                        let nm = s.name.clone();
+                        let st = s.status;
+                        name_resp.context_menu(|ui| match st {
+                            ServiceState::Running => {
+                                if ui.button("停止").clicked() {
+                                    let _ = tm_core::services::stop(&nm);
+                                    invalidate.set(true);
+                                    ui.close_menu();
+                                }
+                            }
+                            ServiceState::Stopped => {
+                                if ui.button("启动").clicked() {
+                                    let _ = tm_core::services::start(&nm);
+                                    invalidate.set(true);
+                                    ui.close_menu();
+                                }
+                            }
+                            _ => {
+                                ui.label("当前状态不可操作");
+                            }
+                        });
                     }
                 });
         });
-    ui.label(format!("共 {} 个服务", items.len()));
+    ui.label(format!("共 {} 个服务(右键行:启动/停止)", items.len()));
+    let _ = theme::text_dim();
+    invalidate.get()
 }
 
 fn matches_q(s: &ServiceInfo, q: &str) -> bool {
