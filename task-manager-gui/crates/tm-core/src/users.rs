@@ -40,7 +40,7 @@ unsafe fn enumerate_inner(snap: &SystemSnapshot) -> Result<Vec<UserInfo>, ()> {
         if name.is_empty() {
             continue;
         }
-        let (cpu, memory) = aggregate(snap, &name);
+        let (cpu, memory) = aggregate(snap, session_id);
         out.push(UserInfo {
             name,
             session_id,
@@ -71,12 +71,12 @@ unsafe fn query_username(session_id: u32) -> String {
     s
 }
 
-/// 按用户名聚合进程的 CPU% 与内存(工作集)。
-fn aggregate(snap: &SystemSnapshot, user: &str) -> (f32, u64) {
+/// 按会话 ID 聚合进程的 CPU% 与内存(工作集)。
+fn aggregate(snap: &SystemSnapshot, session_id: u32) -> (f32, u64) {
     let mut cpu = 0.0f32;
     let mut mem = 0u64;
     for p in &snap.processes {
-        if p.user.as_deref() == Some(user) {
+        if p.session_id == Some(session_id) {
             cpu += p.cpu_usage;
             mem += p.memory_bytes;
         }

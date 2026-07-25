@@ -216,7 +216,15 @@ fn render_detail(
                 detail_row(ui, "已用", &fmt_bytes(d.used));
                 detail_row(ui, "可用", &fmt_bytes(d.total.saturating_sub(d.used)));
                 detail_row(ui, "使用率", &format!("{:.1}%", d.activity_pct));
-                detail_row(ui, "读写速率", "需性能计数器(后续支持)");
+                // 读写速率:聚合所有进程的磁盘 IO(sysinfo per-process),无需 PDH。
+                let (read, write) = snap
+                    .processes
+                    .iter()
+                    .fold((0.0f64, 0.0f64), |(r, w), p| {
+                        (r + p.disk_read_bps, w + p.disk_write_bps)
+                    });
+                detail_row(ui, "系统读速率", &fmt_rate(read));
+                detail_row(ui, "系统写速率", &fmt_rate(write));
             }
         }
         PerfResource::Network => {
