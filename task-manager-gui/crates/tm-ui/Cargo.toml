@@ -1,0 +1,17 @@
+[package]
+name = "tm-ui"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+tm-core = { path = "../tm-core" }
+eframe = "0.30"
+egui = "0.30"
+egui_extras = { version = "0.30", features = ["image"] }
+window-vibrancy = "0.8"
+raw-window-handle = "0.6"
+parking_lot = "0.12"
+crossbeam-channel = "0.5"
+anyhow = "1"
