@@ -55,6 +55,8 @@ pub struct RunDialog {
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let settings = crate::settings::load();
+        // 关闭 egui ID 冲突调试叠层("Widget is above this text...")
+        cc.egui_ctx.options_mut(|o| o.warn_on_id_clash = false);
         theme::install(&cc.egui_ctx); // 字体 + 间距 + 默认暗色
         theme::set_mode(&cc.egui_ctx, settings.dark_mode); // 应用保存的主题
         let ctx = cc.egui_ctx.clone();
