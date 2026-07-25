@@ -6,6 +6,7 @@ use crate::pages::PageKind;
 pub struct Settings {
     pub dark_mode: bool,
     pub always_on_top: bool,
+    pub nav_collapsed: bool,
     pub default_page: PageKind,
 }
 
@@ -14,6 +15,7 @@ impl Default for Settings {
         Self {
             dark_mode: true,
             always_on_top: false,
+            nav_collapsed: false,
             default_page: PageKind::Processes,
         }
     }
@@ -35,6 +37,8 @@ pub fn load() -> Settings {
                     s.dark_mode = v.trim() == "true";
                 } else if let Some(v) = line.strip_prefix("aot=") {
                     s.always_on_top = v.trim() == "true";
+                } else if let Some(v) = line.strip_prefix("collapsed=") {
+                    s.nav_collapsed = v.trim() == "true";
                 } else if let Some(v) = line.strip_prefix("default=") {
                     s.default_page = parse_page(v.trim());
                 }
@@ -47,9 +51,10 @@ pub fn load() -> Settings {
 pub fn save(s: &Settings) {
     if let Some(p) = path() {
         let txt = format!(
-            "dark={}\naot={}\ndefault={}\n",
+            "dark={}\naot={}\ncollapsed={}\ndefault={}\n",
             s.dark_mode,
             s.always_on_top,
+            s.nav_collapsed,
             page_name(s.default_page)
         );
         let _ = std::fs::write(&p, txt);

@@ -120,7 +120,8 @@ impl eframe::App for App {
             self.aot_applied = Some(self.settings.always_on_top);
         }
 
-        shell::top_bar(ctx, self);
+        shell::sidebar(ctx, self);
+        shell::command_bar(ctx, self);
 
         let snap = self.store.read().clone();
 
@@ -131,6 +132,8 @@ impl eframe::App for App {
             PageKind::Users => self.refresh_users(&snap),
             _ => {}
         }
+
+        shell::status_bar(ctx, &snap, &self.controls, &mut self.speed);
 
         let cmd_tx = self.cmd_tx.clone();
         let search = self.search.clone();
@@ -158,8 +161,6 @@ impl eframe::App for App {
         if svc_invalidate {
             self.services_cache.at = None;
         }
-
-        shell::status_bar(ctx, &snap, &self.controls, &mut self.speed);
 
         self.render_run_dialog(ctx);
         self.render_settings(ctx);

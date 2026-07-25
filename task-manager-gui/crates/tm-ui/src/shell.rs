@@ -1,4 +1,4 @@
-//! 外壳:顶部命令栏(导航/搜索/按钮)、底部状态栏。
+//! 外壳:左侧导航边栏 + 主区顶部命令栏 + 底部状态栏(对齐 Win11 布局)。
 
 use eframe::egui;
 use tm_core::models::SystemSnapshot;
@@ -7,68 +7,169 @@ use crate::app::App;
 use crate::pages::PageKind;
 use crate::theme;
 
-pub fn top_bar(ctx: &egui::Context, app: &mut App) {
-    egui::TopBottomPanel::top("top_bar")
-        .exact_height(46.0)
+/// 每个导航页的小色块图标颜色。
+fn page_color(k: PageKind) -> egui::Color32 {
+    match k {
+        PageKind::Processes => theme::accent(),
+        PageKind::Performance => egui::Color32::from_rgb(0x9B, 0x6A, 0xE5),
+        PageKind::AppHistory => egui::Color32::from_rgb(0x2E, 0xB8, 0xB8),
+        PageKind::StartupApps => egui::Color32::from_rgb(0x4C, 0xC2, 0x6B),
+        PageKind::Users => egui::Color32::from_rgb(0xE2, 0xA0, 0x4A),
+        PageKind::Details => egui::Color32::from_rgb(0x6A, 0x9B, 0xD8),
+        PageKind::Services => egui::Color32::from_rgb(0xE5, 0x6B, 0x6B),
+    }
+}
+
+fn icon_square(ui: &mut egui::Ui, color: egui::Color32, size: f32) {
+    let (rect, _) = ui.allocate_exact_size(egui::vec2(size, size), egui::Sense::hover());
+    ui.painter()
+        .rect_filled(rect.shrink(2.0), egui::Rounding::same(4.0), color);
+}
+
+/// 左侧导航边栏。
+pub fn sidebar(ctx: &egui::Context, app: &mut App) {
+    let collapsed = app.settings.nav_collapsed;
+    let width = if collapsed { 56.0 } else { 210.0 };
+    egui::SidePanel::left("nav")
+        .resizable(false)
+        .exact_width(width)
         .frame(
             egui::Frame::default()
                 .fill(theme::bar_fill())
-                .inner_margin(egui::Margin::symmetric(12.0, 7.0)),
+                .inner_margin(egui::Margin::symmetric(10.0, 10.0)),
         )
         .show_separator_line(false)
         .show(ctx, |ui| {
+            // 顶部:汉堡(折叠)+ 搜索
             ui.horizontal(|ui| {
-                ui.spacing_mut().item_spacing.x = 4.0;
-                let items = [
-                    PageKind::Processes,
-                    PageKind::Performance,
-                    PageKind::AppHistory,
-                    PageKind::StartupApps,
-                    PageKind::Users,
-                    PageKind::Details,
-                    PageKind::Services,
-                ];
-                for k in items {
-                    let enabled = true;
-                    ui.add_enabled_ui(enabled, |ui| {
-                        let sel = app.current == k;
-                        let btn = egui::Button::new(k.label())
-                            .fill(if sel {
-                                theme::row_selected()
-                            } else {
-                                egui::Color32::TRANSPARENT
-                            })
-                            .min_size(egui::vec2(60.0, 30.0))
+                if ui
+                    .add(
+                        egui::Button::new(if collapsed { "≡" } else { "≡  菜单" })
+                            .fill(egui::Color32::TRANSPARENT)
                             .rounding(egui::Rounding::same(6.0))
-                            .stroke(egui::Stroke::NONE);
-                        if ui.add(btn).clicked() {
-                            app.current = k;
-                        }
-                    });
+                            .min_size(egui::vec2(ui.available_width(), 26.0)),
+                    )
+                    .clicked()
+                {
+                    app.settings.nav_collapsed = !app.settings.nav_collapsed;
+                    crate::settings::save(&app.settings);
                 }
-
-                ui.separator();
+            });
+            if !collapsed {
+                ui.add_space(4.0);
                 ui.add(
                     egui::TextEdit::singleline(&mut app.search)
                         .hint_text("搜索")
-                        .desired_width(180.0),
+                        .desired_width(ui.available_width()),
                 );
+            }
+            ui.add_space(2.0);
+            ui.separator();
 
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button("⚙ 设置").clicked() {
-                        app.settings_open = true;
-                    }
-                    ui.add_enabled_ui(!app.elevated, |ui| {
-                        if ui.button("🔓 以管理员运行").clicked() {
-                            #[cfg(windows)]
-                            crate::app::request_elevation();
-                        }
+            // 导航项
+            let items = [
+                PageKind::Processes,
+                PageKind::Performance,
+                PageKind::AppHistory,
+                PageKind::StartupApps,
+                PageKind::Users,
+                PageKind::Details,
+                PageKind::Services,
+            ];
+            for k in items {
+                nav_item(ui, app, k, collapsed);
+            }
+
+            // 底部:账号(显式留白贴底,确保可见)
+            let footer_h = 70.0;
+            let gap = (ui.available_height() - footer_h).max(0.0);
+            ui.add_space(gap);
+            ui.separator();
+            ui.horizontal(|ui| {
+                let dot_color = if app.elevated {
+                    egui::Color32::from_rgb(0xE2, 0xA0, 0x4A)
+                } else {
+                    theme::accent()
+                };
+                icon_square(ui, dot_color, 22.0);
+                if !collapsed {
+                    ui.vertical(|ui| {
+                        ui.label(whoami());
+                        ui.colored_label(
+                            theme::text_dim(),
+                            if app.elevated { "管理员" } else { "标准用户" },
+                        );
                     });
-                    if ui.button("▶ 运行新任务").clicked() {
-                        app.run_dialog.open = true;
-                    }
-                    let _ = ui.button("⟳ 刷新");
+                }
+            });
+        });
+}
+
+fn nav_item(ui: &mut egui::Ui, app: &mut App, k: PageKind, collapsed: bool) {
+    let selected = app.current == k;
+    let bg = if selected {
+        theme::row_selected()
+    } else {
+        egui::Color32::TRANSPARENT
+    };
+    let resp = egui::Frame::default()
+        .fill(bg)
+        .rounding(egui::Rounding::same(6.0))
+        .inner_margin(egui::Margin::symmetric(8.0, 6.0))
+        .show(ui, |ui| {
+            if collapsed {
+                ui.horizontal_top(|ui| {
+                    ui.add_space(6.0);
+                    icon_square(ui, page_color(k), 18.0);
                 });
+            } else {
+                ui.horizontal(|ui| {
+                    icon_square(ui, page_color(k), 16.0);
+                    ui.label(k.label());
+                });
+            }
+        })
+        .response;
+    if resp.clicked() {
+        app.current = k;
+    }
+}
+
+fn whoami() -> String {
+    std::env::var("USERNAME").unwrap_or_else(|_| "用户".to_string())
+}
+
+/// 主区顶部命令栏。
+pub fn command_bar(ctx: &egui::Context, app: &mut App) {
+    egui::TopBottomPanel::top("command_bar")
+        .exact_height(42.0)
+        .frame(
+            egui::Frame::default()
+                .fill(theme::bar_fill())
+                .inner_margin(egui::Margin::symmetric(12.0, 6.0)),
+        )
+        .show_separator_line(false)
+        .show(ctx, |ui| {
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui.button("⚙ 设置").clicked() {
+                    app.settings_open = true;
+                }
+                ui.add_enabled_ui(!app.elevated, |ui| {
+                    if ui.button("🔓 以管理员运行").clicked() {
+                        #[cfg(windows)]
+                        crate::app::request_elevation();
+                    }
+                });
+                ui.separator();
+                if ui.button("⟳ 刷新").clicked() {
+                    // 强制立即刷新各缓存
+                    app.services_cache.at = None;
+                    app.startup_cache.at = None;
+                    app.users_cache.at = None;
+                }
+                if ui.button("▶ 运行新任务").clicked() {
+                    app.run_dialog.open = true;
+                }
             });
         });
 }
@@ -102,7 +203,6 @@ pub fn status_bar(
                     let badge = if snap.elevated { "管理员" } else { "标准" };
                     ui.colored_label(theme::text_dim(), badge);
                     ui.separator();
-                    // 刷新速度下拉
                     let speeds = [
                         tm_core::models::RefreshSpeed::Paused,
                         tm_core::models::RefreshSpeed::Low,
@@ -113,10 +213,7 @@ pub fn status_bar(
                         .selected_text(speed.label())
                         .show_ui(ui, |ui| {
                             for s in speeds {
-                                if ui
-                                    .selectable_label(*speed == s, s.label())
-                                    .clicked()
-                                {
+                                if ui.selectable_label(*speed == s, s.label()).clicked() {
                                     *speed = s;
                                     controls.set_speed(s);
                                 }
