@@ -24,29 +24,29 @@ type PerfItem = (PerfResource, String, String, VecDeque<f32>, f32, egui::Color32
 pub fn show(ui: &mut egui::Ui, snap: &SystemSnapshot, selected: &mut PerfResource) {
     let items = build_items(snap);
 
-    egui::ScrollArea::both()
-        .auto_shrink([false, false])
-        .show(ui, |ui| {
-            ui.horizontal_top(|ui| {
-                // 左:资源列表
-                ui.allocate_ui(egui::vec2(210.0, ui.available_height()), |ui| {
-                    egui::ScrollArea::vertical()
-                        .auto_shrink([false, false])
-                        .show(ui, |ui| {
-                            for (res, name, value_str, hist, max, color) in &items {
-                                render_list_item(ui, selected, *res, name, value_str, hist, *max, *color);
-                            }
-                        });
+    ui.horizontal_top(|ui| {
+        // 左:资源列表
+        ui.allocate_ui(egui::vec2(200.0, ui.available_height()), |ui| {
+            egui::ScrollArea::vertical()
+                .auto_shrink([false, true])
+                .show(ui, |ui| {
+                    for (res, name, value_str, hist, max, color) in &items {
+                        render_list_item(ui, selected, *res, name, value_str, hist, *max, *color);
+                    }
                 });
+        });
 
-                ui.separator();
+        ui.separator();
 
-                // 右:Win11 风格详情
-                ui.allocate_ui(egui::vec2(ui.available_width() - 8.0, ui.available_height()), |ui| {
+        // 右:Win11 风格详情(纵向可滚动)
+        ui.allocate_ui(egui::vec2(ui.available_width() - 4.0, ui.available_height()), |ui| {
+            egui::ScrollArea::vertical()
+                .auto_shrink([false, true])
+                .show(ui, |ui| {
                     render_detail(ui, snap, selected);
                 });
-            });
         });
+    });
 }
 
 fn build_items(snap: &SystemSnapshot) -> Vec<PerfItem> {
@@ -179,46 +179,49 @@ fn resource_index(r: PerfResource) -> u8 {
     }
 }
 
+fn resource_name(r: PerfResource) -> &'static str {
+    match r {
+        PerfResource::Cpu => "CPU",
+        PerfResource::Memory => "内存",
+        PerfResource::Disk(_) => "磁盘",
+        PerfResource::Network => "网络",
+        PerfResource::Gpu => "GPU",
+    }
+}
+
 /// Win11 风格详情:大标题数值叠加在大图左上角 + 下方两列统计网格。
 fn render_detail(ui: &mut egui::Ui, snap: &SystemSnapshot, selected: &PerfResource) {
     let (title, headline, subtitle, hist, max, color, stats) = resolve(snap, selected);
 
-    // 标题(硬件型号/资源名)
-    ui.add_space(2.0);
-    ui.label(egui::RichText::new(&title).strong().size(15.0));
-    ui.add_space(6.0);
+    // 标题行:资源名(粗) + 硬件型号(小/暗)
+    ui.horizontal(|ui| {
+        ui.label(egui::RichText::new(resource_name(*selected)).strong().size(16.0));
+        ui.label(egui::RichText::new(&title).color(theme::text_dim()).size(12.0));
+    });
+    ui.add_space(8.0);
 
-    // 图表区(大标题数值叠加在左上角)
+    // 大图(铺满整块)+ 大数值叠加在左上角(Win11 标志样式)
     let width = ui.available_width();
-    let chart_h = 190.0;
+    let chart_h = 200.0;
     let (rect, _) = ui.allocate_exact_size(egui::vec2(width, chart_h), egui::Sense::hover());
     let painter = ui.painter_at(rect);
-    // 背景描边
-    painter.rect_stroke(rect, egui::Rounding::same(4.0), egui::Stroke::new(1.0_f32, theme::separator()));
-    // 大标题数值 + 小副标题(左上角叠加)
-    painter.text(
-        rect.left_top() + egui::vec2(10.0, 4.0),
-        egui::Align2::LEFT_TOP,
-        &headline,
-        egui::FontId::proportional(30.0),
-        color,
+    // 图表面板背景(微亮,定义区域)+ 描边
+    painter.rect_filled(
+        rect,
+        egui::Rounding::same(4.0),
+        egui::Color32::from_rgba_unmultiplied(255, 255, 255, 5),
     );
-    painter.text(
-        rect.left_top() + egui::vec2(10.0, 40.0),
-        egui::Align2::LEFT_TOP,
-        &subtitle,
-        egui::FontId::proportional(12.0),
-        theme::text_dim(),
+    painter.rect_stroke(
+        rect,
+        egui::Rounding::same(4.0),
+        egui::Stroke::new(1.0_f32, theme::separator()),
     );
-    // 折线/面积(留出左上角标题空间,从 y=58 起)
-    let plot_rect = egui::Rect::from_min_size(
-        egui::pos2(rect.left() + 6.0, rect.top() + 58.0),
-        egui::vec2(rect.width() - 12.0, rect.height() - 64.0),
-    );
+    // 折线/面积铺满整块
+    let plot_rect = rect.shrink(6.0);
     if hist.len() >= 2 {
-        let fill = egui::Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 55);
+        let fill = egui::Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 50);
         charts::paint_series(
-            painter,
+            painter.clone(),
             plot_rect,
             &hist,
             max,
@@ -226,15 +229,31 @@ fn render_detail(ui: &mut egui::Ui, snap: &SystemSnapshot, selected: &PerfResour
             Some((color, egui::Stroke::new(1.6_f32, color))),
         );
     }
+    // 大数值 + 副标题:压在图上绘制(后画),位于左上角
+    painter.text(
+        rect.left_top() + egui::vec2(12.0, 6.0),
+        egui::Align2::LEFT_TOP,
+        &headline,
+        egui::FontId::proportional(30.0),
+        color,
+    );
+    painter.text(
+        rect.left_top() + egui::vec2(12.0, 42.0),
+        egui::Align2::LEFT_TOP,
+        &subtitle,
+        egui::FontId::proportional(12.0),
+        theme::text_dim(),
+    );
 
-    ui.add_space(10.0);
+    ui.add_space(12.0);
     ui.separator();
-    ui.add_space(4.0);
+    ui.add_space(6.0);
 
     // 两列统计网格(每行两对 标签|值)
     egui::Grid::new("perf_stats")
         .num_columns(4)
-        .spacing([20.0, 6.0])
+        .spacing([24.0, 8.0])
+        .min_col_width(60.0)
         .show(ui, |ui| {
             for pair in stats.chunks(2) {
                 for (k, val) in pair {
