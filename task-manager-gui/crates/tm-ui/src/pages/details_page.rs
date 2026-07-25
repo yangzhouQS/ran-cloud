@@ -26,12 +26,11 @@ pub fn show(
         .auto_shrink([false, false])
         .show(ui, |ui| {
             egui::Grid::new("details_grid")
-                .num_columns(8)
+                .num_columns(7)
                 .striped(true)
                 .min_col_width(56.0)
-                .spacing([8.0, 3.0])
+                .spacing([20.0, 3.0])
                 .show(ui, |ui| {
-                    ui.strong("");
                     ui.strong("名称");
                     ui.strong("PID");
                     ui.strong("状态");
@@ -41,8 +40,11 @@ pub fn show(
                     ui.strong("CPU");
                     ui.end_row();
                     for p in &rows {
-                        crate::icons::render(ui, icons, &p.exe_path, &p.name);
-                        ui.label(&p.name);
+                        ui.horizontal(|ui| {
+                            crate::icons::render(ui, icons, &p.exe_path, &p.name);
+                            ui.add_space(4.0);
+                            ui.label(&p.name);
+                        });
                         ui.label(format!("{}", p.pid));
                         ui.label(status_str(p.status));
                         ui.label(p.user.clone().unwrap_or_else(|| "—".into()));

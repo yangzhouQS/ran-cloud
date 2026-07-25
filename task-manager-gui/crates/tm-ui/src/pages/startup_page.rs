@@ -17,12 +17,11 @@ pub fn show(
         .auto_shrink([false, false])
         .show(ui, |ui| {
             egui::Grid::new("startup_grid")
-                .num_columns(4)
+                .num_columns(3)
                 .striped(true)
                 .min_col_width(80.0)
-                .spacing([8.0, 4.0])
+                .spacing([24.0, 4.0])
                 .show(ui, |ui| {
-                    ui.strong("");
                     ui.strong("名称");
                     ui.strong("命令");
                     ui.strong("位置");
@@ -32,8 +31,11 @@ pub fn show(
                             || e.name.to_ascii_lowercase().contains(&q)
                             || e.command.to_ascii_lowercase().contains(&q)
                     }) {
-                        crate::icons::render(ui, icons, &exe_from_command(&e.command), &e.name);
-                        ui.label(&e.name);
+                        ui.horizontal(|ui| {
+                            crate::icons::render(ui, icons, &exe_from_command(&e.command), &e.name);
+                            ui.add_space(4.0);
+                            ui.label(&e.name);
+                        });
                         ui.label(&e.command);
                         ui.label(&e.location);
                         ui.end_row();

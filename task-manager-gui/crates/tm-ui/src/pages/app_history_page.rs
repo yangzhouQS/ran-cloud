@@ -19,12 +19,11 @@ pub fn show(
         .auto_shrink([false, false])
         .show(ui, |ui| {
             egui::Grid::new("app_history_grid")
-                .num_columns(4)
+                .num_columns(3)
                 .striped(true)
                 .min_col_width(80.0)
-                .spacing([8.0, 4.0])
+                .spacing([24.0, 4.0])
                 .show(ui, |ui| {
-                    ui.strong("");
                     ui.strong("应用");
                     ui.strong("CPU 时间");
                     ui.strong("网络");
@@ -32,8 +31,11 @@ pub fn show(
                     for e in snap.app_history.iter().filter(|e| {
                         q.is_empty() || e.name.to_ascii_lowercase().contains(&q)
                     }) {
-                        crate::icons::render(ui, icons, &e.exe_path, &e.name);
-                        ui.label(&e.name);
+                        ui.horizontal(|ui| {
+                            crate::icons::render(ui, icons, &e.exe_path, &e.name);
+                            ui.add_space(4.0);
+                            ui.label(&e.name);
+                        });
                         ui.label(fmt_dur(e.cpu_secs));
                         ui.label(fmt_net(e.net_bytes));
                         ui.end_row();
